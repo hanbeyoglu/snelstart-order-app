@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: snelstart-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: snelstart-order-app
+    networks:
+      - snelstart-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: snelstart-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - snelstart-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: snelstart-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - snelstart-network
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    container_name: snelstart-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/snelstart-order-app
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=product-images
+      - MINIO_PUBLIC_URL=http://localhost:9000
+      - SNELSTART_API_BASE_URL=${SNELSTART_API_BASE_URL:-https://api.snelstart.nl/v2}
+      - SNELSTART_MOCK=${SNELSTART_MOCK:-false}
+      - SNELSTART_MAX_CONCURRENT=5
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-change-this-in-production}
+    depends_on:
+      - mongodb
+      - redis
+      - minio
+    networks:
+      - snelstart-network
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    container_name: snelstart-worker
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/snelstart-order-app
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=product-images
+      - MINIO_PUBLIC_URL=http://localhost:9000
+      - SNELSTART_API_BASE_URL=${SNELSTART_API_BASE_URL:-https://api.snelstart.nl/v2}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-change-this-in-production}
+    depends_on:
+      - mongodb
+      - redis
+      - minio
+    networks:
+      - snelstart-network
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    container_name: snelstart-web
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    depends_on:
+      - api
+    networks:
+      - snelstart-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+  minio_data:
+
+networks:
+  snelstart-network:
+    driver: bridge
+
