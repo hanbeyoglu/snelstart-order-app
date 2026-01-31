@@ -2,41 +2,29 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY apps/api/package*.json ./apps/api/
-COPY packages/shared/package*.json ./packages/shared/
+RUN npm install -g pnpm
 
-# Install dependencies
-RUN npm install
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
+COPY package.json ./
 
-# Copy source
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+
+RUN pnpm install --frozen-lockfile
+
 COPY . .
 
-# Build shared package first, then api
-RUN npm run build --workspace=packages/shared
-RUN npm run build --workspace=apps/api
+RUN pnpm --filter ./packages/shared build
+RUN pnpm --filter ./apps/api build
+
+# ------------------
 
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY apps/api/package*.json ./apps/api/
-COPY packages/shared/package*.json ./packages/shared/
-
-# Install production dependencies
-RUN npm install --omit=dev
-
-# Copy built files
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-
-WORKDIR /app/apps/api
+COPY --from=builder /app .
 
 EXPOSE 3001
-
-# NestJS workspace build creates dist/apps/api/src/main.js, adjust path
-CMD ["node", "dist/apps/api/src/main.js"]
-
+CMD ["node", "apps/api/dist/main.js"]
