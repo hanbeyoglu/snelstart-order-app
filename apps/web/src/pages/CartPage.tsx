@@ -15,7 +15,7 @@ const generateUUID = () => {
 };
 
 export default function CartPage() {
-  const { items, customerId, updateQuantity, updateUnitPrice, updateTotalPrice, resetToOriginalPrice, removeItem, setCustomer, clear } = useCartStore();
+  const { items, customerId, updateQuantity, updateUnitPrice, resetToOriginalPrice, removeItem, setCustomer, clear } = useCartStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerId || '');
@@ -161,9 +161,6 @@ export default function CartPage() {
           vatPercentage: item.vatPercentage || 0,
         };
       });
-
-      const subtotal = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-      const total = subtotal;
 
       const response = await api.post('/orders', {
         idempotencyKey: generateUUID(),

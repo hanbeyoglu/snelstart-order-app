@@ -8,7 +8,6 @@ interface CartState {
   addItem: (item: CartItem) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updateUnitPrice: (productId: string, unitPrice: number) => void;
-  updateTotalPrice: (productId: string, totalPrice: number) => void;
   resetToOriginalPrice: (productId: string) => void;
   removeItem: (productId: string) => void;
   setCustomer: (customerId: string | null) => void;
@@ -55,23 +54,6 @@ export const useCartStore = create<CartState>()(
               : i,
           ),
         })),
-      updateTotalPrice: (productId, totalPrice) =>
-        set((state) => {
-          const item = state.items.find((i) => i.productId === productId);
-          if (!item) return state;
-          const newUnitPrice = totalPrice / item.quantity;
-          return {
-            items: state.items.map((i) =>
-              i.productId === productId
-                ? {
-                    ...i,
-                    customUnitPrice: newUnitPrice,
-                    totalPrice: totalPrice,
-                  }
-                : i,
-            ),
-          };
-        }),
       resetToOriginalPrice: (productId) =>
         set((state) => {
           const item = state.items.find((i) => i.productId === productId);
