@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
@@ -23,20 +23,6 @@ export default function CreateCustomerPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Get countries list (if available)
-  const { data: countries } = useQuery({
-    queryKey: ['countries'],
-    queryFn: async () => {
-      try {
-        const response = await api.get('/snelstart/landen'); // Adjust endpoint if needed
-        return response.data || [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: false, // Disable for now, can enable if endpoint exists
-  });
 
   const createCustomerMutation = useMutation({
     mutationFn: async (data: any) => {
