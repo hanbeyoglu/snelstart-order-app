@@ -39,16 +39,41 @@ import { R2Module } from './r2/r2.module';
       }),
     }),
 
-    // 🧵 Redis / BullMQ
+    // 🧵 Redis / BullMQ (optional - only if Redis is available)
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: config.get<number>('REDIS_PORT'),
-          password: config.get<string>('REDIS_PASSWORD'),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const redisHost = config.get<string>('REDIS_HOST');
+        const redisPort = config.get<number>('REDIS_PORT');
+        
+        // Only configure Bull if Redis host is provided
+        if (!redisHost) {
+          console.warn('⚠️  REDIS_HOST not set, BullMQ queues will be disabled');
+          return {
+            connection: {
+              host: 'localhost',
+              port: 6379,
+            },
+            // Disable connection attempts
+            skipConnectionCheck: true,
+          };
+        }
+
+        return {
+          connection: {
+            host: redisHost,
+            port: redisPort || 6379,
+            password: config.get<string>('REDIS_PASSWORD'),
+            maxRetriesPerRequest: 1,
+            retryStrategy: (times: number) => {
+              if (times > 3) {
+                return null; // Stop retrying
+              }
+              return Math.min(times * 100, 500);
+            },
+          },
+        };
+      },
     }),
 
     AuthModule,

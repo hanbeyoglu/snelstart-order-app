@@ -61,34 +61,25 @@ export class R2Service {
     return { url, key };
   }
 
+  /**
+   * Generate public CDN URL for an uploaded object.
+   * ALWAYS returns: ${CLOUDFLARE_R2_PUBLIC_URL}/${key}
+   * NEVER returns r2.dev URLs or internal bucket paths.
+   */
   getPublicUrl(key: string): string {
     if (!this.isConfigured) {
       throw new Error('Cloudflare R2 is not configured. Please set CLOUDFLARE_R2_* environment variables.');
     }
 
-    if (this.publicUrl) {
-      // Check if it's a storage endpoint (wrong format)
-      if (this.publicUrl.includes('.r2.cloudflarestorage.com') && !this.publicUrl.includes('/pub-')) {
-        // This is a storage endpoint, not a public URL
-        // For R2, we need to construct the public URL differently
-        // If bucket is public, use: https://pub-{random-id}.r2.dev/{key}
-        // But we don't have that info, so we'll use the bucket name in the path
-        const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-        const bucketName = this.bucketName;
-        // R2 public URL format when bucket is public: https://{accountId}.r2.cloudflarestorage.com/{bucketName}/{key}
-        // But this requires the bucket to be public
-        // Better: use custom domain or R2 public URL
-        console.warn(`[R2Service] CLOUDFLARE_R2_PUBLIC_URL appears to be a storage endpoint. Using path-style URL.`);
-        const baseUrl = this.publicUrl.replace(/\/$/, '');
-        return `${baseUrl}/${bucketName}/${key}`;
-      }
-      
-      // Remove trailing slash if present
-      const baseUrl = this.publicUrl.replace(/\/$/, '');
-      return `${baseUrl}/${key}`;
+    if (!this.publicUrl) {
+      throw new Error('CLOUDFLARE_R2_PUBLIC_URL is not configured. Please set CLOUDFLARE_R2_PUBLIC_URL to your custom CDN domain (e.g., https://cdn.hanbeyoglu.com)');
     }
-    // Fallback: R2 public URL format (if custom domain not configured)
-    // This requires R2 bucket to be public
-    throw new Error('CLOUDFLARE_R2_PUBLIC_URL is not configured');
+
+    // Remove trailing slash if present
+    const baseUrl = this.publicUrl.replace(/\/$/, '');
+    
+    // ALWAYS return: ${CLOUDFLARE_R2_PUBLIC_URL}/${key}
+    // Example: https://cdn.hanbeyoglu.com/1117b9c7-afd7-4a94-92c2-09012280d8c1
+    return `${baseUrl}/${key}`;
   }
 }

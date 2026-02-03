@@ -121,6 +121,23 @@ export default function Layout() {
     }
   }, [tokenTooltipOpen]);
 
+  // Dışarı tıklandığında user menu'yu kapat
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (userMenuOpen && !target.closest('[data-user-menu]')) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [userMenuOpen]);
+
   const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const navLinks = [
@@ -134,8 +151,8 @@ export default function Layout() {
   const adminLinks =
     user?.role === 'admin'
       ? [
-          { to: '/admin/settings', label: 'Ayarlar', icon: '⚙️' },
-          { to: '/admin/pricing', label: 'Fiyat Kuralları', icon: '💰' },
+          // { to: '/admin/settings', label: 'Ayarlar', icon: '⚙️' },
+          // { to: '/admin/pricing', label: 'Fiyat Kuralları', icon: '💰' },
           { to: '/admin/images', label: 'Resimler', icon: '🖼️' },
         ]
       : [];
@@ -569,13 +586,14 @@ export default function Layout() {
 
               {/* User Menu */}
               <motion.div
+                data-user-menu
                 style={{
                   position: 'relative',
                   display: 'inline-block',
                 }}
-                onMouseLeave={() => setUserMenuOpen(false)}
               >
                 <motion.button
+                  data-user-menu
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="btn-secondary"
                   style={{
@@ -625,6 +643,7 @@ export default function Layout() {
                 <AnimatePresence>
                   {userMenuOpen && (
                     <motion.div
+                      data-user-menu
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -642,6 +661,7 @@ export default function Layout() {
                         zIndex: 1001,
                         overflow: 'hidden',
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {/* User Info */}
                       <div
@@ -672,14 +692,16 @@ export default function Layout() {
                           >
                             {user?.email?.charAt(0).toUpperCase() || '👤'}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <p
                               style={{
                                 fontWeight: 600,
                                 color: 'var(--text-primary)',
                                 margin: 0,
                                 fontSize: '0.9rem',
-                                wordBreak: 'break-word',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
                             >
                               {user?.email || 'Kullanıcı'}
@@ -1040,14 +1062,16 @@ export default function Layout() {
                       >
                         {user?.email?.charAt(0).toUpperCase() || '👤'}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <p
                           style={{
                             fontWeight: 600,
                             color: 'var(--text-primary)',
                             margin: 0,
                             fontSize: '0.9rem',
-                            wordBreak: 'break-word',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
                           {user?.email || 'Kullanıcı'}

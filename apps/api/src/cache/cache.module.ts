@@ -9,28 +9,54 @@ import { Redis } from 'ioredis';
     {
       provide: 'REDIS_CLIENT',
       useFactory: () => {
+        const redisHost = process.env.REDIS_HOST || 'localhost';
+        const redisPort = parseInt(process.env.REDIS_PORT || '6379');
+        
+        // Only create Redis client if host is provided
+        if (!redisHost || redisHost === '') {
+          console.warn('⚠️  REDIS_HOST not set, cache will be disabled');
+          return null;
+        }
+
         const redis = new Redis({
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379'),
+          host: redisHost,
+          port: redisPort,
           password: process.env.REDIS_PASSWORD,
           retryStrategy: (times) => {
-            if (times > 10) {
-              return null; // Stop retrying after 10 attempts
+            // Stop retrying after 5 attempts to reduce spam
+            if (times > 5) {
+              console.warn('⚠️  Redis connection failed after 5 attempts, cache disabled');
+              return null;
             }
-            return Math.min(times * 50, 2000);
+            return Math.min(times * 100, 1000);
           },
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: 1, // Reduce retries
           lazyConnect: true,
+          enableOfflineQueue: false, // Don't queue commands when offline
+          connectTimeout: 2000, // 2 second timeout
         });
         
-        // Handle connection errors gracefully
+        // Handle connection errors gracefully - only log once
+        let errorLogged = false;
         redis.on('error', (err) => {
-          console.warn('Redis connection error (non-fatal):', err.message);
+          if (!errorLogged) {
+            console.warn(`⚠️  Redis connection error (cache disabled): ${err.message}`);
+            errorLogged = true;
+          }
+        });
+        
+        redis.on('connect', () => {
+          console.log('✅ Redis connected');
+          errorLogged = false;
+        });
+        
+        redis.on('ready', () => {
+          console.log('✅ Redis ready');
         });
         
         // Try to connect, but don't fail if it doesn't work
         redis.connect().catch(() => {
-          console.warn('Redis connection failed, continuing without cache');
+          // Connection failed, but that's OK - cache is optional
         });
         
         return redis;

@@ -141,7 +141,10 @@ export default function ProductDetailPage() {
     );
   }
 
-  const coverImage = images?.find((img: any) => img.isCover) || images?.[0];
+  // Önce product schema'dan coverImageUrl'i kontrol et, yoksa images array'inden al
+  const coverImage = product?.coverImageUrl 
+    ? { imageUrl: product.coverImageUrl, isCover: true }
+    : images?.find((img: any) => img.isCover) || images?.[0];
 
   return (
     <div className="container">

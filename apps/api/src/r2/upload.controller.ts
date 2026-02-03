@@ -20,24 +20,9 @@ export class UploadController {
     try {
       const { url, key } = await this.r2Service.generatePresignedUploadUrl(body.type);
       
-      // Get public CDN URL
-      let publicUrl: string;
-      try {
-        publicUrl = this.r2Service.getPublicUrl(key);
-        console.log(`[UploadController] Generated public URL: ${publicUrl}`);
-      } catch (error: any) {
-        console.error(`[UploadController] Error getting public URL:`, error.message);
-        // If public URL not configured, construct a fallback URL
-        // This will work if bucket is public
-        const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-        const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME;
-        if (accountId && bucketName) {
-          publicUrl = `https://${accountId}.r2.cloudflarestorage.com/${bucketName}/${key}`;
-          console.log(`[UploadController] Using fallback public URL: ${publicUrl}`);
-        } else {
-          publicUrl = key;
-        }
-      }
+      // Get public CDN URL - ALWAYS returns CDN URL, never r2.dev or internal paths
+      const publicUrl = this.r2Service.getPublicUrl(key);
+      console.log(`[UploadController] Generated public CDN URL: ${publicUrl}`);
 
       return { url, key, publicUrl };
     } catch (error: any) {

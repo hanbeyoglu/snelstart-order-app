@@ -112,6 +112,19 @@ export class ImagesService {
       if (isCover) {
         mapping.images.forEach((img) => (img.isCover = false));
         mapping.coverImageId = image.id;
+        
+        // Update Product schema with cover image URL
+        try {
+          await this.productModel.findOneAndUpdate(
+            { snelstartId: resolvedProductId },
+            { imageUrl: imageUrl.trim() },
+            { upsert: false }
+          ).exec();
+          console.log(`[ImagesService] Product schema updated with cover image URL: ${imageUrl.trim()}`);
+        } catch (error: any) {
+          console.error(`[ImagesService] Error updating Product schema:`, error.message);
+          // Don't throw error, just log it - image mapping is more important
+        }
       }
 
       mapping.images.push(image);
@@ -274,11 +287,29 @@ export class ImagesService {
       throw new NotFoundException('Product image mapping not found');
     }
 
+    const coverImage = mapping.images.find((img) => img.id === imageId);
+    if (!coverImage) {
+      throw new NotFoundException('Image not found');
+    }
+
     mapping.images.forEach((img) => {
       img.isCover = img.id === imageId;
     });
     mapping.coverImageId = imageId;
     await mapping.save();
+
+    // Update Product schema with cover image URL
+    try {
+      await this.productModel.findOneAndUpdate(
+        { snelstartId: resolvedProductId },
+        { imageUrl: coverImage.imageUrl },
+        { upsert: false }
+      ).exec();
+      console.log(`[ImagesService] Product schema updated with cover image URL: ${coverImage.imageUrl}`);
+    } catch (error: any) {
+      console.error(`[ImagesService] Error updating Product schema:`, error.message);
+      // Don't throw error, just log it - image mapping is more important
+    }
   }
 
   async deleteImage(productId: string, imageId: string): Promise<void> {

@@ -42,6 +42,9 @@ export class Product extends Document {
   @Prop()
   barcode?: string;
 
+  @Prop()
+  imageUrl?: string; // Cover image URL from R2
+
   @Prop({ default: Date.now })
   lastSyncedAt: Date;
 }

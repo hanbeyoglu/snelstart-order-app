@@ -126,9 +126,12 @@ export class ProductsService {
               );
             }
 
-            // Get cover image - use bulk method for efficiency
-            const coverImages = await this.imagesService.getCoverImagesForProducts([product.snelstartId]);
-            const coverImageUrl = coverImages[product.snelstartId] || null;
+            // Get cover image - first check Product schema, then fallback to ImagesService
+            let coverImageUrl = product.imageUrl || null;
+            if (!coverImageUrl) {
+              const coverImages = await this.imagesService.getCoverImagesForProducts([product.snelstartId]);
+              coverImageUrl = coverImages[product.snelstartId] || null;
+            }
 
             return {
               id: product.snelstartId,
@@ -254,20 +257,45 @@ export class ProductsService {
     const paginatedProducts = enrichedProducts.slice(skip, skip + limit);
 
     // Get cover images for paginated products
+    // First, get products from DB to check imageUrl field
     const productIds = paginatedProducts.map((p) => p.id);
-    let coverImagesMap: Record<string, string | null> = {};
+    const dbProductsMap = new Map<string, ProductDocument>();
     try {
-      coverImagesMap = await this.imagesService.getCoverImagesForProducts(productIds);
+      const dbProducts = await this.productModel.find({ 
+        snelstartId: { $in: productIds } 
+      }).exec();
+      dbProducts.forEach((p) => {
+        dbProductsMap.set(p.snelstartId, p);
+      });
     } catch (error) {
-      console.error('[ProductsService] Error getting cover images:', error);
-      // Continue without images if there's an error
+      console.error('[ProductsService] Error getting products from DB:', error);
     }
 
-    // Add cover images to products
-    const productsWithImages = paginatedProducts.map((product) => ({
-      ...product,
-      coverImageUrl: coverImagesMap[product.id] || null,
-    }));
+    // Get cover images from ImagesService for products without imageUrl in Product schema
+    const productIdsWithoutImage = productIds.filter((id) => {
+      const dbProduct = dbProductsMap.get(id);
+      return !dbProduct?.imageUrl;
+    });
+    
+    let coverImagesMap: Record<string, string | null> = {};
+    if (productIdsWithoutImage.length > 0) {
+      try {
+        coverImagesMap = await this.imagesService.getCoverImagesForProducts(productIdsWithoutImage);
+      } catch (error) {
+        console.error('[ProductsService] Error getting cover images:', error);
+        // Continue without images if there's an error
+      }
+    }
+
+    // Add cover images to products - prioritize Product schema imageUrl
+    const productsWithImages = paginatedProducts.map((product) => {
+      const dbProduct = dbProductsMap.get(product.id);
+      const coverImageUrl = dbProduct?.imageUrl || coverImagesMap[product.id] || null;
+      return {
+        ...product,
+        coverImageUrl,
+      };
+    });
 
     const result = {
       data: productsWithImages,
@@ -314,6 +342,20 @@ export class ProductsService {
       }
     }
     
+    // Get cover image URL from Product schema or ImagesService
+    let coverImageUrl: string | null = null;
+    const dbProduct = await this.productModel.findOne({ snelstartId: product.id }).exec();
+    if (dbProduct?.imageUrl) {
+      coverImageUrl = dbProduct.imageUrl;
+    } else {
+      try {
+        const coverImages = await this.imagesService.getCoverImagesForProducts([product.id]);
+        coverImageUrl = coverImages[product.id] || null;
+      } catch (error) {
+        console.error('[ProductsService] Error getting cover image:', error);
+      }
+    }
+
     // Save to database
     await this.productModel.findOneAndUpdate(
       { snelstartId: product.id },
@@ -359,6 +401,8 @@ export class ProductsService {
       } : undefined,
       // Include prijsafspraak if available
       prijsafspraak: product.prijsafspraak,
+      // Include cover image URL (from Product schema or ImagesService)
+      coverImageUrl,
     };
 
     await this.cacheService.set(cacheKey, enriched, 300);
