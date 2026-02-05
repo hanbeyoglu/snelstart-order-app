@@ -362,6 +362,7 @@ export class ProductsService {
       {
         snelstartId: product.id,
         artikelnummer: product.artikelnummer || product.artikelcode,
+        artikelcode: product.artikelcode || product.artikelnummer, // Store artikelcode separately
         omschrijving: product.omschrijving,
         artikelgroepId: product.artikelgroepId,
         artikelgroepOmschrijving: product.artikelgroepOmschrijving,

@@ -9,6 +9,9 @@ export class Product extends Document {
   @Prop({ required: true })
   artikelnummer: string; // SKU
 
+  @Prop()
+  artikelcode?: string; // Article code (alternative identifier)
+
   @Prop({ required: true })
   omschrijving: string; // Name
 
