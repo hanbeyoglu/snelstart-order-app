@@ -13,6 +13,7 @@ import {
 } from './schemas/category-image-mapping.schema';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { Category, CategoryDocument } from '../categories/schemas/category.schema';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class ImagesService {
@@ -25,7 +26,23 @@ export class ImagesService {
     private productModel: Model<ProductDocument>,
     @InjectModel(Category.name)
     private categoryModel: Model<CategoryDocument>,
+    private cacheService: CacheService,
   ) {}
+
+  /**
+   * Add cache-busting parameter to image URL to prevent browser/CDN caching
+   */
+  private addCacheBustingParam(imageUrl: string): string {
+    try {
+      const url = new URL(imageUrl);
+      // Add timestamp as version parameter for cache-busting
+      url.searchParams.set('v', Date.now().toString());
+      return url.toString();
+    } catch {
+      // If URL parsing fails, return original URL
+      return imageUrl;
+    }
+  }
 
   /**
    * Resolve product ID - if artikelcode/artikelnummer is provided, find the actual UUID
@@ -99,10 +116,13 @@ export class ImagesService {
       const resolvedProductId = await this.resolveProductId(productId);
       console.log(`[ImagesService] Resolved product ID: ${resolvedProductId}`);
 
+      // Add cache-busting parameter to image URL to prevent browser/CDN caching
+      const imageUrlWithVersion = this.addCacheBustingParam(imageUrl.trim());
+
       const image: ProductImage = {
         id: `img-${Date.now()}`,
         snelstartProductId: resolvedProductId,
-        imageUrl: imageUrl.trim(), // Store the full URL directly
+        imageUrl: imageUrlWithVersion, // Store the full URL with cache-busting
         isCover,
         uploadedAt: new Date(),
       };
@@ -145,6 +165,15 @@ export class ImagesService {
       } catch (error: any) {
         console.error(`[ImagesService] Database save error:`, error.message);
         throw new BadRequestException(`Veritabanı kayıt hatası: ${error.message}`);
+      }
+
+      // Invalidate cache to ensure fresh data
+      try {
+        await this.cacheService.invalidateProductCache(resolvedProductId);
+        await this.cacheService.deletePattern('products:*');
+        console.log(`[ImagesService] Cache invalidated for product: ${resolvedProductId}`);
+      } catch (error: any) {
+        console.warn(`[ImagesService] Cache invalidation failed (non-critical):`, error.message);
       }
 
       // Return image with URL
@@ -347,6 +376,27 @@ export class ImagesService {
       }
     }
     await mapping.save();
+
+    // Update Product schema
+    try {
+      const coverImage = mapping.images.find((img: any) => img.isCover);
+      await this.productModel.findOneAndUpdate(
+        { snelstartId: resolvedProductId },
+        { imageUrl: coverImage?.imageUrl || null },
+        { upsert: false }
+      ).exec();
+    } catch (error: any) {
+      console.error(`[ImagesService] Error updating Product schema:`, error.message);
+    }
+
+    // Invalidate cache to ensure fresh data
+    try {
+      await this.cacheService.invalidateProductCache(resolvedProductId);
+      await this.cacheService.deletePattern('products:*');
+      console.log(`[ImagesService] Cache invalidated for product: ${resolvedProductId}`);
+    } catch (error: any) {
+      console.warn(`[ImagesService] Cache invalidation failed (non-critical):`, error.message);
+    }
   }
 
   async updateThumbnailUrl(imageId: string, thumbnailUrl: string): Promise<void> {
@@ -420,10 +470,13 @@ export class ImagesService {
       isCover = true;
     }
 
+    // Add cache-busting parameter to image URL to prevent browser/CDN caching
+    const imageUrlWithVersion = this.addCacheBustingParam(imageUrl);
+
     const newImage: CategoryImage = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       snelstartCategoryId: categoryId,
-      imageUrl,
+      imageUrl: imageUrlWithVersion, // Store the full URL with cache-busting
       isCover,
       uploadedAt: new Date(),
     };
@@ -443,6 +496,14 @@ export class ImagesService {
       ).exec();
     } catch (error: any) {
       console.error(`[ImagesService] Error updating Category schema:`, error.message);
+    }
+
+    // Invalidate cache to ensure fresh data
+    try {
+      await this.cacheService.deletePattern('categories:*');
+      console.log(`[ImagesService] Cache invalidated for categories`);
+    } catch (error: any) {
+      console.warn(`[ImagesService] Cache invalidation failed (non-critical):`, error.message);
     }
 
     return newImage;
@@ -481,6 +542,14 @@ export class ImagesService {
       ).exec();
     } catch (error: any) {
       console.error(`[ImagesService] Error updating Category schema:`, error.message);
+    }
+
+    // Invalidate cache to ensure fresh data
+    try {
+      await this.cacheService.deletePattern('categories:*');
+      console.log(`[ImagesService] Cache invalidated for categories`);
+    } catch (error: any) {
+      console.warn(`[ImagesService] Cache invalidation failed (non-critical):`, error.message);
     }
   }
 }

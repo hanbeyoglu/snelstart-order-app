@@ -107,3 +107,23 @@ export async function uploadToR2(file: File): Promise<{ key: string; publicUrl: 
     throw error;
   }
 }
+
+/**
+ * Add cache-busting parameter to image URL to prevent browser/CDN caching issues
+ * @param imageUrl - The image URL
+ * @returns The image URL with cache-busting parameter
+ */
+export function getImageUrlWithCacheBust(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  
+  try {
+    const url = new URL(imageUrl);
+    // Add timestamp as cache-busting parameter
+    // This ensures fresh images are loaded after upload
+    url.searchParams.set('v', Date.now().toString());
+    return url.toString();
+  } catch {
+    // If URL parsing fails, return original URL
+    return imageUrl;
+  }
+}
