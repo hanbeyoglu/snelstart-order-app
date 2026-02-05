@@ -30,6 +30,9 @@ export class Category extends Document {
   @Prop()
   uri?: string;
 
+  @Prop()
+  imageUrl?: string;
+
   @Prop({ default: Date.now })
   lastSyncedAt: Date;
 }

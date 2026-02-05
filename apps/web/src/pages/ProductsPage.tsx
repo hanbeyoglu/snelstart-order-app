@@ -208,7 +208,7 @@ export default function ProductsPage() {
               padding: '0.75rem',
             }}
           >
-            {/* Product Image - Square */}
+            {/* Product Image - Square - Responsive with object-fit: cover */}
             {product.coverImageUrl ? (
               <motion.div
                 style={{
@@ -220,6 +220,7 @@ export default function ProductsPage() {
                   overflow: 'hidden',
                   background: '#f0f0f0',
                   flexShrink: 0,
+                  minHeight: 0,
                 }}
               >
                 <motion.img
@@ -232,6 +233,9 @@ export default function ProductsPage() {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                    objectPosition: 'center',
+                    minWidth: 0,
+                    minHeight: 0,
                   }}
                   transition={{ duration: 0.3 }}
                   onError={(e) => {
@@ -253,6 +257,7 @@ export default function ProductsPage() {
                   fontSize: '2rem',
                   flexShrink: 0,
                   position: 'relative',
+                  minHeight: 0,
                 }}
               >
                 <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>

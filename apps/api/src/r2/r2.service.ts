@@ -20,15 +20,26 @@ export class R2Service {
     const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
     const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME;
     const publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL;
-    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
-      console.warn('⚠️  Cloudflare R2 environment variables are missing. R2 upload functionality will be disabled.');
+    
+    // Check required variables
+    const missingVars: string[] = [];
+    if (!accountId) missingVars.push('CLOUDFLARE_ACCOUNT_ID');
+    if (!accessKeyId) missingVars.push('CLOUDFLARE_R2_ACCESS_KEY_ID');
+    if (!secretAccessKey) missingVars.push('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
+    if (!bucketName) missingVars.push('CLOUDFLARE_R2_BUCKET_NAME');
+    if (!publicUrl) missingVars.push('CLOUDFLARE_R2_PUBLIC_URL');
+    
+    if (missingVars.length > 0) {
+      console.warn(`⚠️  Cloudflare R2 environment variables are missing: ${missingVars.join(', ')}. R2 upload functionality will be disabled.`);
       this.isConfigured = false;
       return;
     }
 
     this.bucketName = bucketName;
-    this.publicUrl = publicUrl || null;
+    this.publicUrl = publicUrl;
     this.isConfigured = true;
+    
+    console.log(`✅ Cloudflare R2 configured: bucket=${bucketName}, publicUrl=${publicUrl}`);
 
     this.s3Client = new S3Client({
       region: 'auto',

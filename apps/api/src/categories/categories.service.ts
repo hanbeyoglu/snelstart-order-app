@@ -77,13 +77,16 @@ export class CategoriesService {
       }),
     );
     
-    // Get product counts for each category
+    // Get product counts and cover images for each category
     const categoriesWithCounts = await Promise.all(
       artikelOmzetGroepen.map(async (groep) => {
         // Count products with matching artikelomzetgroepId
         const productCount = await this.productModel.countDocuments({
           artikelomzetgroepId: groep.id,
         }).exec();
+
+        // Get category from database to get imageUrl
+        const category = await this.categoryModel.findOne({ snelstartId: groep.id }).exec();
 
         return {
           id: groep.id,
@@ -92,6 +95,7 @@ export class CategoriesService {
           verkoopNederlandBtwSoort: groep.verkoopNederlandBtwSoort,
           uri: groep.uri,
           productCount,
+          coverImageUrl: category?.imageUrl || null,
         };
       }),
     );

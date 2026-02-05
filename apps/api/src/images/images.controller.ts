@@ -61,5 +61,36 @@ export class ImagesController {
     }
     return this.imagesService.addImageByUrl(productId, body.imageUrl, body.isCover === true);
   }
+
+  // Category Image Endpoints
+  @Get('category/:categoryId')
+  @ApiOperation({ summary: 'Get all images for a category' })
+  async getCategoryImages(@Param('categoryId') categoryId: string) {
+    return this.imagesService.getCategoryImages(categoryId);
+  }
+
+  @Post('category/:categoryId/url')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Add category image by URL (R2 CDN URL or external URL)' })
+  async addCategoryImageByUrl(
+    @Param('categoryId') categoryId: string,
+    @Body() body: { imageUrl: string; isCover?: boolean },
+  ) {
+    if (!body.imageUrl) {
+      throw new Error('imageUrl is required');
+    }
+    return this.imagesService.addCategoryImageByUrl(categoryId, body.imageUrl, body.isCover === true);
+  }
+
+  @Delete('category/:categoryId/:imageId')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Delete category image' })
+  async deleteCategoryImage(
+    @Param('categoryId') categoryId: string,
+    @Param('imageId') imageId: string,
+  ) {
+    await this.imagesService.deleteCategoryImage(categoryId, imageId);
+    return { success: true };
+  }
 }
 

@@ -170,25 +170,56 @@ export default function ProductDetailPage() {
           style={{ padding: 0, overflow: 'hidden' }}
         >
           {coverImage ? (
-            <motion.img
-              src={coverImage.thumbnailUrl || coverImage.imageUrl}
-              alt={product.omschrijving}
-              style={{ width: '100%', height: 'clamp(250px, 40vh, 400px)', objectFit: 'cover' }}
-              transition={{ duration: 0.3 }}
-            />
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f0f0f0',
+                minHeight: '250px',
+                maxHeight: '500px',
+                padding: '1rem',
+                position: 'relative',
+              }}
+            >
+              <motion.img
+                src={coverImage.thumbnailUrl || coverImage.imageUrl}
+                alt={product.omschrijving}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '100%',
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                  objectPosition: 'center',
+                  display: 'block',
+                }}
+                transition={{ duration: 0.3 }}
+                onError={(e) => {
+                  if (coverImage.thumbnailUrl && e.currentTarget.src !== coverImage.imageUrl) {
+                    e.currentTarget.src = coverImage.imageUrl;
+                  }
+                }}
+              />
+            </div>
           ) : (
             <div
               style={{
                 width: '100%',
-                height: '400px',
+                paddingTop: '75%',
+                position: 'relative',
                 background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '4rem',
+                minHeight: '250px',
               }}
             >
-              📦
+              <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                📦
+              </span>
             </div>
           )}
         </motion.div>

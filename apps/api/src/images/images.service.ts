@@ -6,15 +6,25 @@ import {
   ProductImageMappingDocument,
   ProductImage,
 } from './schemas/product-image-mapping.schema';
+import {
+  CategoryImageMapping,
+  CategoryImageMappingDocument,
+  CategoryImage,
+} from './schemas/category-image-mapping.schema';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
+import { Category, CategoryDocument } from '../categories/schemas/category.schema';
 
 @Injectable()
 export class ImagesService {
   constructor(
     @InjectModel(ProductImageMapping.name)
     private imageMappingModel: Model<ProductImageMappingDocument>,
+    @InjectModel(CategoryImageMapping.name)
+    private categoryImageMappingModel: Model<CategoryImageMappingDocument>,
     @InjectModel(Product.name)
     private productModel: Model<ProductDocument>,
+    @InjectModel(Category.name)
+    private categoryModel: Model<CategoryDocument>,
   ) {}
 
   /**
@@ -351,6 +361,126 @@ export class ImagesService {
     if (image) {
       image.thumbnailUrl = thumbnailUrl;
       await mapping.save();
+    }
+  }
+
+  // ========== Category Image Methods ==========
+
+  async getCategoryImages(categoryId: string): Promise<CategoryImage[]> {
+    const mapping = await this.categoryImageMappingModel
+      .findOne({ snelstartCategoryId: categoryId })
+      .exec();
+
+    if (!mapping || !mapping.images || mapping.images.length === 0) {
+      return [];
+    }
+
+    return mapping.images.map((img: any) => ({
+      id: img.id,
+      snelstartCategoryId: categoryId,
+      imageUrl: img.imageUrl,
+      thumbnailUrl: img.thumbnailUrl,
+      isCover: img.isCover || false,
+      uploadedAt: img.uploadedAt || new Date(),
+    }));
+  }
+
+  async addCategoryImageByUrl(
+    categoryId: string,
+    imageUrl: string,
+    isCover: boolean = false,
+  ): Promise<CategoryImage> {
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      throw new BadRequestException('Geçersiz image URL');
+    }
+
+    // Verify category exists
+    const category = await this.categoryModel.findOne({ snelstartId: categoryId }).exec();
+    if (!category) {
+      throw new NotFoundException(`Kategori bulunamadı: ${categoryId}`);
+    }
+
+    let mapping = await this.categoryImageMappingModel
+      .findOne({ snelstartCategoryId: categoryId })
+      .exec();
+
+    if (!mapping) {
+      mapping = new this.categoryImageMappingModel({
+        snelstartCategoryId: categoryId,
+        images: [],
+      });
+    }
+
+    // If this is cover or first image, mark as cover
+    if (isCover || mapping.images.length === 0) {
+      // Unmark all existing images as cover
+      mapping.images.forEach((img: any) => {
+        img.isCover = false;
+      });
+      isCover = true;
+    }
+
+    const newImage: CategoryImage = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      snelstartCategoryId: categoryId,
+      imageUrl,
+      isCover,
+      uploadedAt: new Date(),
+    };
+
+    mapping.images.push(newImage as any);
+    if (isCover) {
+      mapping.coverImageId = newImage.id;
+    }
+    await mapping.save();
+
+    // Update Category schema with cover image URL
+    try {
+      await this.categoryModel.findOneAndUpdate(
+        { snelstartId: categoryId },
+        { imageUrl: newImage.imageUrl },
+        { upsert: false }
+      ).exec();
+    } catch (error: any) {
+      console.error(`[ImagesService] Error updating Category schema:`, error.message);
+    }
+
+    return newImage;
+  }
+
+  async deleteCategoryImage(categoryId: string, imageId: string): Promise<void> {
+    const mapping = await this.categoryImageMappingModel
+      .findOne({ snelstartCategoryId: categoryId })
+      .exec();
+    if (!mapping) {
+      throw new NotFoundException('Category image mapping not found');
+    }
+
+    const image = mapping.images.find((img) => img.id === imageId);
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    // Remove from mapping
+    mapping.images = mapping.images.filter((img) => img.id !== imageId);
+    if (mapping.coverImageId === imageId) {
+      mapping.coverImageId = mapping.images[0]?.id;
+      if (mapping.coverImageId) {
+        mapping.images[0].isCover = true;
+      }
+    }
+    await mapping.save();
+
+    // Update Category schema
+    try {
+      const coverImage = mapping.images.find((img: any) => img.isCover);
+      await this.categoryModel.findOneAndUpdate(
+        { snelstartId: categoryId },
+        { imageUrl: coverImage?.imageUrl || null },
+        { upsert: false }
+      ).exec();
+    } catch (error: any) {
+      console.error(`[ImagesService] Error updating Category schema:`, error.message);
     }
   }
 }

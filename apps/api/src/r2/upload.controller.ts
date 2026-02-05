@@ -26,9 +26,10 @@ export class UploadController {
 
       return { url, key, publicUrl };
     } catch (error: any) {
-      if (error.message?.includes('not configured')) {
+      console.error('[UploadController] Error:', error.message);
+      if (error.message?.includes('not configured') || error.message?.includes('CLOUDFLARE_R2')) {
         throw new ServiceUnavailableException({
-          message: 'Cloudflare R2 yapılandırılmamış. Lütfen CLOUDFLARE_R2_* environment variables ayarlayın.',
+          message: `Cloudflare R2 yapılandırılmamış: ${error.message}. Lütfen .env dosyasında CLOUDFLARE_R2_* environment variables'larını kontrol edin.`,
           error: 'R2_NOT_CONFIGURED',
         });
       }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
@@ -12,6 +12,7 @@ interface Category {
   verkoopNederlandBtwSoort?: string;
   uri?: string;
   productCount?: number;
+  coverImageUrl?: string;
   children?: Category[];
 }
 
@@ -85,20 +86,52 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
           }}
         />
 
-        {/* Icon */}
-        <motion.div
-          style={{
-            fontSize: '3.5rem',
-            marginBottom: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-        >
-          {icon}
-        </motion.div>
+        {/* Category Image or Icon */}
+        {category.coverImageUrl ? (
+          <motion.div
+            style={{
+              width: '100%',
+              paddingTop: '75%',
+              position: 'relative',
+              marginBottom: '1rem',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: '#f0f0f0',
+            }}
+          >
+            <motion.img
+              src={category.coverImageUrl}
+              alt={category.omschrijving}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
+              }}
+              transition={{ duration: 0.3 }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            style={{
+              fontSize: '3.5rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+          >
+            {icon}
+          </motion.div>
+        )}
 
         {/* Category Name */}
         <div style={{ flex: 1 }}>
@@ -177,6 +210,16 @@ export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories'],
@@ -242,7 +285,18 @@ export default function CategoriesPage() {
   }
 
   // Categories are already flat from the API
-  const displayCategories = categories || [];
+  const allCategories = categories || [];
+  
+  // Filter categories based on search
+  const displayCategories = allCategories.filter((category: Category) => {
+    if (!debouncedSearch.trim()) return true;
+    const searchLower = debouncedSearch.toLowerCase();
+    return (
+      category.omschrijving?.toLowerCase().includes(searchLower) ||
+      category.nummer?.toString().includes(searchLower) ||
+      category.verkoopNederlandBtwSoort?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="container">
@@ -316,6 +370,30 @@ export default function CategoriesPage() {
         </div>
       </motion.div>
 
+      {/* Search Input */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="card"
+        style={{ marginBottom: '2rem' }}
+      >
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Kategori ara (isim, numara, BTW)..."
+          style={{
+            width: '100%',
+            padding: '0.875rem 1rem',
+            fontSize: '1rem',
+            border: '2px solid var(--border)',
+            borderRadius: '12px',
+            transition: 'all 0.3s ease',
+          }}
+        />
+      </motion.div>
+
       {displayCategories.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -335,10 +413,13 @@ export default function CategoriesPage() {
             📂
           </motion.div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            Henüz kategori yok
+            {debouncedSearch.trim() ? 'Kategori bulunamadı' : 'Henüz kategori yok'}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
-            Kategoriler yüklendiğinde burada görünecek
+            {debouncedSearch.trim() 
+              ? `"${debouncedSearch}" için sonuç bulunamadı. Farklı bir arama terimi deneyin.`
+              : 'Kategoriler yüklendiğinde burada görünecek'
+            }
           </p>
         </motion.div>
       ) : (
