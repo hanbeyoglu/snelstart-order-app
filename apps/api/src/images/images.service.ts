@@ -65,16 +65,17 @@ export class ImagesService {
     }
 
     // It's likely an artikelcode or artikelnummer, search in database
-    console.log(`[ImagesService] Identifier is not UUID, searching by artikelnummer...`);
+    console.log(`[ImagesService] Identifier is not UUID, searching by artikelcode, artikelnummer, or snelstartId...`);
     const product = await this.productModel.findOne({
       $or: [
+        { artikelcode: identifier },
         { artikelnummer: identifier },
         { snelstartId: identifier }, // Also check if it's stored as snelstartId
       ],
     }).exec();
 
     if (!product) {
-      console.error(`[ImagesService] Product not found with artikelnummer or snelstartId: ${identifier}`);
+      console.error(`[ImagesService] Product not found with artikelcode, artikelnummer, or snelstartId: ${identifier}`);
       throw new NotFoundException(
         `Ürün bulunamadı. Lütfen geçerli bir ürün ID'si (UUID) veya ürün kodu girin: ${identifier}`
       );
