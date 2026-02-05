@@ -268,18 +268,24 @@ export default function ProductsPage() {
               </div>
             )}
             
-            {/* Product Name - full text with smaller font */}
+            {/* Product Name - Compact and Truncated */}
             <h3
               style={{
                 marginBottom: '0.5rem',
-                fontSize: '0.75rem',
+                fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
-                lineHeight: '1.4',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word',
+                lineHeight: '1.3',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minHeight: '2.6em',
+                maxHeight: '2.6em',
                 flexShrink: 0,
               }}
+              title={product.omschrijving}
             >
               {product.omschrijving}
             </h3>
