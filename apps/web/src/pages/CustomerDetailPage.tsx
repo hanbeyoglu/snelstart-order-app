@@ -10,6 +10,7 @@ export default function CustomerDetailPage() {
   const navigate = useNavigate();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notes, setNotes] = useState('');
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -51,6 +52,35 @@ export default function CustomerDetailPage() {
       showToast(message, 'error');
     },
   });
+
+  const updateVisitStatusMutation = useMutation({
+    mutationFn: async ({ status, notes }: { status: 'VISITED' | 'PLANNED'; notes?: string }) => {
+      const response = await api.put(`/customers/${customerId}/visit-status`, { status, notes });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setNotes(''); // Reset notes after successful update
+      showToast('Müşteri durumu başarıyla güncellendi', 'success');
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Müşteri durumu güncellenirken bir hata oluştu';
+      showToast(message, 'error');
+    },
+  });
+
+  const handleUpdateStatus = (status: 'VISITED' | 'PLANNED') => {
+    if (!customerId) return;
+    updateVisitStatusMutation.mutate({
+      status,
+      notes: notes.trim() || undefined,
+    });
+  };
 
 
   if (isLoadingCustomer) {
@@ -127,6 +157,72 @@ export default function CustomerDetailPage() {
           {deleteMutation.isPending ? 'Siliniyor...' : 'Müşteriyi Sil'}
         </motion.button>
       </div>
+
+      {/* Planlanmaya Ekle / Gidildi Butonları ve Notlar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="card"
+        style={{ marginBottom: '1.5rem' }}
+      >
+        <h3 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)', fontWeight: 600, marginBottom: '1rem' }}>
+          Ziyaret Durumu
+        </h3>
+        
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Notlar
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Müşteri hakkında notlar ekleyin..."
+            className="input"
+            rows={3}
+            style={{ width: '100%', resize: 'vertical' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <motion.button
+            onClick={() => handleUpdateStatus('PLANNED')}
+            className="btn-secondary"
+            style={{ flex: 1, padding: '0.75rem 1.5rem', fontSize: '1rem', width: '100%' }}
+            disabled={updateVisitStatusMutation.isPending}
+            whileTap={{ scale: 0.98 }}
+          >
+            {updateVisitStatusMutation.isPending ? 'Güncelleniyor...' : '📅 Müşteri Gitme Planına Ekle'}
+          </motion.button>
+          <motion.button
+            onClick={() => handleUpdateStatus('VISITED')}
+            className="btn-success"
+            style={{ flex: 1, padding: '0.75rem 1.5rem', fontSize: '1rem', width: '100%' }}
+            disabled={updateVisitStatusMutation.isPending}
+            whileTap={{ scale: 0.98 }}
+          >
+            {updateVisitStatusMutation.isPending ? 'Güncelleniyor...' : '✅ Gidildi'}
+          </motion.button>
+        </div>
+
+        {updateVisitStatusMutation.error && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--danger)',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              marginTop: '1rem',
+              textAlign: 'center',
+              fontSize: '0.875rem',
+            }}
+          >
+            {updateVisitStatusMutation.error.message}
+          </motion.div>
+        )}
+      </motion.div>
 
       {/* Silme Onay Modali */}
       <AnimatePresence>

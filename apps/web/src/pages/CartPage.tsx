@@ -127,18 +127,15 @@ export default function CartPage() {
     enabled: items.length > 0,
   });
 
-  // Toplamları hesapla - eğer customUnitPrice varsa frontend'de, yoksa cartCalculation'dan
+  // Toplamları hesapla - her zaman items'dan hesapla
   const cartTotals = useMemo(() => {
-    const hasCustomPrice = items.some((item) => item.customUnitPrice !== undefined);
-    if (hasCustomPrice) {
-      const subtotal = items.reduce((sum, item) => {
-        const unitPrice = item.customUnitPrice ?? item.unitPrice;
-        return sum + unitPrice * item.quantity;
-      }, 0);
-      return { subtotal, total: subtotal };
-    }
-    return cartCalculation || { subtotal: 0, total: 0 };
-  }, [items, cartCalculation]);
+    const subtotal = items.reduce((sum, item) => {
+      // customUnitPrice varsa onu kullan, yoksa unitPrice kullan
+      const unitPrice = item.customUnitPrice ?? item.unitPrice;
+      return sum + unitPrice * item.quantity;
+    }, 0);
+    return { subtotal, total: subtotal };
+  }, [items]);
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
@@ -381,12 +378,21 @@ export default function CartPage() {
           const displayPrice = localUnitPrices[item.productId] ?? (item.customUnitPrice ?? item.unitPrice).toFixed(2);
           const rawPrice = displayPrice.replace(',', '.').trim();
           const numericPrice = rawPrice === '' ? NaN : parseFloat(rawPrice);
+          // Fiyat hatası kontrolü: Yeni kurallar
+          const purchasePrice = item.inkoopprijs;
+          let minPrice: number;
+          if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
+            // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
+            minPrice = item.unitPrice * 0.95;
+          } else {
+            // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
+            minPrice = purchasePrice * 1.05;
+          }
+          
           const hasPriceErrorForItem =
             rawPrice === '' ||
             Number.isNaN(numericPrice) ||
-            (item.inkoopprijs !== undefined &&
-              item.inkoopprijs !== null &&
-              numericPrice < item.inkoopprijs);
+            numericPrice < minPrice;
 
           return (
           <motion.div
@@ -400,7 +406,7 @@ export default function CartPage() {
               marginBottom: '0.75rem',
               padding: '0.75rem',
               display: 'grid',
-              gridTemplateColumns: '1fr auto',
+              gridTemplateColumns: (item as any).coverImageUrl ? '60px 1fr auto' : '1fr auto',
               gap: '0.75rem',
               position: 'relative',
               zIndex: 1,
@@ -414,6 +420,36 @@ export default function CartPage() {
                 : undefined,
             }}
           >
+            {/* Ürün Resmi - Küçük ve kompakt */}
+            {(item as any).coverImageUrl && (
+              <motion.div
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  background: '#f0f0f0',
+                  flexShrink: 0,
+                  position: 'relative',
+                }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.img
+                  src={(item as any).coverImageUrl}
+                  alt={item.productName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </motion.div>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h4 style={{ marginBottom: '0.25rem', fontSize: 'clamp(0.9rem, 3vw, 1rem)', fontWeight: 600, lineHeight: '1.3' }}>
                 {item.productName}
@@ -468,18 +504,36 @@ export default function CartPage() {
                         if (Number.isNaN(newPrice)) {
                           return;
                         }
-                        if (
-                          item.inkoopprijs !== undefined &&
-                          item.inkoopprijs !== null &&
-                          newPrice < item.inkoopprijs
-                        ) {
-                          showToast(
-                            `⚠️ Fiyat alış fiyatından (€${item.inkoopprijs.toFixed(2)}) düşük olamaz!`,
-                            'error',
-                            3000,
-                          );
-                          return;
+                        
+                        // Fiyat kontrolü: Yeni kurallar
+                        const purchasePrice = item.inkoopprijs;
+                        let minPrice: number;
+                        let errorMessage: string;
+                        
+                        if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
+                          // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
+                          minPrice = item.unitPrice * 0.95;
+                          if (newPrice < minPrice) {
+                            showToast(
+                              `⚠️ Fiyat ürün fiyatından (€${item.unitPrice.toFixed(2)}) maksimum %5 düşük olabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
+                              'error',
+                              4000,
+                            );
+                            return;
+                          }
+                        } else {
+                          // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
+                          minPrice = purchasePrice * 1.05;
+                          if (newPrice < minPrice) {
+                            showToast(
+                              `⚠️ Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+                              'error',
+                              4000,
+                            );
+                            return;
+                          }
                         }
+                        
                         updateUnitPrice(item.productId, newPrice);
                       }}
                       style={{

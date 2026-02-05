@@ -43,19 +43,32 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Son kontrol: Eğer indirimli fiyat alış fiyatından düşükse engelle
+    // Son kontrol: Yeni fiyat kuralları
     const purchasePrice = product.inkoopprijs;
-    if (
-      purchasePrice !== undefined &&
-      purchasePrice !== null &&
-      finalPrice < purchasePrice
-    ) {
-      showToast(
-        `⚠️ Sepete eklenemedi! Fiyat (€${finalPrice.toFixed(2)}) alış fiyatından (€${purchasePrice.toFixed(2)}) düşük olamaz.`,
-        'error',
-        5000
-      );
-      return;
+    let minPrice: number;
+    
+    if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
+      // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
+      minPrice = basePrice * 0.95;
+      if (finalPrice < minPrice) {
+        showToast(
+          `⚠️ Sepete eklenemedi! Fiyat ürün fiyatından (€${basePrice.toFixed(2)}) maksimum %5 düşük olabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          'error',
+          5000
+        );
+        return;
+      }
+    } else {
+      // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
+      minPrice = purchasePrice * 1.05;
+      if (finalPrice < minPrice) {
+        showToast(
+          `⚠️ Sepete eklenemedi! Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          'error',
+          5000
+        );
+        return;
+      }
     }
     
     // Eğer indirim varsa, customUnitPrice olarak kaydet
@@ -76,6 +89,8 @@ export default function ProductDetailPage() {
       ...(product.inkoopprijs !== undefined && product.inkoopprijs !== null && { inkoopprijs: product.inkoopprijs }),
       // Birim bilgisini ekle
       ...(product.eenheid && { eenheid: product.eenheid }),
+      // Kapak resmi URL'ini ekle
+      ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
     });
     const discountText = discountPercentage ? ` (%${discountPercentage} indirim)` : '';
     showToast(`${product.omschrijving} sepete eklendi (${quantity} adet)${discountText}`, 'success');
@@ -89,14 +104,31 @@ export default function ProductDetailPage() {
     const discountedPrice = basePrice * (1 - percentage / 100);
     const purchasePrice = product.inkoopprijs;
     
-    // Eğer alış fiyatı varsa ve indirimli fiyat alış fiyatından düşükse hata ver
-    if (purchasePrice !== undefined && purchasePrice !== null && discountedPrice < purchasePrice) {
-      showToast(
-        `⚠️ İndirim uygulanamaz! İndirimli fiyat (€${discountedPrice.toFixed(2)}) alış fiyatından (€${purchasePrice.toFixed(2)}) düşük olamaz.`,
-        'error',
-        5000
-      );
-      return;
+    // Fiyat kontrolü: Yeni kurallar
+    let minPrice: number;
+    
+    if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
+      // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
+      minPrice = basePrice * 0.95;
+      if (discountedPrice < minPrice) {
+        showToast(
+          `⚠️ İndirim uygulanamaz! Maksimum %5 indirim yapılabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          'error',
+          5000
+        );
+        return;
+      }
+    } else {
+      // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
+      minPrice = purchasePrice * 1.05;
+      if (discountedPrice < minPrice) {
+        showToast(
+          `⚠️ İndirim uygulanamaz! Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          'error',
+          5000
+        );
+        return;
+      }
     }
     
     setDiscountPercentage(percentage);

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 
@@ -7,6 +8,7 @@ type Period = 'daily' | 'weekly' | 'monthly';
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('daily');
+  const navigate = useNavigate();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard', period],
@@ -223,6 +225,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.6 + index * 0.05 }}
+                  onClick={() => navigate(`/customers/${customer.id}`)}
                   style={{
                     padding: '1rem',
                     background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)',
@@ -232,7 +235,14 @@ export default function DashboardPage() {
                     alignItems: 'center',
                     gap: '1rem',
                     minWidth: 0,
+                    cursor: 'pointer',
                   }}
+                  whileHover={{ 
+                    scale: 1.02, 
+                    borderColor: 'rgba(16, 185, 129, 0.4)',
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <div
                     style={{
@@ -299,6 +309,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.6 + index * 0.05 }}
+                  onClick={() => navigate(`/customers/${customer.id}`)}
                   style={{
                     padding: '1rem',
                     background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%)',
@@ -308,7 +319,14 @@ export default function DashboardPage() {
                     alignItems: 'center',
                     gap: '1rem',
                     minWidth: 0,
+                    cursor: 'pointer',
                   }}
+                  whileHover={{ 
+                    scale: 1.02, 
+                    borderColor: 'rgba(245, 158, 11, 0.4)',
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <div
                     style={{

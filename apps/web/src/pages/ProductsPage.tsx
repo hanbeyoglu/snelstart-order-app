@@ -95,6 +95,8 @@ export default function ProductsPage() {
       ...(product.inkoopprijs !== undefined && product.inkoopprijs !== null && { inkoopprijs: product.inkoopprijs }),
       // Birim bilgisini ekle
       ...(product.eenheid && { eenheid: product.eenheid }),
+      // Kapak resmi URL'ini ekle
+      ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
     });
     showToast(`${product.omschrijving} sepete eklendi`, 'success');
   };

@@ -160,6 +160,7 @@ export interface CartItem {
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
   inkoopprijs?: number; // Alış fiyatı (minimum fiyat kontrolü için)
   eenheid?: string; // Ürün birimi (kg, st, m, vb.)
+  coverImageUrl?: string; // Ürün kapak resmi URL'i
 }
 
 export interface User {
