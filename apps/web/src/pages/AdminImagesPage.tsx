@@ -89,7 +89,8 @@ export default function AdminImagesPage() {
     queryKey: ['product-images', selectedProduct?.id],
     queryFn: async () => {
       if (!selectedProduct) return [];
-      const identifier = selectedProduct.artikelcode || selectedProduct.artikelnummer || selectedProduct.snelstartId || selectedProduct.id;
+      // Always use id or snelstartId first (these are UUIDs and most reliable)
+      const identifier = selectedProduct.id || selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer;
       const response = await api.get(`/images/product/${identifier}`);
       return response.data;
     },
@@ -115,7 +116,8 @@ export default function AdminImagesPage() {
       console.log('[AdminImagesPage] Starting upload for product:', selectedProduct);
       
       // Eğer zaten resim varsa, önce eski resmi sil
-      const identifier = selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer || selectedProduct.id;
+      // Always use id or snelstartId first (these are UUIDs and most reliable)
+      const identifier = selectedProduct.id || selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer;
       if (images && images.length > 0) {
         // Tüm mevcut resimleri sil
         await Promise.all(
@@ -154,7 +156,7 @@ export default function AdminImagesPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       // Invalidate specific product detail if viewing
       if (selectedProduct) {
-        const identifier = selectedProduct.artikelcode || selectedProduct.artikelnummer || selectedProduct.snelstartId || selectedProduct.id;
+        const identifier = selectedProduct.id || selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer;
         queryClient.invalidateQueries({ queryKey: ['product', identifier] });
         queryClient.invalidateQueries({ queryKey: ['product-images', identifier] });
       }
@@ -181,7 +183,7 @@ export default function AdminImagesPage() {
   const deleteMutation = useMutation({
     mutationFn: async (imageId: string) => {
       if (!selectedProduct) throw new Error('Ürün seçilmedi');
-      const identifier = selectedProduct.artikelcode || selectedProduct.artikelnummer || selectedProduct.snelstartId || selectedProduct.id;
+      const identifier = selectedProduct.id || selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer;
       await api.delete(`/images/product/${identifier}/${imageId}`);
     },
     onSuccess: () => {
@@ -189,7 +191,7 @@ export default function AdminImagesPage() {
       queryClient.invalidateQueries({ queryKey: ['product-images'] });
       queryClient.invalidateQueries({ queryKey: ['products'] }); // Refresh product list
       if (selectedProduct) {
-        const identifier = selectedProduct.artikelcode || selectedProduct.artikelnummer || selectedProduct.snelstartId || selectedProduct.id;
+        const identifier = selectedProduct.id || selectedProduct.snelstartId || selectedProduct.artikelcode || selectedProduct.artikelnummer;
         queryClient.invalidateQueries({ queryKey: ['product', identifier] });
       }
       showToast('Resim silindi ve ürün listesi güncellendi', 'success');

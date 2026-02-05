@@ -48,7 +48,7 @@ export class ImagesService {
    * Resolve product ID - if artikelcode/artikelnummer is provided, find the actual UUID
    */
   private async resolveProductId(identifier: string): Promise<string> {
-    console.log(`[ImagesService] Resolving product ID for: ${identifier}`);
+    console.log(`[ImagesService] Resolving product ID for: ${identifier} (type: ${typeof identifier})`);
     
     // Check if it's already a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,23 +65,49 @@ export class ImagesService {
     }
 
     // It's likely an artikelcode or artikelnummer, search in database
+    // Try both string and number comparison (MongoDB might store as number)
     console.log(`[ImagesService] Identifier is not UUID, searching by artikelcode, artikelnummer, or snelstartId...`);
+    
+    // Build query with multiple conditions - try both string and number
+    const queryConditions: any[] = [
+      { snelstartId: identifier }, // Check snelstartId first (most reliable)
+      { artikelcode: identifier },
+      { artikelnummer: identifier },
+    ];
+
+    // If identifier is numeric, also try as number (for artikelcode/artikelnummer)
+    if (/^\d+$/.test(identifier)) {
+      const numericIdentifier = identifier;
+      queryConditions.push(
+        { artikelcode: numericIdentifier },
+        { artikelnummer: numericIdentifier },
+      );
+    }
+
     const product = await this.productModel.findOne({
-      $or: [
-        { artikelcode: identifier },
-        { artikelnummer: identifier },
-        { snelstartId: identifier }, // Also check if it's stored as snelstartId
-      ],
+      $or: queryConditions,
     }).exec();
 
     if (!product) {
-      console.error(`[ImagesService] Product not found with artikelcode, artikelnummer, or snelstartId: ${identifier}`);
+      // Log more details for debugging
+      console.error(`[ImagesService] Product not found with identifier: ${identifier}`);
+      console.error(`[ImagesService] Searched in: artikelcode, artikelnummer, snelstartId`);
+      
+      // Try to find similar products for debugging
+      const sampleProducts = await this.productModel.find().limit(5).select('artikelcode artikelnummer snelstartId omschrijving').exec();
+      console.error(`[ImagesService] Sample products in DB:`, sampleProducts.map(p => ({
+        snelstartId: p.snelstartId,
+        artikelcode: p.artikelcode,
+        artikelnummer: p.artikelnummer,
+        omschrijving: p.omschrijving,
+      })));
+      
       throw new NotFoundException(
         `Ürün bulunamadı. Lütfen geçerli bir ürün ID'si (UUID) veya ürün kodu girin: ${identifier}`
       );
     }
 
-    console.log(`[ImagesService] Found product: ${product.omschrijving} (${product.snelstartId})`);
+    console.log(`[ImagesService] Found product: ${product.omschrijving} (snelstartId: ${product.snelstartId}, artikelcode: ${product.artikelcode}, artikelnummer: ${product.artikelnummer})`);
     if (!product.snelstartId) {
       throw new NotFoundException(`Ürün bulundu ancak snelstartId eksik: ${identifier}`);
     }
