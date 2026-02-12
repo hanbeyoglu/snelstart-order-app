@@ -72,17 +72,17 @@ export default function EditUserPage() {
       role,
     };
 
-    // Email işleme: useEmail true ise ve email varsa gönder, false ise null gönder (kaldır)
+    // Email işleme: useEmail true ise ve email varsa gönder, false ise undefined gönder (kaldır)
     if (useEmail) {
       if (email && email.trim()) {
         updateData.email = email.trim();
       } else {
         // useEmail true ama email boş - bu durumda email'i kaldır
-        updateData.email = null;
+        updateData.email = undefined;
       }
     } else {
       // useEmail false - email'i kaldır
-      updateData.email = null;
+      updateData.email = undefined;
     }
 
     if (password) {
@@ -99,7 +99,13 @@ export default function EditUserPage() {
       updateData.password = password;
     }
 
-    updateMutation.mutate(updateData);
+    // null değerlerini undefined'a çevir (TypeScript tip uyumu için)
+    const finalUpdateData: { username?: string; email?: string; password?: string; role?: 'admin' | 'sales_rep' } = {
+      ...updateData,
+      email: updateData.email === null ? undefined : updateData.email,
+    };
+
+    updateMutation.mutate(finalUpdateData);
   };
 
   if (isLoading) {
