@@ -1,0 +1,39 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/apps/snelstart-order-app
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Rebuilding containers..."
+            docker compose build
+
+            echo "Restarting services..."
+            docker compose up -d
+
+            echo "Cleaning unused images..."
+            docker image prune -f
+
+            echo "Deploy completed."
+          EOF
