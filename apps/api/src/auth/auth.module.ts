@@ -11,6 +11,7 @@ import { ConnectionSettingsModule } from '../connection-settings/connection-sett
 import { SnelStartModule } from '../snelstart/snelstart.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { ProductsModule } from '../products/products.module';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ProductsModule } from '../products/products.module';
     forwardRef(() => SnelStartModule),
     CategoriesModule,
     ProductsModule,
+    CacheModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

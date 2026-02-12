@@ -23,37 +23,46 @@ export class AuthController {
   @ApiOperation({ summary: 'Login' })
   async login(@Body() body: { email: string; password: string }) {
     // email field'ı artık username veya email olabilir
-    const user = await this.authService.validateUser(body.email, body.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Login olduğunda SnelStart token al
     try {
-      const settings = await this.connectionSettingsService.getActiveSettings();
-      if (settings && settings.subscriptionKey && settings.integrationKey) {
-        // Token al
-        const tokenResponse = await this.snelStartService.getToken(settings.integrationKey);
-        // Token'ı kaydet
-        if (tokenResponse && tokenResponse.access_token && tokenResponse.expires_in) {
-          await this.connectionSettingsService.saveAccessToken(
-            tokenResponse.access_token,
-            tokenResponse.expires_in,
-          );
-          
-          // Token alındıktan sonra kategorileri ve ürünleri senkronize et (arka planda)
-          // Login hızını etkilememesi için await kullanmıyoruz
-          this.syncDataInBackground().catch((error) => {
-            console.error('Background sync error:', error);
-          });
-        }
+      const user = await this.authService.validateUser(body.email, body.password);
+      if (!user) {
+        throw new UnauthorizedException('Kullanıcı adı veya şifre hatalı');
       }
-    } catch (error) {
-      // Token alınamadı - durum pasif kalacak (hata fırlatmıyoruz, login devam eder)
-      console.warn('SnelStart token alınamadı:', error);
-    }
 
-    return this.authService.login(user);
+      // Login olduğunda SnelStart token al
+      try {
+        const settings = await this.connectionSettingsService.getActiveSettings();
+        if (settings && settings.subscriptionKey && settings.integrationKey) {
+          // Token al
+          const tokenResponse = await this.snelStartService.getToken(settings.integrationKey);
+          // Token'ı kaydet
+          if (tokenResponse && tokenResponse.access_token && tokenResponse.expires_in) {
+            await this.connectionSettingsService.saveAccessToken(
+              tokenResponse.access_token,
+              tokenResponse.expires_in,
+            );
+            
+            // Token alındıktan sonra kategorileri ve ürünleri senkronize et (arka planda)
+            // Login hızını etkilememesi için await kullanmıyoruz
+            this.syncDataInBackground().catch((error) => {
+              console.error('Background sync error:', error);
+            });
+          }
+        }
+      } catch (error) {
+        // Token alınamadı - durum pasif kalacak (hata fırlatmıyoruz, login devam eder)
+        console.warn('SnelStart token alınamadı:', error);
+      }
+
+      return this.authService.login(user);
+    } catch (error) {
+      // AuthService'den gelen hataları (özellikle max attempts) direkt fırlat
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Diğer hatalar için generic mesaj
+      throw new UnauthorizedException('Kullanıcı adı veya şifre hatalı');
+    }
   }
 
   // Arka planda kategorileri ve ürünleri senkronize et

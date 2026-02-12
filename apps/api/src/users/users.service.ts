@@ -13,7 +13,7 @@ export class UsersService {
   async getAllUsers() {
     // admin@test.com kullanıcısını listeden hariç tut
     const users = await this.userModel
-      .find({ email: { $ne: 'admin@test.com' } })
+      .find({ username: { $ne: 'admin_cabir' } })
       .select('-passwordHash')
       .exec();
     return users;

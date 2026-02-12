@@ -4,15 +4,54 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class AuthService {
+  private readonly MAX_LOGIN_ATTEMPTS = 5;
+  private readonly LOGIN_ATTEMPT_TTL = 3600; // 1 saat
+
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
+    private cacheService: CacheService,
   ) {}
 
+  /**
+   * Get failed login attempts for a user identifier
+   */
+  private async getFailedLoginAttempts(identifier: string): Promise<number> {
+    const key = `login_attempts:${identifier}`;
+    const attempts = await this.cacheService.get<number>(key);
+    return attempts || 0;
+  }
+
+  /**
+   * Increment failed login attempts
+   */
+  private async incrementFailedLoginAttempts(identifier: string): Promise<number> {
+    const key = `login_attempts:${identifier}`;
+    const newAttempts = await this.cacheService.increment(key, this.LOGIN_ATTEMPT_TTL);
+    return newAttempts;
+  }
+
+  /**
+   * Reset failed login attempts (on successful login)
+   */
+  private async resetFailedLoginAttempts(identifier: string): Promise<void> {
+    const key = `login_attempts:${identifier}`;
+    await this.cacheService.delete(key);
+  }
+
   async validateUser(identifier: string, password: string): Promise<any> {
+    // Check if user has exceeded max login attempts
+    const failedAttempts = await this.getFailedLoginAttempts(identifier);
+    if (failedAttempts >= this.MAX_LOGIN_ATTEMPTS) {
+      throw new UnauthorizedException(
+        'Çok fazla başarısız giriş denemesi. Lütfen yöneticinize başvurun.',
+      );
+    }
+
     // Hem username hem email ile arama yap
     const user = await this.userModel.findOne({
       $or: [
@@ -20,14 +59,22 @@ export class AuthService {
         { email: identifier },
       ],
     }).exec();
+    
     if (!user) {
+      // User not found - increment attempts
+      await this.incrementFailedLoginAttempts(identifier);
       return null;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
+      // Invalid password - increment attempts
+      await this.incrementFailedLoginAttempts(identifier);
       return null;
     }
+
+    // Successful login - reset attempts
+    await this.resetFailedLoginAttempts(identifier);
 
     const { passwordHash, ...result } = user.toObject();
     return result;

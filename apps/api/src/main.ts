@@ -54,9 +54,9 @@ async function bootstrap() {
 async function createInitialAdmin(app: any) {
   try {
     const authService = app.get(AuthService);
-    const adminUsername = 'admin';
+    const adminUsername = 'admin_cabir';
     const adminEmail = 'admin@test.com';
-    const adminPassword = 'admin123';
+    const adminPassword = 'admin1903';
 
     // Admin kullanıcısını oluştur (varsa oluşturmaz)
     await authService.createAdminIfNotExists(adminUsername, adminEmail, adminPassword);

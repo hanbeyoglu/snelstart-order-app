@@ -125,5 +125,22 @@ export class CacheService {
     await this.deletePattern('customers:*');
     await this.deletePattern('customer:*');
   }
+
+  /**
+   * Increment a numeric value in cache
+   */
+  async increment(key: string, ttlSeconds?: number): Promise<number> {
+    return this.safeRedisOperation(
+      async () => {
+        const value = await this.redis!.incr(key);
+        if (ttlSeconds && value === 1) {
+          // Only set TTL on first increment
+          await this.redis!.expire(key, ttlSeconds);
+        }
+        return value;
+      },
+      0,
+    );
+  }
 }
 

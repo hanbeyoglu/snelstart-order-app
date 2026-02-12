@@ -25,9 +25,12 @@ export default function LoginPage() {
       navigate('/');
     } catch (err: any) {
       const errorMessage =
-        err.response?.data?.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.';
+        err.response?.data?.message || err.message || 'Kullanıcı adı veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
       setError(errorMessage);
-      showToast(errorMessage, 'error', 4000);
+      
+      // Özel mesajlar için daha uzun gösterim süresi
+      const isAdminContactMessage = errorMessage.includes('yöneticinize başvurun');
+      showToast(errorMessage, 'error', isAdminContactMessage ? 8000 : 4000);
     } finally {
       setLoading(false);
     }
@@ -199,14 +202,25 @@ export default function LoginPage() {
               animate={{ opacity: 1, x: 0 }}
               style={{
                 padding: '1rem',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: error.includes('yöneticinize başvurun')
+                  ? 'rgba(245, 158, 11, 0.1)'
+                  : 'rgba(239, 68, 68, 0.1)',
+                border: `1px solid ${
+                  error.includes('yöneticinize başvurun')
+                    ? 'rgba(245, 158, 11, 0.3)'
+                    : 'rgba(239, 68, 68, 0.3)'
+                }`,
                 borderRadius: '12px',
-                color: '#ef4444',
+                color: error.includes('yöneticinize başvurun') ? '#f59e0b' : '#ef4444',
                 marginBottom: '1.5rem',
                 fontWeight: 500,
+                fontSize: '0.95rem',
+                lineHeight: '1.5',
               }}
             >
+              {error.includes('yöneticinize başvurun') && (
+                <div style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>⚠️</div>
+              )}
               {error}
             </motion.div>
           )}
