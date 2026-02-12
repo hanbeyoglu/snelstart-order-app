@@ -111,13 +111,14 @@ export class UsersService {
       }
       // Diğer hatalar için log ve generic exception
       console.error('[UsersService] createUser error:', error);
+      const errorAny = error as any;
       console.error('[UsersService] Error details:', {
-        message: error?.message,
-        name: error?.name,
-        code: (error as any)?.code,
-        stack: error?.stack
+        message: errorAny?.message,
+        name: errorAny?.name,
+        code: errorAny?.code,
+        stack: errorAny?.stack
       });
-      throw new BadRequestException(`Kullanıcı oluşturulurken hata oluştu: ${error.message || 'Bilinmeyen hata'}`);
+      throw new BadRequestException(`Kullanıcı oluşturulurken hata oluştu: ${errorAny?.message || 'Bilinmeyen hata'}`);
     }
   }
 
@@ -192,7 +193,8 @@ export class UsersService {
       }
       // Diğer hatalar için log ve generic exception
       console.error('[UsersService] updateUser error:', error);
-      throw new BadRequestException(`Kullanıcı güncellenirken hata oluştu: ${error.message || 'Bilinmeyen hata'}`);
+      const errorAny = error as any;
+      throw new BadRequestException(`Kullanıcı güncellenirken hata oluştu: ${errorAny?.message || 'Bilinmeyen hata'}`);
     }
   }
 
