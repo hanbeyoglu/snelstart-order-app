@@ -12,8 +12,14 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.userModel.findOne({ email }).exec();
+  async validateUser(identifier: string, password: string): Promise<any> {
+    // Hem username hem email ile arama yap
+    const user = await this.userModel.findOne({
+      $or: [
+        { username: identifier },
+        { email: identifier },
+      ],
+    }).exec();
     if (!user) {
       return null;
     }
@@ -28,40 +34,62 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user._id, role: user.role };
+    const payload: any = { username: user.username, sub: user._id, role: user.role };
+    if (user.email) {
+      payload.email = user.email;
+    }
     return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user._id,
-        email: user.email,
+        username: user.username,
+        email: user.email || null,
         role: user.role,
       },
     };
   }
 
-  async register(email: string, password: string, role: 'admin' | 'sales_rep' = 'sales_rep') {
-    const existingUser = await this.userModel.findOne({ email }).exec();
-    if (existingUser) {
-      throw new UnauthorizedException('User already exists');
+  async register(username: string, email: string | undefined, password: string, role: 'admin' | 'sales_rep' = 'sales_rep') {
+    // Username kontrolü yap
+    const existingUserByUsername = await this.userModel.findOne({ username }).exec();
+    if (existingUserByUsername) {
+      throw new UnauthorizedException('User with this username already exists');
+    }
+
+    // Email varsa ve unique değilse hata ver
+    if (email) {
+      const existingUserByEmail = await this.userModel.findOne({ email }).exec();
+      if (existingUserByEmail) {
+        throw new UnauthorizedException('User with this email already exists');
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = new this.userModel({ email, passwordHash, role });
+    const userData: any = { username, passwordHash, role };
+    if (email) {
+      userData.email = email;
+    }
+    const user = new this.userModel(userData);
     await user.save();
 
     const { passwordHash: _, ...result } = user.toObject();
     return result;
   }
 
-  async userExists(email: string): Promise<boolean> {
-    const user = await this.userModel.findOne({ email }).exec();
+  async userExists(identifier: string): Promise<boolean> {
+    const user = await this.userModel.findOne({
+      $or: [
+        { username: identifier },
+        { email: identifier },
+      ],
+    }).exec();
     return !!user;
   }
 
-  async createAdminIfNotExists(email: string, password: string): Promise<void> {
-    const exists = await this.userExists(email);
+  async createAdminIfNotExists(username: string, email: string | undefined, password: string): Promise<void> {
+    const exists = await this.userExists(username) || (email ? await this.userExists(email) : false);
     if (!exists) {
-      await this.register(email, password, 'admin');
+      await this.register(username, email, password, 'admin');
     }
   }
 }

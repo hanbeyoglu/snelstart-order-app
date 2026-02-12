@@ -39,23 +39,59 @@ export class ProductsController {
   }
 
   @Post('sync')
-  @ApiOperation({ summary: 'Sync products and categories from SnelStart API' })
+  @ApiOperation({ summary: 'Full sync: Sync all products and categories from SnelStart API using dynamic pagination' })
   async syncProductsAndCategories() {
     try {
       // Sync categories first
       await this.categoriesService.syncCategories();
       
-      // Then sync products
-      await this.productsService.syncProducts();
+      // Then sync products (full sync with dynamic pagination)
+      const result = await this.productsService.syncProducts();
       
       return {
         success: true,
         message: 'Ürünler ve kategoriler başarıyla senkronize edildi',
+        stats: result,
       };
     } catch (error: any) {
       return {
         success: false,
         message: error.message || 'Senkronizasyon sırasında bir hata oluştu',
+      };
+    }
+  }
+
+  @Post('sync/delta')
+  @ApiOperation({ summary: 'Delta sync: Sync only products modified since last sync' })
+  async syncProductsDelta(@Query('since') since?: string) {
+    try {
+      let lastSyncTimestamp: Date;
+      
+      if (since) {
+        // Use provided timestamp
+        lastSyncTimestamp = new Date(since);
+      } else {
+        // Get last sync timestamp from most recently synced product
+        lastSyncTimestamp = await this.productsService.getLastSyncTimestamp();
+      }
+      
+      if (!lastSyncTimestamp || isNaN(lastSyncTimestamp.getTime())) {
+        // If no last sync found, do full sync instead
+        return this.syncProductsAndCategories();
+      }
+      
+      const result = await this.productsService.syncProductsDelta(lastSyncTimestamp);
+      
+      return {
+        success: true,
+        message: 'Değişen ürünler başarıyla senkronize edildi',
+        stats: result,
+        lastSyncTimestamp: lastSyncTimestamp.toISOString(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Delta senkronizasyon sırasında bir hata oluştu',
       };
     }
   }

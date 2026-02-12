@@ -28,8 +28,8 @@ export class ConnectionSettingsController {
   ) {}
 
   @Get()
-  @Roles('admin')
-  @ApiOperation({ summary: 'Get SnelStart connection settings (encrypted)' })
+  @Roles('admin', 'sales_rep')
+  @ApiOperation({ summary: 'Get SnelStart connection settings status (available to all authenticated users)' })
   async getSettings() {
     const settings = await this.connectionSettingsService.getSettings();
     if (!settings) {
@@ -104,8 +104,8 @@ export class ConnectionSettingsController {
 
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Refresh SnelStart access token' })
+  @Roles('admin', 'sales_rep')
+  @ApiOperation({ summary: 'Refresh SnelStart access token (available to all authenticated users)' })
   async refreshToken() {
     const settings = await this.connectionSettingsService.getActiveSettings();
     if (!settings) {

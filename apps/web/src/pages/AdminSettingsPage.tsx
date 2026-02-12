@@ -3,8 +3,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
 
 export default function AdminSettingsPage() {
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'admin';
   const [subscriptionKey, setSubscriptionKey] = useState('');
   const [integrationKey, setIntegrationKey] = useState('');
   const [testing, setTesting] = useState(false);
@@ -184,52 +187,6 @@ export default function AdminSettingsPage() {
           )}
         </motion.div>
       )}
-
-      <div className="card">
-        <h3>Yeni Ayarlar</h3>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMutation.mutate();
-          }}
-        >
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Subscription Key *</label>
-            <input
-              type="password"
-              value={subscriptionKey}
-              onChange={(e) => setSubscriptionKey(e.target.value)}
-              required
-            />
-          </div>
-          <div style={{ marginBottom: '1rem' }}>
-            <label>Integration Key *</label>
-            <input
-              type="password"
-              value={integrationKey}
-              onChange={(e) => setIntegrationKey(e.target.value)}
-              required
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTesting(true);
-                testMutation.mutate();
-                setTimeout(() => setTesting(false), 2000);
-              }}
-              className="btn-secondary"
-              disabled={testing || testMutation.isPending}
-            >
-              {testMutation.isPending || testing ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

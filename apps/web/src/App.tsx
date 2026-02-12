@@ -17,6 +17,9 @@ import AdminSettingsPage from './pages/AdminSettingsPage';
 import AdminPricingPage from './pages/AdminPricingPage';
 import AdminImagesPage from './pages/AdminImagesPage';
 import UserPage from './pages/UserPage';
+import UsersPage from './pages/UsersPage';
+import CreateUserPage from './pages/CreateUserPage';
+import EditUserPage from './pages/EditUserPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
 
@@ -43,11 +46,15 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/user" element={<UserPage />} />
+            {/* Bağlantı ayarları hem admin hem de sales_rep için açık */}
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
             {user?.role === 'admin' && (
               <>
-                <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 <Route path="/admin/pricing" element={<AdminPricingPage />} />
                 <Route path="/admin/images" element={<AdminImagesPage />} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/users/new" element={<CreateUserPage />} />
+                <Route path="/users/:userId/edit" element={<EditUserPage />} />
               </>
             )}
           </Route>

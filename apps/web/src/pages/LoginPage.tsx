@@ -218,13 +218,14 @@ export default function LoginPage() {
               transition={{ delay: 0.3 }}
               style={{ marginBottom: '1.5rem' }}
             >
-              <label>E-posta</label>
+              <label>Kullanıcı Adı veya E-posta</label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="ornek@email.com"
+                autoComplete="username"
+                placeholder="kullaniciadi veya ornek@email.com"
                 style={{
                   marginTop: '0.5rem',
                 }}

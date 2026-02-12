@@ -9,6 +9,10 @@ export class SnelStartService {
   getProductGroups = () => this.client.getProductGroups();
   getProductGroupById = (id: string) => this.client.getProductGroupById(id);
   getProducts = (groupId?: string, search?: string) => this.client.getProducts(groupId, search);
+  getProductsPaginated = (skip?: number, top?: number, modifiedSince?: Date) =>
+    this.client.getProductsPaginated(skip, top, modifiedSince);
+  getAllProductsPaginated = (modifiedSince?: Date, onProgress?: (current: number, total: number) => void) =>
+    this.client.getAllProductsPaginated(modifiedSince, onProgress);
   getProductById = (id: string) => this.client.getProductById(id);
   getCustomers = (search?: string) => this.client.getCustomers(search);
   getCustomerById = (id: string) => this.client.getCustomerById(id);

@@ -4,7 +4,8 @@ import api from '../services/api';
 
 interface User {
   id: string;
-  email: string;
+  username: string;
+  email?: string;
   role: 'admin' | 'sales_rep';
 }
 

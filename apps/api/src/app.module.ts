@@ -21,6 +21,7 @@ import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { CompanyInfoModule } from './company-info/company-info.module';
 import { R2Module } from './r2/r2.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { R2Module } from './r2/r2.module';
     HealthModule,
     CompanyInfoModule,
     R2Module,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

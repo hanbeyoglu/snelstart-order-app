@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
@@ -16,6 +17,8 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
   const showToast = useToastStore((state) => state.showToast);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'admin';
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', productId, customerId],
@@ -62,8 +65,9 @@ export default function ProductDetailPage() {
       // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
       minPrice = purchasePrice * 1.05;
       if (finalPrice < minPrice) {
+        const purchasePriceText = isAdmin ? ` (€${purchasePrice.toFixed(2)})` : '';
         showToast(
-          `⚠️ Sepete eklenemedi! Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          `⚠️ Sepete eklenemedi! Fiyat alış fiyatının${purchasePriceText} %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
           'error',
           5000
         );
@@ -122,8 +126,9 @@ export default function ProductDetailPage() {
       // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
       minPrice = purchasePrice * 1.05;
       if (discountedPrice < minPrice) {
+        const purchasePriceText = isAdmin ? ` (€${purchasePrice.toFixed(2)})` : '';
         showToast(
-          `⚠️ İndirim uygulanamaz! Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          `⚠️ İndirim uygulanamaz! Fiyat alış fiyatının${purchasePriceText} %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
           'error',
           5000
         );
@@ -397,7 +402,8 @@ export default function ProductDetailPage() {
               >
                 €{finalPrice.toFixed(2)}
               </p>
-              {product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
+              {/* Alış fiyatı sadece admin için görünür */}
+              {isAdmin && product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
                 <motion.button
                   onClick={() => setShowPurchasePrice(!showPurchasePrice)}
                   style={{
@@ -427,7 +433,8 @@ export default function ProductDetailPage() {
                 </motion.button>
               )}
             </div>
-            {showPurchasePrice && product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
+            {/* Alış fiyatı sadece admin için göster */}
+            {isAdmin && showPurchasePrice && product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -499,7 +506,9 @@ export default function ProductDetailPage() {
                     whileTap={isDisabled ? {} : { scale: 0.98 }}
                     title={
                       isDisabled
-                        ? `Bu indirim uygulanamaz (Alış fiyatı: €${purchasePrice?.toFixed(2)})`
+                        ? isAdmin && purchasePrice
+                          ? `Bu indirim uygulanamaz (Alış fiyatı: €${purchasePrice.toFixed(2)})`
+                          : 'Bu indirim uygulanamaz'
                         : `%${discount} indirim uygula`
                     }
                   >

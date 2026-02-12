@@ -212,6 +212,124 @@ export class SnelStartClient {
   }
 
   // Products (Articles)
+  
+  /**
+   * Get products with pagination support
+   * @param skip Number of records to skip
+   * @param top Maximum number of records to return (max 500)
+   * @param modifiedSince Optional: Filter by modifiedOn timestamp for delta sync
+   * @returns Array of products
+   */
+  async getProductsPaginated(
+    skip: number = 0,
+    top: number = 500,
+    modifiedSince?: Date,
+  ): Promise<SnelStartProduct[]> {
+    if (this.mockMode) {
+      const products = this.getMockProducts();
+      return products.slice(skip, skip + top);
+    }
+
+    return this.requestWithRetry(async () => {
+      const params: any = {
+        $skip: skip,
+        $top: Math.min(top, 500), // API max is 500
+      };
+
+      // Delta sync: Filter by modifiedOn if provided
+      if (modifiedSince) {
+        // Format: datetimeoffset'2024-01-01T00:00:00Z'
+        // Subtract 10 seconds for overlap to avoid missing updates
+        const overlapDate = new Date(modifiedSince.getTime() - 10000);
+        const isoString = overlapDate.toISOString();
+        params.$filter = `modifiedOn ge datetimeoffset'${isoString}'`;
+      }
+
+      const response = await this.axiosInstance.get('/v2/artikelen', { params });
+      return Array.isArray(response.data) ? response.data : [];
+    });
+  }
+
+  /**
+   * Get all products using dynamic pagination
+   * This method handles pagination automatically and retrieves all products
+   * @param modifiedSince Optional: Filter by modifiedOn timestamp for delta sync
+   * @param onProgress Optional: Callback for progress updates
+   * @returns Array of all products
+   */
+  async getAllProductsPaginated(
+    modifiedSince?: Date,
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<SnelStartProduct[]> {
+    const allProducts: SnelStartProduct[] = [];
+    let skip = 0;
+    const top = 500;
+    let batchCount = 0;
+    const batchDelay = parseInt(process.env.SNELSTART_SYNC_BATCH_DELAY_MS || '150', 10);
+
+    this.logger.log(
+      `Starting paginated product sync${modifiedSince ? ` (delta sync since ${modifiedSince.toISOString()})` : ' (full sync)'}`,
+    );
+
+    while (true) {
+      try {
+        this.logger.log(`[Pagination] Fetching batch: skip=${skip}, top=${top}`);
+        const batch = await this.getProductsPaginated(skip, top, modifiedSince);
+        batchCount++;
+
+        // Log detailed batch information
+        this.logger.log(
+          `[Pagination] Batch ${batchCount}: skip=${skip}, top=${top}, returned=${batch.length}, cumulative=${allProducts.length + batch.length}`,
+        );
+
+        if (batch.length === 0) {
+          this.logger.log(
+            `[Pagination] No more products. Total batches: ${batchCount}, Total products fetched: ${allProducts.length}`,
+          );
+          break;
+        }
+
+        allProducts.push(...batch);
+        const cumulativeCount = allProducts.length;
+        this.logger.log(
+          `[Pagination] Batch ${batchCount} added. Current total: ${cumulativeCount} products`,
+        );
+
+        if (onProgress) {
+          onProgress(cumulativeCount, cumulativeCount + (batch.length < top ? 0 : top));
+        }
+
+        // If we got fewer products than requested, we've reached the end
+        if (batch.length < top) {
+          this.logger.log(
+            `[Pagination] Last batch received (${batch.length} < ${top}). Final total: ${cumulativeCount} products`,
+          );
+          break;
+        }
+
+        // Add delay between batches to avoid rate limits
+        if (batchDelay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, batchDelay));
+        }
+
+        // CRITICAL: Always increment skip by top (500), NOT by batch.length
+        skip += top;
+        this.logger.log(`[Pagination] Next batch will use skip=${skip}`);
+      } catch (error: any) {
+        this.logger.error(`[Pagination] Error fetching batch (skip=${skip}, top=${top}): ${error.message}`);
+        throw error;
+      }
+    }
+
+    this.logger.log(`Completed paginated sync. Total products retrieved: ${allProducts.length}`);
+    return allProducts;
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use getAllProductsPaginated() for scalable sync
+   * NOTE: This should NOT be used for full sync - use getAllProductsPaginated() instead
+   */
   async getProducts(groupId?: string, search?: string): Promise<SnelStartProduct[]> {
     if (this.mockMode) {
       return this.getMockProducts().filter((p) => {
@@ -228,16 +346,12 @@ export class SnelStartClient {
       });
     }
 
-    return this.requestWithRetry(async () => {
-      // TODO: Replace with actual SnelStart endpoint
-      // Expected: GET /v2/artikelen?artikelgroepId={groupId}&zoek={search}
-      const params: any = {};
-      if (groupId) params.artikelgroepId = groupId;
-      if (search) params.zoek = search;
-
-      const response = await this.axiosInstance.get('/v2/artikelen', { params });
-      return response.data;
-    });
+    // For legacy compatibility, return first 500 products
+    // WARNING: This may not return all products for large catalogs
+    this.logger.warn(
+      'getProducts() called without pagination. This may not return all products. Use getAllProductsPaginated() for full sync.',
+    );
+    return this.getProductsPaginated(0, 500);
   }
 
   async getProductById(id: string): Promise<SnelStartProduct> {

@@ -22,6 +22,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login' })
   async login(@Body() body: { email: string; password: string }) {
+    // email field'ı artık username veya email olabilir
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -78,9 +79,9 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register new user' })
   async register(
-    @Body() body: { email: string; password: string; role?: 'admin' | 'sales_rep' },
+    @Body() body: { username: string; email: string; password: string; role?: 'admin' | 'sales_rep' },
   ) {
-    return this.authService.register(body.email, body.password, body.role);
+    return this.authService.register(body.username, body.email, body.password, body.role);
   }
 
   @Get('me')
@@ -90,6 +91,7 @@ export class AuthController {
   async getCurrentUser(@Request() req: any) {
     return {
       id: req.user.userId,
+      username: req.user.username,
       email: req.user.email,
       role: req.user.role,
     };

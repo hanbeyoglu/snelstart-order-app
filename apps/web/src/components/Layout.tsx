@@ -1,4 +1,4 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ export default function Layout() {
   const { user, logout } = useAuthStore();
   const { items } = useCartStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -33,8 +34,8 @@ export default function Layout() {
 
   // Token otomatik yenileme (sadece kullanıcı login olduğunda ve aktifken)
   useEffect(() => {
-    // Sadece kullanıcı login olduğunda ve admin ise çalış
-    if (!user || user.role !== 'admin') return;
+    // Tüm authenticated kullanıcılar için çalış (admin ve sales_rep)
+    if (!user) return;
 
     const checkAndRefreshToken = async () => {
       // Sayfa aktif değilse token yenileme
@@ -140,6 +141,14 @@ export default function Layout() {
 
   const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Aktif sayfayı kontrol et
+  const isActiveLink = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
+
   const navLinks = [
     { to: '/', label: 'Dashboard', icon: '📊' },
     { to: '/products', label: 'Tüm Ürünler', icon: '🛍️' },
@@ -148,12 +157,17 @@ export default function Layout() {
     { to: '/orders', label: 'Siparişler', icon: '📋' },
   ];
 
+  // Bağlantı ayarları hem admin hem de sales_rep için görünür
+  const connectionLinks = user
+    ? [{ to: '/admin/settings', label: 'Bağlantı Ayarları', icon: '🔗' }]
+    : [];
+
   const adminLinks =
     user?.role === 'admin'
       ? [
-          // { to: '/admin/settings', label: 'Ayarlar', icon: '⚙️' },
           // { to: '/admin/pricing', label: 'Fiyat Kuralları', icon: '💰' },
           { to: '/admin/images', label: 'Resimler', icon: '🖼️' },
+          { to: '/users', label: 'Kullanıcılar', icon: '👥' },
         ]
       : [];
 
@@ -471,46 +485,61 @@ export default function Layout() {
               margin: '0 1rem',
             }}
           >
-            {navLinks.map((link) => (
-              <motion.div
-                key={link.to}
-                whileHover={{ y: -1 }}
-                whileTap={{ y: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Link
-                  to={link.to}
-                  className="nav-link"
-                  style={{
-                    textDecoration: 'none',
-                    color: 'var(--text-primary)',
-                    fontWeight: 600,
-                    padding: '0.6rem 1rem',
-                    borderRadius: '10px',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    fontSize: '0.9rem',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%)';
-                    e.currentTarget.style.color = 'var(--primary)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
+            {navLinks.map((link) => {
+              const isActive = isActiveLink(link.to);
+              return (
+                <motion.div
+                  key={link.to}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ y: 0 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  <span style={{ fontSize: '1em' }}>{link.icon}</span>
-                  <span>{link.label}</span>
-                </Link>
-              </motion.div>
-            ))}
+                  <Link
+                    to={link.to}
+                    className="nav-link"
+                    style={{
+                      textDecoration: 'none',
+                      color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                      fontWeight: 600,
+                      padding: '0.6rem 1rem',
+                      borderRadius: '10px',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      fontSize: '0.9rem',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: isActive
+                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%)'
+                        : 'transparent',
+                      transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%)';
+                      e.currentTarget.style.color = 'var(--primary)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      } else {
+                        // Aktif sayfa için hover animasyonu kalıcı kalsın
+                        e.currentTarget.style.background =
+                          'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%)';
+                        e.currentTarget.style.color = 'var(--primary)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '1em' }}>{link.icon}</span>
+                    <span>{link.label}</span>
+                  </Link>
+                </motion.div>
+              );
+            })}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
               <motion.div
                 style={{
@@ -722,49 +751,108 @@ export default function Layout() {
                         </div>
                       </div>
 
+                      {/* Connection Links (for all users) */}
+                      {connectionLinks.length > 0 && (
+                        <>
+                          {connectionLinks.map((link, index) => {
+                            const isActive = isActiveLink(link.to);
+                            return (
+                              <motion.div
+                                key={link.to}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                              >
+                                <Link
+                                  to={link.to}
+                                  onClick={() => setUserMenuOpen(false)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '8px',
+                                    textDecoration: 'none',
+                                    color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                                    fontWeight: isActive ? 700 : 500,
+                                    transition: 'all 0.2s',
+                                    background: isActive
+                                      ? 'rgba(99, 102, 241, 0.15)'
+                                      : 'rgba(99, 102, 241, 0.05)',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isActive) {
+                                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isActive) {
+                                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.05)';
+                                    }
+                                  }}
+                                >
+                                  <span style={{ fontSize: '1.25rem' }}>{link.icon}</span>
+                                  <span>{link.label}</span>
+                                </Link>
+                              </motion.div>
+                            );
+                          })}
+                        </>
+                      )}
+
                       {/* Admin Menu Items */}
                       {adminLinks.length > 0 && (
                         <>
-                          {adminLinks.map((link, index) => (
-                            <motion.div
-                              key={link.to}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                            >
-                              <Link
-                                to={link.to}
-                                onClick={() => setUserMenuOpen(false)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.75rem',
-                                  textDecoration: 'none',
-                                  color: 'var(--text-primary)',
-                                  fontWeight: 500,
-                                  padding: '0.75rem 1rem',
-                                  borderRadius: '10px',
-                                  transition: 'all 0.2s',
-                                  fontSize: '0.9rem',
-                                  marginBottom: '0.25rem',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)';
-                                  e.currentTarget.style.color = 'var(--primary)';
-                                  e.currentTarget.style.transform = 'translateX(4px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'transparent';
-                                  e.currentTarget.style.color = 'var(--text-primary)';
-                                  e.currentTarget.style.transform = 'translateX(0)';
-                                }}
+                          {adminLinks.map((link, index) => {
+                            const isActive = isActiveLink(link.to);
+                            return (
+                              <motion.div
+                                key={link.to}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
                               >
-                                <span style={{ fontSize: '1.2em' }}>{link.icon}</span>
-                                <span>{link.label}</span>
-                              </Link>
-                            </motion.div>
-                          ))}
+                                <Link
+                                  to={link.to}
+                                  onClick={() => setUserMenuOpen(false)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    textDecoration: 'none',
+                                    color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                                    fontWeight: isActive ? 700 : 500,
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '10px',
+                                    transition: 'all 0.2s',
+                                    fontSize: '0.9rem',
+                                    marginBottom: '0.25rem',
+                                    background: isActive
+                                      ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                                      : 'transparent',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isActive) {
+                                      e.currentTarget.style.background =
+                                        'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)';
+                                      e.currentTarget.style.color = 'var(--primary)';
+                                      e.currentTarget.style.transform = 'translateX(4px)';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isActive) {
+                                      e.currentTarget.style.background = 'transparent';
+                                      e.currentTarget.style.color = 'var(--text-primary)';
+                                      e.currentTarget.style.transform = 'translateX(0)';
+                                    }
+                                  }}
+                                >
+                                  <span style={{ fontSize: '1.2em' }}>{link.icon}</span>
+                                  <span>{link.label}</span>
+                                </Link>
+                              </motion.div>
+                            );
+                          })}
                           <div
                             style={{
                               height: '1px',
@@ -925,49 +1013,91 @@ export default function Layout() {
               <div
                 style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
               >
-                {navLinks.map((link) => (
-                  <motion.div
-                    key={link.to}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: navLinks.indexOf(link) * 0.05 }}
-                  >
-                    <Link
-                      to={link.to}
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        textDecoration: 'none',
-                        color: 'var(--text-primary)',
-                        fontWeight: 500,
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        transition: 'all 0.3s',
-                        fontSize: '1rem',
-                        minHeight: '44px',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                        e.currentTarget.style.color = 'var(--primary)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                      }}
+                {navLinks.map((link) => {
+                  const isActive = isActiveLink(link.to);
+                  return (
+                    <motion.div
+                      key={link.to}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: navLinks.indexOf(link) * 0.05 }}
                     >
-                      <span style={{ fontSize: '1.25rem' }}>{link.icon}</span>
-                      <span>{link.label}</span>
-                    </Link>
-                  </motion.div>
-                ))}
+                      <Link
+                        to={link.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          textDecoration: 'none',
+                          color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                          fontWeight: isActive ? 700 : 500,
+                          padding: '1rem',
+                          borderRadius: '12px',
+                          transition: 'all 0.3s',
+                          fontSize: '1rem',
+                          minHeight: '44px',
+                          background: isActive
+                            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                            : 'transparent',
+                          borderLeft: isActive ? '4px solid var(--primary)' : '4px solid transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                          }
+                        }}
+                      >
+                        <span style={{ fontSize: '1.25rem' }}>{link.icon}</span>
+                        <span>{link.label}</span>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+                {connectionLinks.map((link) => {
+                  const isActive = isActiveLink(link.to);
+                  return (
+                    <motion.div
+                      key={link.to}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: (navLinks.length + connectionLinks.indexOf(link)) * 0.05 }}
+                    >
+                      <Link
+                        to={link.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          textDecoration: 'none',
+                          color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                          fontWeight: isActive ? 700 : 500,
+                          background: isActive
+                            ? 'rgba(99, 102, 241, 0.15)'
+                            : 'rgba(99, 102, 241, 0.05)',
+                          borderLeft: isActive ? '4px solid var(--primary)' : '4px solid transparent',
+                        }}
+                      >
+                        <span style={{ fontSize: '1.25rem' }}>{link.icon}</span>
+                        <span>{link.label}</span>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
                 {adminLinks.map((link) => (
                   <motion.div
                     key={link.to}
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: (navLinks.length + adminLinks.indexOf(link)) * 0.05 }}
+                    transition={{ delay: (navLinks.length + connectionLinks.length + adminLinks.indexOf(link)) * 0.05 }}
                   >
                     <Link
                       to={link.to}
@@ -1015,7 +1145,7 @@ export default function Layout() {
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: (navLinks.length + adminLinks.length) * 0.05 }}
+                  transition={{ delay: (navLinks.length + connectionLinks.length + adminLinks.length) * 0.05 }}
                   style={{
                     marginTop: '0.5rem',
                     paddingTop: '0.5rem',
@@ -1091,49 +1221,98 @@ export default function Layout() {
                       </div>
                     </div>
 
+                    {/* Connection Links in Mobile */}
+                    {connectionLinks.length > 0 && (
+                      <>
+                        {connectionLinks.map((link, index) => {
+                          const isActive = isActiveLink(link.to);
+                          return (
+                            <motion.div
+                              key={link.to}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: (navLinks.length + index) * 0.05 }}
+                            >
+                              <Link
+                                to={link.to}
+                                onClick={() => setMobileMenuOpen(false)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  padding: '0.75rem 1rem',
+                                  borderRadius: '8px',
+                                  textDecoration: 'none',
+                                  color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                                  fontWeight: isActive ? 700 : 500,
+                                  background: isActive
+                                    ? 'rgba(99, 102, 241, 0.15)'
+                                    : 'rgba(99, 102, 241, 0.05)',
+                                  borderLeft: isActive ? '4px solid var(--primary)' : '4px solid transparent',
+                                }}
+                              >
+                                <span style={{ fontSize: '1.25rem' }}>{link.icon}</span>
+                                <span>{link.label}</span>
+                              </Link>
+                            </motion.div>
+                          );
+                        })}
+                      </>
+                    )}
+
                     {/* Admin Links in Mobile */}
                     {adminLinks.length > 0 && (
                       <>
-                        {adminLinks.map((link, index) => (
-                          <motion.div
-                            key={link.to}
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: (navLinks.length + index) * 0.05 }}
-                          >
-                            <Link
-                              to={link.to}
-                              onClick={() => setMobileMenuOpen(false)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                textDecoration: 'none',
-                                color: 'var(--text-primary)',
-                                fontWeight: 600,
-                                padding: '1rem 1.25rem',
-                                borderRadius: '12px',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                fontSize: '1rem',
-                                minHeight: '48px',
-                                background: 'transparent',
-                                border: '1px solid rgba(99, 102, 241, 0.2)',
-                                position: 'relative',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)';
-                                e.currentTarget.style.color = 'var(--primary)';
-                                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-                                e.currentTarget.style.transform = 'translateX(5px)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = 'var(--text-primary)';
-                                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)';
-                                e.currentTarget.style.transform = 'translateX(0)';
-                              }}
+                        {adminLinks.map((link, index) => {
+                          const isActive = isActiveLink(link.to);
+                          return (
+                            <motion.div
+                              key={link.to}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: (navLinks.length + connectionLinks.length + index) * 0.05 }}
                             >
+                              <Link
+                                to={link.to}
+                                onClick={() => setMobileMenuOpen(false)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  textDecoration: 'none',
+                                  color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                                  fontWeight: isActive ? 700 : 600,
+                                  padding: '1rem 1.25rem',
+                                  borderRadius: '12px',
+                                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  fontSize: '1rem',
+                                  minHeight: '48px',
+                                  background: isActive
+                                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                                    : 'transparent',
+                                  border: isActive
+                                    ? '1px solid rgba(99, 102, 241, 0.4)'
+                                    : '1px solid rgba(99, 102, 241, 0.2)',
+                                  position: 'relative',
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.background =
+                                      'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)';
+                                    e.currentTarget.style.color = 'var(--primary)';
+                                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                                    e.currentTarget.style.transform = 'translateX(5px)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.background = 'transparent';
+                                    e.currentTarget.style.color = 'var(--text-primary)';
+                                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)';
+                                    e.currentTarget.style.transform = 'translateX(0)';
+                                  }
+                                }}
+                              >
                               <span
                                 style={{
                                   fontSize: '1.35rem',
@@ -1151,7 +1330,8 @@ export default function Layout() {
                               </span>
                             </Link>
                           </motion.div>
-                        ))}
+                          );
+                        })}
                         <div
                           style={{
                             height: '1px',

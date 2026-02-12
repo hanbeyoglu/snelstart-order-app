@@ -99,10 +99,18 @@ export default function UserPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              E-posta
+              Kullanıcı Adı
             </p>
-            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.email}</p>
+            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.username}</p>
           </div>
+          {user?.email && (
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                E-posta
+              </p>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user.email}</p>
+            </div>
+          )}
           <div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
               Rol
@@ -112,94 +120,6 @@ export default function UserPage() {
             </p>
           </div>
         </div>
-      </motion.div>
-
-      {/* Connection Status Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card"
-        style={{
-          marginBottom: '2rem',
-          border: isTokenValid ? '2px solid rgba(16, 185, 129, 0.3)' : '2px solid rgba(239, 68, 68, 0.3)',
-          background: isTokenValid
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)'
-            : 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>🔗 SnelStart Bağlantı Durumu</h3>
-          <span
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '12px',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              background: isTokenValid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-              color: isTokenValid ? '#10b981' : '#ef4444',
-            }}
-          >
-            {isTokenValid ? '✅ Aktif' : '❌ Pasif'}
-          </span>
-        </div>
-
-        {tokenExpiresAt && (
-          <div style={{ marginBottom: '1rem' }}>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              Token Geçerlilik Süresi
-            </p>
-            <p style={{ fontSize: '1rem', fontWeight: 500 }}>
-              {tokenExpiresAt.toLocaleString('tr-TR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          </div>
-        )}
-
-        {!isTokenValid && (
-          <motion.button
-            onClick={handleRefreshToken}
-            className="btn-primary"
-            disabled={isRefreshing}
-            style={{ width: '100%', marginTop: '1rem' }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {isRefreshing ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <span className="loading" />
-                Bağlanıyor...
-              </span>
-            ) : (
-              '🔄 Bağlantıyı Test Et / Bağlan'
-            )}
-          </motion.button>
-        )}
-
-        {isTokenValid && (
-          <motion.button
-            onClick={handleRefreshToken}
-            className="btn-secondary"
-            disabled={isRefreshing}
-            style={{ width: '100%', marginTop: '1rem' }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {isRefreshing ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <span className="loading" />
-                Yenileniyor...
-              </span>
-            ) : (
-              '🔄 Token\'ı Yenile'
-            )}
-          </motion.button>
-        )}
       </motion.div>
 
       {/* Company Info Card */}
