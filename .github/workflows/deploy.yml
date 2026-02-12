@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: CI & Deploy
 
 on:
   push:
@@ -6,7 +6,39 @@ on:
       - main
 
 jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter ./packages/shared build
+
+      - name: Build API
+        run: pnpm --filter ./apps/api build
+
+      - name: Build Web
+        run: pnpm --filter ./apps/web build
+
+      - name: Build Worker
+        run: pnpm --filter ./apps/worker build
+
+
   deploy:
+    needs: build-and-test   # 🔥 Bu kritik
     runs-on: ubuntu-latest
 
     steps:
