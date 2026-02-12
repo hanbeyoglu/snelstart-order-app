@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,6 +11,22 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth()
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user info (available to all authenticated users)' })
+  async getCurrentUser(@Request() req: any) {
+    return this.usersService.getUserById(req.user.userId);
+  }
+
+  @Put('me')
+  @ApiOperation({ summary: 'Update current user profile (username and password only, no role change)' })
+  async updateCurrentUser(
+    @Request() req: any,
+    @Body() body: { username?: string; email?: string | null; password?: string },
+  ) {
+    // Kullanıcı kendi bilgilerini güncelleyebilir, ancak rol değiştiremez
+    return this.usersService.updateUser(req.user.userId, body, false);
+  }
 
   @Get()
   @Roles('admin')
@@ -35,12 +51,13 @@ export class UsersController {
 
   @Put(':id')
   @Roles('admin')
-  @ApiOperation({ summary: 'Update user' })
+  @ApiOperation({ summary: 'Update user (admin only)' })
   async updateUser(
     @Param('id') id: string,
     @Body() body: { username?: string; email?: string | null; password?: string; role?: 'admin' | 'sales_rep' },
   ) {
-    return this.usersService.updateUser(id, body);
+    // Admin tüm alanları değiştirebilir (rol dahil)
+    return this.usersService.updateUser(id, body, true);
   }
 
   @Delete(':id')

@@ -19,10 +19,16 @@ interface CompanyInfo {
 }
 
 export default function UserPage() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [useEmail, setUseEmail] = useState(!!user?.email);
 
   const { data: connectionStatus } = useQuery({
     queryKey: ['connection-settings'],
@@ -64,6 +70,74 @@ export default function UserPage() {
     refreshTokenMutation.mutate();
   };
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { username?: string; email?: string | null; password?: string }) => {
+      const response = await api.put('/users/me', data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Auth store'u güncelle
+      setUser({
+        id: data._id || data.id,
+        username: data.username,
+        email: data.email || null,
+        role: data.role,
+      });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      showToast('Profil bilgileriniz başarıyla güncellendi', 'success');
+      setIsEditing(false);
+      setPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Profil güncellenirken bir hata oluştu';
+      showToast(message, 'error', 5000);
+    },
+  });
+
+  const handleEditProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!username || !username.trim()) {
+      showToast('Lütfen kullanıcı adını girin', 'error');
+      return;
+    }
+
+    const updateData: { username?: string; email?: string | null; password?: string } = {
+      username: username.trim(),
+    };
+
+    // Email işleme
+    if (useEmail) {
+      if (email && email.trim()) {
+        updateData.email = email.trim();
+      } else {
+        updateData.email = null;
+      }
+    } else {
+      updateData.email = null;
+    }
+
+    // Şifre kontrolü
+    if (password) {
+      if (password.length < 6) {
+        showToast('Şifre en az 6 karakter olmalıdır', 'error');
+        return;
+      }
+      if (password !== confirmPassword) {
+        showToast('Şifreler eşleşmiyor', 'error');
+        return;
+      }
+      updateData.password = password;
+    }
+
+    updateProfileMutation.mutate(updateData);
+  };
+
   const isTokenValid = connectionStatus?.isTokenValid === true;
   const tokenExpiresAt = connectionStatus?.tokenExpiresAt
     ? new Date(connectionStatus.tokenExpiresAt)
@@ -93,33 +167,161 @@ export default function UserPage() {
         className="card"
         style={{ marginBottom: '2rem' }}
       >
-        <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>
-          👤 Hesap Bilgileri
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              Kullanıcı Adı
-            </p>
-            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.username}</p>
-          </div>
-          {user?.email && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
+            👤 Hesap Bilgileri
+          </h3>
+          {!isEditing && (
+            <motion.button
+              onClick={() => {
+                setIsEditing(true);
+                setUsername(user?.username || '');
+                setEmail(user?.email || '');
+                setUseEmail(!!user?.email);
+                setPassword('');
+                setConfirmPassword('');
+              }}
+              className="btn-primary"
+              style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              ✏️ Düzenle
+            </motion.button>
+          )}
+        </div>
+
+        {!isEditing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                E-posta
+                Kullanıcı Adı
               </p>
-              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user.email}</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.username}</p>
             </div>
-          )}
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              Rol
-            </p>
-            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-              {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
-            </p>
+            {user?.email && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                  E-posta
+                </p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user.email}</p>
+              </div>
+            )}
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                Rol
+              </p>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <form onSubmit={handleEditProfile}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                  Kullanıcı Adı *
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={useEmail}
+                    onChange={(e) => setUseEmail(e.target.checked)}
+                  />
+                  <span style={{ fontWeight: 600 }}>E-posta kullan</span>
+                </label>
+                {useEmail && (
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ornek@email.com"
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  />
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                  Yeni Şifre (değiştirmek istemiyorsanız boş bırakın)
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
+
+              {password && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                    Yeni Şifre Tekrar *
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required={!!password}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  />
+                </div>
+              )}
+
+              <div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                  Rol
+                </p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'} (Değiştirilemez)
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <motion.button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={updateProfileMutation.isPending}
+                  style={{ flex: 1, padding: '0.75rem' }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {updateProfileMutation.isPending ? 'Kaydediliyor...' : '💾 Kaydet'}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setUsername(user?.username || '');
+                    setEmail(user?.email || '');
+                    setUseEmail(!!user?.email);
+                    setPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '0.75rem' }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  ❌ İptal
+                </motion.button>
+              </div>
+            </div>
+          </form>
+        )}
       </motion.div>
 
       {/* Company Info Card */}

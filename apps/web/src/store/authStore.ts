@@ -15,6 +15,7 @@ interface AuthState {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -35,6 +36,9 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ isAuthenticated: false, user: null, token: null });
         delete api.defaults.headers.common['Authorization'];
+      },
+      setUser: (user: User) => {
+        set({ user });
       },
     }),
     {

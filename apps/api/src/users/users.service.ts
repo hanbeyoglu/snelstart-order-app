@@ -122,11 +122,16 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: string, data: { username?: string; email?: string | null; password?: string; role?: 'admin' | 'sales_rep' }) {
+  async updateUser(id: string, data: { username?: string; email?: string | null; password?: string; role?: 'admin' | 'sales_rep' }, allowRoleChange: boolean = true) {
     try {
       const user = await this.userModel.findById(id).exec();
       if (!user) {
         throw new NotFoundException('User not found');
+      }
+
+      // Rol değişikliği sadece admin tarafından yapılabilir
+      if (data.role !== undefined && !allowRoleChange) {
+        throw new BadRequestException('Rol değiştirme yetkiniz yok. Lütfen yöneticinize başvurun.');
       }
 
       if (data.username !== undefined) {
@@ -176,7 +181,8 @@ export class UsersService {
         user.passwordHash = await bcrypt.hash(data.password, 10);
       }
 
-      if (data.role) {
+      // Rol değişikliği sadece allowRoleChange true ise yapılabilir
+      if (data.role && allowRoleChange) {
         user.role = data.role;
       }
 
