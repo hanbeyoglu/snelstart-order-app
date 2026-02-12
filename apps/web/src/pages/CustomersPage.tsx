@@ -186,7 +186,7 @@ export default function CustomersPage() {
       plaats: formData.get('plaats'),
       land: formData.get('land') || 'NL',
       telefoon: formData.get('telefoon'),
-      email: formData.get('email'),
+      email: formData.get('email') || '',
     });
   };
 
