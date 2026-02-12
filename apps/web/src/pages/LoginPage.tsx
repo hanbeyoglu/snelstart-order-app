@@ -24,8 +24,12 @@ export default function LoginPage() {
       showToast('Giriş başarılı! Hoş geldiniz.', 'success');
       navigate('/');
     } catch (err: any) {
+      console.error('Login error:', err);
       const errorMessage =
-        err.response?.data?.message || err.message || 'Kullanıcı adı veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        err.message || 
+        'Kullanıcı adı veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
       setError(errorMessage);
       
       // Özel mesajlar için daha uzun gösterim süresi

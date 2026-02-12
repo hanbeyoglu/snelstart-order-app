@@ -40,12 +40,16 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      try {
-        const useAuthStore = await getAuthStore();
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
-      } catch (e) {
-        // Ignore if store not available
+      // Login sayfasındaysak logout yapma (hata mesajı gösterilmeli)
+      const isLoginPage = window.location.pathname === '/login' || window.location.pathname.includes('/login');
+      if (!isLoginPage) {
+        try {
+          const useAuthStore = await getAuthStore();
+          useAuthStore.getState().logout();
+          window.location.href = '/login';
+        } catch (e) {
+          // Ignore if store not available
+        }
       }
     }
     return Promise.reject(error);
