@@ -167,8 +167,19 @@ export default function UserPage() {
         className="card"
         style={{ marginBottom: '2rem' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <h3 style={{ 
+            fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', 
+            fontWeight: 700, 
+            margin: 0 
+          }}>
             👤 Hesap Bilgileri
           </h3>
           {!isEditing && (
@@ -182,7 +193,11 @@ export default function UserPage() {
                 setConfirmPassword('');
               }}
               className="btn-primary"
-              style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              style={{ 
+                padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)', 
+                fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                whiteSpace: 'nowrap'
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -192,35 +207,67 @@ export default function UserPage() {
         </div>
 
         {!isEditing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
             <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+              <p style={{ 
+                color: 'var(--text-secondary)', 
+                fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
+                marginBottom: '0.25rem' 
+              }}>
                 Kullanıcı Adı
               </p>
-              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user?.username}</p>
+              <p style={{ 
+                fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
+                fontWeight: 600,
+                wordBreak: 'break-word'
+              }}>
+                {user?.username}
+              </p>
             </div>
             {user?.email && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                <p style={{ 
+                  color: 'var(--text-secondary)', 
+                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
+                  marginBottom: '0.25rem' 
+                }}>
                   E-posta
                 </p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{user.email}</p>
+                <p style={{ 
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
+                  fontWeight: 600,
+                  wordBreak: 'break-word'
+                }}>
+                  {user.email}
+                </p>
               </div>
             )}
             <div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+              <p style={{ 
+                color: 'var(--text-secondary)', 
+                fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
+                marginBottom: '0.25rem' 
+              }}>
                 Rol
               </p>
-              <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+              <p style={{ 
+                fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
+                fontWeight: 600 
+              }}>
                 {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
               </p>
             </div>
           </div>
         ) : (
           <form onSubmit={handleEditProfile}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                }}>
                   Kullanıcı Adı *
                 </label>
                 <input
@@ -228,18 +275,43 @@ export default function UserPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  style={{ 
+                    width: '100%', 
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)',
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    boxSizing: 'border-box'
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                  cursor: 'pointer'
+                }}>
                   <input
                     type="checkbox"
                     checked={useEmail}
                     onChange={(e) => setUseEmail(e.target.checked)}
+                    style={{
+                      width: 'clamp(18px, 4vw, 20px)',
+                      height: 'clamp(18px, 4vw, 20px)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      margin: 0
+                    }}
                   />
-                  <span style={{ fontWeight: 600 }}>E-posta kullan</span>
+                  <span style={{ 
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}>
+                    E-posta kullan
+                  </span>
                 </label>
                 {useEmail && (
                   <input
@@ -247,13 +319,26 @@ export default function UserPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ornek@email.com"
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    style={{ 
+                      width: '100%', 
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)',
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                      marginTop: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 )}
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                }}>
                   Yeni Şifre (değiştirmek istemiyorsanız boş bırakın)
                 </label>
                 <input
@@ -261,13 +346,25 @@ export default function UserPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  style={{ 
+                    width: '100%', 
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)',
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    boxSizing: 'border-box'
+                  }}
                 />
               </div>
 
               {password && (
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}>
                     Yeni Şifre Tekrar *
                   </label>
                   <input
@@ -276,26 +373,51 @@ export default function UserPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required={!!password}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    style={{ 
+                      width: '100%', 
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)',
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
               )}
 
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                <p style={{ 
+                  color: 'var(--text-secondary)', 
+                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
+                  marginBottom: '0.25rem' 
+                }}>
                   Rol
                 </p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <p style={{ 
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
+                  fontWeight: 600, 
+                  color: 'var(--text-secondary)' 
+                }}>
                   {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'} (Değiştirilemez)
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <div style={{ 
+                display: 'flex', 
+                gap: 'clamp(0.75rem, 2vw, 1rem)', 
+                marginTop: 'clamp(0.75rem, 2vw, 1rem)',
+                flexWrap: 'wrap'
+              }}>
                 <motion.button
                   type="submit"
                   className="btn-primary"
                   disabled={updateProfileMutation.isPending}
-                  style={{ flex: 1, padding: '0.75rem' }}
+                  style={{ 
+                    flex: '1 1 auto',
+                    minWidth: '120px',
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -312,7 +434,12 @@ export default function UserPage() {
                     setConfirmPassword('');
                   }}
                   className="btn-secondary"
-                  style={{ flex: 1, padding: '0.75rem' }}
+                  style={{ 
+                    flex: '1 1 auto',
+                    minWidth: '120px',
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
