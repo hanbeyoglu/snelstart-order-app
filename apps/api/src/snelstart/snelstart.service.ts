@@ -27,5 +27,7 @@ export class SnelStartService {
   getCompanyInfo = () => this.client.getCompanyInfo();
   getArtikelOmzetGroepen = () => this.client.getArtikelOmzetGroepen();
   getSalesOrders = (customerId?: string) => this.client.getSalesOrders(customerId);
+  getVerkoopordersPaginated = (skip?: number, top?: number, customerId?: string) =>
+    this.client.getVerkoopordersPaginated(skip ?? 0, top ?? 500, customerId);
 }
 

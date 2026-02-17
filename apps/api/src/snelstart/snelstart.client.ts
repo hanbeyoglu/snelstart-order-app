@@ -471,6 +471,42 @@ export class SnelStartClient {
     });
   }
 
+  /**
+   * Get verkooporders for Reports. Tries $skip/$top; if 400, fallback only when skip=0
+   * (avoid duplicate data when pagination unsupported).
+   */
+  async getVerkoopordersPaginated(
+    skip: number = 0,
+    top: number = 500,
+    customerId?: string,
+  ): Promise<any[]> {
+    if (this.mockMode) {
+      return this.getMockVerkooporders().slice(skip, skip + top);
+    }
+
+    return this.requestWithRetry(async () => {
+      const params: any = {};
+      if (customerId) params.relatie = customerId;
+      try {
+        params.$skip = skip;
+        params.$top = top;
+        const response = await this.axiosInstance.get('/v2/verkooporders', { params });
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (err: any) {
+        if (err.response?.status === 400 && skip === 0) {
+          delete params.$skip;
+          delete params.$top;
+          const response = await this.axiosInstance.get('/v2/verkooporders', { params });
+          return Array.isArray(response.data) ? response.data : [];
+        }
+        if (err.response?.status === 400 && skip > 0) {
+          return [];
+        }
+        throw err;
+      }
+    });
+  }
+
   // Delete Customer (Relation)
   async deleteCustomer(id: string): Promise<void> {
     if (this.mockMode) {
@@ -601,6 +637,31 @@ export class SnelStartClient {
         land: 'NL',
         telefoon: '+31209876543',
         email: 'contact@xyzwholesale.nl',
+      },
+    ];
+  }
+
+  private getMockVerkooporders(): any[] {
+    return [
+      {
+        id: 'vo1',
+        ordernummer: 'ORD-001',
+        relatie: { id: 'c1', naam: 'ABC Market' },
+        datum: '2024-01-15T00:00:00',
+        procesStatus: 'Factuur',
+        regels: [
+          { artikel: { id: 'p1' }, aantal: 10, stuksprijs: 5.99, inkoopprijs: 3.5, omschrijving: 'Premium Makarna' },
+          { artikel: { id: 'p2' }, aantal: 5, stuksprijs: 8.99, inkoopprijs: 5, omschrijving: 'Organik Pirinç' },
+        ],
+      },
+      {
+        id: 'vo2',
+        ordernummer: 'ORD-002',
+        relatie: { id: 'c2', naam: 'XYZ Wholesale' },
+        datum: '2024-01-14T00:00:00',
+        regels: [
+          { artikel: { id: 'p1' }, aantal: 20, stuksprijs: 5.99, inkoopprijs: 3.5, omschrijving: 'Premium Makarna' },
+        ],
       },
     ];
   }

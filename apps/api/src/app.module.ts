@@ -22,6 +22,7 @@ import { CacheModule } from './cache/cache.module';
 import { CompanyInfoModule } from './company-info/company-info.module';
 import { R2Module } from './r2/r2.module';
 import { UsersModule } from './users/users.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { UsersModule } from './users/users.module';
     CompanyInfoModule,
     R2Module,
     UsersModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
