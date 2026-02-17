@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.png'],
+      includeAssets: ['favicon.png', 'robots.txt', 'icons/*.png'],
       manifest: {
         name: 'DHY Order App',
         short_name: 'SnelStart',

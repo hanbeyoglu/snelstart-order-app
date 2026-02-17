@@ -19,10 +19,10 @@ export class UsersController {
   }
 
   @Put('me')
-  @ApiOperation({ summary: 'Update current user profile (username and password only, no role change)' })
+  @ApiOperation({ summary: 'Update current user profile (username, email, firstName, lastName, password)' })
   async updateCurrentUser(
     @Request() req: any,
-    @Body() body: { username?: string; email?: string | null; password?: string },
+    @Body() body: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string },
   ) {
     // Kullanıcı kendi bilgilerini güncelleyebilir, ancak rol değiştiremez
     return this.usersService.updateUser(req.user.userId, body, false);
@@ -45,8 +45,8 @@ export class UsersController {
   @Post()
   @Roles('admin')
   @ApiOperation({ summary: 'Create new user' })
-  async createUser(@Body() body: { username: string; email?: string; password: string; role?: 'admin' | 'sales_rep' }) {
-    return this.usersService.createUser(body.username, body.email, body.password, body.role);
+  async createUser(@Body() body: { username: string; email?: string; firstName?: string; lastName?: string; password: string; role?: 'admin' | 'sales_rep' }) {
+    return this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName);
   }
 
   @Put(':id')
@@ -54,7 +54,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user (admin only)' })
   async updateUser(
     @Param('id') id: string,
-    @Body() body: { username?: string; email?: string | null; password?: string; role?: 'admin' | 'sales_rep' },
+    @Body() body: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: 'admin' | 'sales_rep' },
   ) {
     // Admin tüm alanları değiştirebilir (rol dahil)
     return this.usersService.updateUser(id, body, true);

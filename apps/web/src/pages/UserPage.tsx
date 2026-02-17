@@ -24,6 +24,8 @@ export default function UserPage() {
   const showToast = useToastStore((state) => state.showToast);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
   const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
@@ -71,7 +73,7 @@ export default function UserPage() {
   };
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { username?: string; email?: string | null; password?: string }) => {
+    mutationFn: async (data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string }) => {
       const response = await api.put('/users/me', data);
       return response.data;
     },
@@ -81,6 +83,8 @@ export default function UserPage() {
         id: data._id || data.id,
         username: data.username,
         email: data.email || null,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
         role: data.role,
       });
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
@@ -107,8 +111,10 @@ export default function UserPage() {
       return;
     }
 
-    const updateData: { username?: string; email?: string | null; password?: string } = {
+    const updateData: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string } = {
       username: username.trim(),
+      firstName: firstName.trim() || undefined,
+      lastName: lastName.trim() || undefined,
     };
 
     // Email işleme
@@ -186,6 +192,8 @@ export default function UserPage() {
             <motion.button
               onClick={() => {
                 setIsEditing(true);
+                setFirstName(user?.firstName || '');
+                setLastName(user?.lastName || '');
                 setUsername(user?.username || '');
                 setEmail(user?.email || '');
                 setUseEmail(!!user?.email);
@@ -208,6 +216,24 @@ export default function UserPage() {
 
         {!isEditing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
+            {(user?.firstName || user?.lastName) && (
+              <div>
+                <p style={{ 
+                  color: 'var(--text-secondary)', 
+                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
+                  marginBottom: '0.25rem' 
+                }}>
+                  Ad Soyad
+                </p>
+                <p style={{ 
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
+                  fontWeight: 600,
+                  wordBreak: 'break-word'
+                }}>
+                  {[user?.firstName, user?.lastName].filter(Boolean).join(' ')}
+                </p>
+              </div>
+            )}
             <div>
               <p style={{ 
                 color: 'var(--text-secondary)', 
@@ -261,6 +287,56 @@ export default function UserPage() {
         ) : (
           <form onSubmit={handleEditProfile}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
+              <div style={{ display: 'flex', gap: 'clamp(0.75rem, 2vw, 1rem)', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 140px', minWidth: 0 }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}>
+                    Ad
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Adınız"
+                    style={{ 
+                      width: '100%', 
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)',
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 140px', minWidth: 0 }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                  }}>
+                    Soyad
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Soyadınız"
+                    style={{ 
+                      width: '100%', 
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)',
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
               <div>
                 <label style={{ 
                   display: 'block', 
@@ -427,6 +503,8 @@ export default function UserPage() {
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
+                    setFirstName(user?.firstName || '');
+                    setLastName(user?.lastName || '');
                     setUsername(user?.username || '');
                     setEmail(user?.email || '');
                     setUseEmail(!!user?.email);

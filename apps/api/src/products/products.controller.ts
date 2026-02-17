@@ -16,17 +16,26 @@ export class ProductsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get products (optionally filtered by group or search) with pagination' })
+  @ApiOperation({ summary: 'Get products (optionally filtered by group(s), search, stock) with pagination and sort' })
   async getProducts(
     @Query('groupId') groupId?: string,
+    @Query('groupIds') groupIdsParam?: string,
     @Query('search') search?: string,
     @Query('customerId') customerId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('inStockOnly') inStockOnly?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 20;
-    return this.productsService.getProducts(groupId, search, customerId, pageNum, limitNum);
+    const inStock = inStockOnly === 'true' || inStockOnly === '1';
+    const groupIds = groupIdsParam
+      ? groupIdsParam.split(',').map((id) => id.trim()).filter(Boolean)
+      : groupId
+        ? [groupId]
+        : undefined;
+    return this.productsService.getProducts(groupIds, search, customerId, pageNum, limitNum, sortBy, inStock);
   }
 
   @Get(':id')

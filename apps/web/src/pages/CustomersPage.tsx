@@ -22,7 +22,6 @@ interface Customer {
   notes?: string;
 }
 
-
 export default function CustomersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -123,7 +122,15 @@ export default function CustomersPage() {
   });
 
   const updateVisitStatusMutation = useMutation({
-    mutationFn: async ({ customerId, status, notes }: { customerId: string; status: 'VISITED' | 'PLANNED'; notes?: string }) => {
+    mutationFn: async ({
+      customerId,
+      status,
+      notes,
+    }: {
+      customerId: string;
+      status: 'VISITED' | 'PLANNED';
+      notes?: string;
+    }) => {
       const response = await api.put(`/customers/${customerId}/visit-status`, { status, notes });
       return response.data;
     },
@@ -166,7 +173,10 @@ export default function CustomersPage() {
       setIsSyncing(false);
     },
     onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Senkronizasyon sırasında bir hata oluştu', 'error');
+      showToast(
+        error.response?.data?.message || 'Senkronizasyon sırasında bir hata oluştu',
+        'error'
+      );
       setIsSyncing(false);
     },
   });
@@ -212,7 +222,16 @@ export default function CustomersPage() {
   if (isLoading) {
     return (
       <div className="container">
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '60vh',
+            gap: '1rem',
+          }}
+        >
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -243,7 +262,14 @@ export default function CustomersPage() {
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}
+        style={{
+          marginBottom: '2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
       >
         <div>
           <h1
@@ -294,9 +320,7 @@ export default function CustomersPage() {
                 Senkronize Ediliyor...
               </>
             ) : (
-              <>
-                🔄 Senkronize Et
-              </>
+              <>🔄 Senkronize Et</>
             )}
           </motion.button>
           <motion.button
@@ -377,7 +401,13 @@ export default function CustomersPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}
+        style={{
+          marginBottom: '2rem',
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+        }}
       >
         <input
           type="text"
@@ -422,7 +452,7 @@ export default function CustomersPage() {
               }}
             />
             <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-              Tüm Müşterileri Göster
+              Toptancılar İle Beraber Göster
             </span>
           </motion.label>
         )}
@@ -436,7 +466,7 @@ export default function CustomersPage() {
             📍 Şehir Filtresi
             {selectedCities.length > 0 && ` (${selectedCities.length})`}
           </motion.button>
-          
+
           <AnimatePresence>
             {showCityFilter && (
               <motion.div
@@ -457,120 +487,148 @@ export default function CustomersPage() {
                   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 }}
               >
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Şehir Seç</h3>
-                  {selectedCities.length > 0 && (
-                    <motion.button
-                      onClick={handleClearCities}
-                      className="btn-secondary"
-                      style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Temizle
-                    </motion.button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  placeholder="🔍 Şehir ara..."
-                  value={citySearch}
-                  onChange={(e) => setCitySearch(e.target.value)}
-                  className="input"
-                  style={{
-                    width: '100%',
-                    fontSize: '0.9rem',
-                    padding: '0.5rem 0.75rem',
-                    marginBottom: '0.5rem',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {selectedCities.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.5rem' }}>
-                    {selectedCities.map((city) => (
-                      <span
-                        key={city}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          padding: '0.25rem 0.5rem',
-                          background: 'var(--primary)',
-                          color: 'white',
-                          borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                        }}
+                <div style={{ marginBottom: '1rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Şehir Seç</h3>
+                    {selectedCities.length > 0 && (
+                      <motion.button
+                        onClick={handleClearCities}
+                        className="btn-secondary"
+                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        {city}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCityToggle(city);
-                          }}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.3)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '16px',
-                            height: '16px',
-                            cursor: 'pointer',
-                            color: 'white',
-                            fontSize: '0.625rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 0,
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
+                        Temizle
+                      </motion.button>
+                    )}
                   </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
-                {cities
-                  ?.filter((city: string) =>
-                    city.toLowerCase().includes(citySearch.toLowerCase())
-                  )
-                  .map((city: string) => (
-                    <label
-                      key={city}
+                  <input
+                    type="text"
+                    placeholder="🔍 Şehir ara..."
+                    value={citySearch}
+                    onChange={(e) => setCitySearch(e.target.value)}
+                    className="input"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.9rem',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {selectedCities.length > 0 && (
+                    <div
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        cursor: 'pointer',
-                        padding: '0.5rem',
-                        borderRadius: '8px',
-                        transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
+                        flexWrap: 'wrap',
+                        gap: '0.25rem',
+                        marginBottom: '0.5rem',
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedCities.includes(city)}
-                        onChange={() => handleCityToggle(city)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '0.9rem', userSelect: 'none' }}>{city}</span>
-                    </label>
-                  ))}
-                {cities?.filter((city: string) =>
-                  city.toLowerCase().includes(citySearch.toLowerCase())
-                ).length === 0 && (
-                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    Şehir bulunamadı
-                  </div>
-                )}
-              </div>
+                      {selectedCities.map((city) => (
+                        <span
+                          key={city}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            padding: '0.25rem 0.5rem',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {city}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCityToggle(city);
+                            }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.3)',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '16px',
+                              height: '16px',
+                              cursor: 'pointer',
+                              color: 'white',
+                              fontSize: '0.625rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {cities
+                    ?.filter((city: string) =>
+                      city.toLowerCase().includes(citySearch.toLowerCase())
+                    )
+                    .map((city: string) => (
+                      <label
+                        key={city}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          cursor: 'pointer',
+                          padding: '0.5rem',
+                          borderRadius: '8px',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCities.includes(city)}
+                          onChange={() => handleCityToggle(city)}
+                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '0.9rem', userSelect: 'none' }}>{city}</span>
+                      </label>
+                    ))}
+                  {cities?.filter((city: string) =>
+                    city.toLowerCase().includes(citySearch.toLowerCase())
+                  ).length === 0 && (
+                    <div
+                      style={{
+                        padding: '1rem',
+                        textAlign: 'center',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Şehir bulunamadı
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -608,7 +666,8 @@ export default function CustomersPage() {
             <thead>
               <tr
                 style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                  background:
+                    'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
                   borderBottom: '2px solid rgba(99, 102, 241, 0.2)',
                 }}
               >
@@ -694,9 +753,19 @@ export default function CustomersPage() {
             </thead>
             <tbody>
               {customers?.map((customer: Customer, index: number) => {
-                const statusIcon = customer.visitStatus === 'VISITED' ? '✅' : customer.visitStatus === 'PLANNED' ? '📅' : '👤';
-                const statusText = customer.visitStatus === 'VISITED' ? 'Gidildi' : customer.visitStatus === 'PLANNED' ? 'Planlandı' : 'Yeni';
-                
+                const statusIcon =
+                  customer.visitStatus === 'VISITED'
+                    ? '✅'
+                    : customer.visitStatus === 'PLANNED'
+                      ? '📅'
+                      : '👤';
+                const statusText =
+                  customer.visitStatus === 'VISITED'
+                    ? 'Gidildi'
+                    : customer.visitStatus === 'PLANNED'
+                      ? 'Planlandı'
+                      : 'Yeni';
+
                 return (
                   <motion.tr
                     key={customer.id}
@@ -720,6 +789,7 @@ export default function CustomersPage() {
                       style={{
                         padding: '1rem',
                         fontWeight: 600,
+                        fontSize: '1rem',
                         color: 'var(--text-primary)',
                       }}
                     >
@@ -773,16 +843,18 @@ export default function CustomersPage() {
                           borderRadius: '12px',
                           fontSize: '0.85rem',
                           fontWeight: 600,
-                          background: customer.visitStatus === 'VISITED'
-                            ? 'rgba(16, 185, 129, 0.1)'
-                            : customer.visitStatus === 'PLANNED'
-                            ? 'rgba(245, 158, 11, 0.1)'
-                            : 'rgba(99, 102, 241, 0.1)',
-                          color: customer.visitStatus === 'VISITED'
-                            ? '#10b981'
-                            : customer.visitStatus === 'PLANNED'
-                            ? '#f59e0b'
-                            : 'var(--primary)',
+                          background:
+                            customer.visitStatus === 'VISITED'
+                              ? 'rgba(16, 185, 129, 0.1)'
+                              : customer.visitStatus === 'PLANNED'
+                                ? 'rgba(245, 158, 11, 0.1)'
+                                : 'rgba(99, 102, 241, 0.1)',
+                          color:
+                            customer.visitStatus === 'VISITED'
+                              ? '#10b981'
+                              : customer.visitStatus === 'PLANNED'
+                                ? '#f59e0b'
+                                : 'var(--primary)',
                         }}
                       >
                         {statusIcon} {statusText}
@@ -933,8 +1005,28 @@ export default function CustomersPage() {
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem' }} className="customer-modal-header">
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', flex: 1, width: '100%' }} className="customer-modal-avatar-section">
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '1rem',
+                      marginBottom: '1.5rem',
+                    }}
+                    className="customer-modal-header"
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        flex: 1,
+                        width: '100%',
+                      }}
+                      className="customer-modal-avatar-section"
+                    >
                       <div
                         style={{
                           width: '64px',
@@ -951,18 +1043,28 @@ export default function CustomersPage() {
                             displayCustomer?.visitStatus === 'VISITED'
                               ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                               : displayCustomer?.visitStatus === 'PLANNED'
-                              ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-                              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         }}
                       >
                         {displayCustomer?.naam?.charAt(0).toUpperCase() || '?'}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
+                        <h2
+                          style={{
+                            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            marginBottom: '0.25rem',
+                            wordBreak: 'break-word',
+                          }}
+                        >
                           {displayCustomer?.naam}
                         </h2>
                         {displayCustomer?.relatiecode && (
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Kod: {displayCustomer.relatiecode}</p>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            Kod: {displayCustomer.relatiecode}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -976,16 +1078,43 @@ export default function CustomersPage() {
                     </motion.button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem',
+                      marginBottom: '1.5rem',
+                    }}
+                  >
                     {displayCustomer?.adres && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>📍 Adres</p>
-                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>{displayCustomer.adres}</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          📍 Adres
+                        </p>
+                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                          {displayCustomer.adres}
+                        </p>
                       </div>
                     )}
                     {displayCustomer?.postcode && displayCustomer?.plaats && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>🏙️ Şehir</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          🏙️ Şehir
+                        </p>
                         <p style={{ color: 'var(--text-primary)' }}>
                           {displayCustomer.postcode} {displayCustomer.plaats}
                         </p>
@@ -993,19 +1122,50 @@ export default function CustomersPage() {
                     )}
                     {displayCustomer?.telefoon && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>📞 Telefon</p>
-                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>{displayCustomer.telefoon}</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          📞 Telefon
+                        </p>
+                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                          {displayCustomer.telefoon}
+                        </p>
                       </div>
                     )}
                     {displayCustomer?.email && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>📧 E-posta</p>
-                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>{displayCustomer.email}</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          📧 E-posta
+                        </p>
+                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                          {displayCustomer.email}
+                        </p>
                       </div>
                     )}
                     {displayCustomer?.visitStatus === 'VISITED' && displayCustomer?.visitedAt && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>✅ Gidildi</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          ✅ Gidildi
+                        </p>
                         <p style={{ color: 'var(--text-primary)' }}>
                           {new Date(displayCustomer.visitedAt).toLocaleString('tr-TR')}
                         </p>
@@ -1013,7 +1173,16 @@ export default function CustomersPage() {
                     )}
                     {displayCustomer?.visitStatus === 'PLANNED' && displayCustomer?.plannedAt && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>📅 Planlandı</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          📅 Planlandı
+                        </p>
                         <p style={{ color: 'var(--text-primary)' }}>
                           {new Date(displayCustomer.plannedAt).toLocaleString('tr-TR')}
                         </p>
@@ -1021,14 +1190,40 @@ export default function CustomersPage() {
                     )}
                     {displayCustomer?.notes && (
                       <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>📝 Notlar</p>
-                        <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{displayCustomer.notes}</p>
+                        <p
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          📝 Notlar
+                        </p>
+                        <p
+                          style={{
+                            color: 'var(--text-primary)',
+                            wordBreak: 'break-word',
+                            whiteSpace: 'pre-wrap',
+                          }}
+                        >
+                          {displayCustomer.notes}
+                        </p>
                       </div>
                     )}
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Notlar</label>
+                    <label
+                      style={{
+                        display: 'block',
+                        marginBottom: '0.5rem',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Notlar
+                    </label>
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
@@ -1039,20 +1234,35 @@ export default function CustomersPage() {
                     />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }} className="customer-modal-buttons">
+                  <div
+                    style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                    className="customer-modal-buttons"
+                  >
                     <motion.button
                       onClick={() => handleUpdateStatus('PLANNED')}
                       className="btn-secondary"
-                      style={{ flex: 1, padding: '0.75rem 1.5rem', fontSize: '1rem', width: '100%' }}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '1rem',
+                        width: '100%',
+                      }}
                       disabled={updateVisitStatusMutation.isPending}
                       whileTap={{ scale: 0.98 }}
                     >
-                      {updateVisitStatusMutation.isPending ? 'Güncelleniyor...' : '📅 Müşteri Gitme Planına Ekle'}
+                      {updateVisitStatusMutation.isPending
+                        ? 'Güncelleniyor...'
+                        : '📅 Müşteri Gitme Planına Ekle'}
                     </motion.button>
                     <motion.button
                       onClick={() => handleUpdateStatus('VISITED')}
                       className="btn-success"
-                      style={{ flex: 1, padding: '0.75rem 1.5rem', fontSize: '1rem', width: '100%' }}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '1rem',
+                        width: '100%',
+                      }}
                       disabled={updateVisitStatusMutation.isPending}
                       whileTap={{ scale: 0.98 }}
                     >

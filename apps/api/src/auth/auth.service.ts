@@ -82,15 +82,17 @@ export class AuthService {
 
   async login(user: any) {
     const payload: any = { username: user.username, sub: user._id, role: user.role };
-    if (user.email) {
-      payload.email = user.email;
-    }
+    if (user.email) payload.email = user.email;
+    if (user.firstName) payload.firstName = user.firstName;
+    if (user.lastName) payload.lastName = user.lastName;
     return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user._id,
         username: user.username,
         email: user.email || null,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
         role: user.role,
       },
     };

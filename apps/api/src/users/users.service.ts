@@ -27,7 +27,7 @@ export class UsersService {
     return user;
   }
 
-  async createUser(username: string, email: string | undefined, password: string, role: 'admin' | 'sales_rep' = 'sales_rep') {
+  async createUser(username: string, email: string | undefined, password: string, role: 'admin' | 'sales_rep' = 'sales_rep', firstName?: string, lastName?: string) {
     try {
       // Username validation
       const trimmedUsername = String(username).trim();
@@ -51,7 +51,9 @@ export class UsersService {
 
       const passwordHash = await bcrypt.hash(password, 10);
       const userData: any = { username: trimmedUsername, passwordHash, role: validRole };
-      
+      if (firstName?.trim()) userData.firstName = firstName.trim();
+      if (lastName?.trim()) userData.lastName = lastName.trim();
+
       // Email sadece geçerli bir değer varsa ekle
       if (email && email.trim()) {
         const trimmedEmail = email.trim();
@@ -122,7 +124,7 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: string, data: { username?: string; email?: string | null; password?: string; role?: 'admin' | 'sales_rep' }, allowRoleChange: boolean = true) {
+  async updateUser(id: string, data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: 'admin' | 'sales_rep' }, allowRoleChange: boolean = true) {
     try {
       const user = await this.userModel.findById(id).exec();
       if (!user) {
@@ -177,6 +179,12 @@ export class UsersService {
         }
       }
 
+      if (data.firstName !== undefined) {
+        user.firstName = data.firstName?.trim() || undefined;
+      }
+      if (data.lastName !== undefined) {
+        user.lastName = data.lastName?.trim() || undefined;
+      }
       if (data.password) {
         user.passwordHash = await bcrypt.hash(data.password, 10);
       }

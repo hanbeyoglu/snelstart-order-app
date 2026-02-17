@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '../services/api';
+import { useCartStore } from './cartStore';
 
 interface User {
   id: string;
   username: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
   role: 'admin' | 'sales_rep';
 }
 
@@ -32,8 +35,15 @@ export const useAuthStore = create<AuthState>()(
           token: response.data.access_token,
         });
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        useCartStore.getState().setCurrentUser(response.data.user.id);
       },
       logout: () => {
+        const { user } = useAuthStore.getState();
+        if (user?.id) {
+          useCartStore.getState().saveAndClearForUser(user.id);
+        } else {
+          useCartStore.getState().setCurrentUser(null);
+        }
         set({ isAuthenticated: false, user: null, token: null });
         delete api.defaults.headers.common['Authorization'];
       },

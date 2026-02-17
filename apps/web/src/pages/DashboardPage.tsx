@@ -264,7 +264,7 @@ export default function DashboardPage() {
                     {customer.naam?.charAt(0).toUpperCase() || '?'}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
+                    <p style={{ fontWeight: 600, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)', color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
                       {customer.naam}
                     </p>
                     {customer.relatiecode && (
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                     {customer.naam?.charAt(0).toUpperCase() || '?'}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
+                    <p style={{ fontWeight: 600, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)', color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
                       {customer.naam}
                     </p>
                     {customer.relatiecode && (

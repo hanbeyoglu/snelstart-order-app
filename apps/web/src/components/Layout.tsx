@@ -664,7 +664,7 @@ export default function Layout() {
                       boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                     }}
                   >
-                    {user?.email?.charAt(0).toUpperCase() || '👤'}
+                    {(user?.firstName?.charAt(0) || user?.lastName?.charAt(0) || user?.email?.charAt(0) || '👤').toUpperCase()}
                   </span>
                 </motion.button>
 
@@ -719,7 +719,7 @@ export default function Layout() {
                               boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                             }}
                           >
-                            {user?.email?.charAt(0).toUpperCase() || '👤'}
+                            {(user?.firstName?.charAt(0) || user?.lastName?.charAt(0) || user?.email?.charAt(0) || '👤').toUpperCase()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <p
@@ -733,7 +733,9 @@ export default function Layout() {
                                 textOverflow: 'ellipsis',
                               }}
                             >
-                              {user?.email || 'Kullanıcı'}
+                              {user?.firstName || user?.lastName
+                                ? [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+                                : user?.email || user?.username || 'Kullanıcı'}
                             </p>
                             {user?.role && (
                               <p
@@ -1190,7 +1192,7 @@ export default function Layout() {
                           boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                         }}
                       >
-                        {user?.email?.charAt(0).toUpperCase() || '👤'}
+                        {(user?.firstName?.charAt(0) || user?.lastName?.charAt(0) || user?.email?.charAt(0) || '👤').toUpperCase()}
                       </div>
                       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <p
@@ -1204,7 +1206,9 @@ export default function Layout() {
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          {user?.email || 'Kullanıcı'}
+                          {user?.firstName || user?.lastName
+                            ? [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+                            : user?.email || user?.username || 'Kullanıcı'}
                         </p>
                         {user?.role && (
                           <p

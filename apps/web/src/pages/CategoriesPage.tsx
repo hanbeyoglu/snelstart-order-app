@@ -34,6 +34,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
 
   return (
     <motion.div
+      className="category-card"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: level * 0.05 }}
@@ -49,7 +50,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
       }}
     >
       <div
-        className="card"
+        className="card category-card-inner"
         style={{
           background: 'white',
           borderRadius: '24px',
@@ -89,6 +90,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
         {/* Category Image or Icon */}
         {category.coverImageUrl ? (
           <motion.div
+            className="category-card-image"
             style={{
               width: '100%',
               paddingTop: '75%',
@@ -119,6 +121,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
           </motion.div>
         ) : (
           <motion.div
+            className="category-card-icon"
             style={{
               fontSize: '3.5rem',
               marginBottom: '1rem',
@@ -137,7 +140,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
         <div style={{ flex: 1 }}>
           <h3
             style={{
-              fontSize: '1.5rem',
+              fontSize: 'clamp(1.1rem, 3vw, 1.5rem)',
               fontWeight: 700,
               marginBottom: '0.5rem',
               color: 'var(--text-primary)',
@@ -184,6 +187,7 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
 
         {/* Arrow Indicator */}
         <motion.div
+          className="category-card-arrow"
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -424,12 +428,7 @@ export default function CategoriesPage() {
         </motion.div>
       ) : (
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            gap: '1rem',
-            marginBottom: '2rem',
-          }}
+          style={{ marginBottom: '2rem' }}
           className="responsive-grid"
         >
           {displayCategories.map((category: Category, index: number) => (

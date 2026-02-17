@@ -212,21 +212,50 @@ export default function CartPage() {
 
   return (
     <div className="container">
-      <motion.h2
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
           marginBottom: 'clamp(1rem, 3vw, 2rem)',
-          fontSize: 'clamp(1.5rem, 6vw, 2.5rem)',
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          lineHeight: '1.2',
         }}
       >
-        Sepet
-      </motion.h2>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 'clamp(1.5rem, 6vw, 2.5rem)',
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            lineHeight: '1.2',
+          }}
+        >
+          Sepet
+        </h2>
+        {items.length > 0 && (
+          <motion.button
+            type="button"
+            onClick={() => {
+              clear();
+              showToast('Sepet temizlendi', 'success');
+            }}
+            className="btn-secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            🗑️ Sepeti Temizle
+          </motion.button>
+        )}
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

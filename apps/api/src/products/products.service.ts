@@ -413,14 +413,42 @@ export class ProductsService {
     }
   }
 
-  async getProducts(groupId?: string, search?: string, customerId?: string, page: number = 1, limit: number = 20) {
-    const cacheKey = `products:${groupId || 'all'}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}`;
-    
+  /** Sort options: name_asc, name_desc, price_asc, price_desc, stock_desc */
+  private getSortObject(sortBy?: string): Record<string, 1 | -1> {
+    switch (sortBy) {
+      case 'name_desc':
+        return { omschrijving: -1 };
+      case 'price_asc':
+        return { verkoopprijs: 1, omschrijving: 1 };
+      case 'price_desc':
+        return { verkoopprijs: -1, omschrijving: 1 };
+      case 'stock_desc':
+        return { voorraad: -1, omschrijving: 1 };
+      case 'name_asc':
+      default:
+        return { omschrijving: 1 };
+    }
+  }
+
+  async getProducts(
+    groupIds?: string[],
+    search?: string,
+    customerId?: string,
+    page: number = 1,
+    limit: number = 20,
+    sortBy?: string,
+    inStockOnly: boolean = false,
+  ) {
+    const groupIdsKey = groupIds?.length ? groupIds.slice().sort().join(',') : 'all';
+    const cacheKey = `products:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
+
     // First check Redis cache
     const cached = await this.cacheService.get(cacheKey);
     if (cached) {
       return cached;
     }
+
+    const sort = this.getSortObject(sortBy);
 
     // If search is provided, try DB first (faster)
     if (search && search.trim()) {
@@ -430,35 +458,40 @@ export class ProductsService {
           { isActive: { $ne: false } }, // Include all except isActive: false
         ],
       };
-      
+
       const searchLower = search.toLowerCase().trim();
-      
+
       // Search in multiple fields
       const searchConditions = [
         { omschrijving: { $regex: searchLower, $options: 'i' } },
         { artikelnummer: { $regex: searchLower, $options: 'i' } },
         { barcode: { $regex: searchLower, $options: 'i' } },
       ];
-      
+
       query.$and.push({ $or: searchConditions });
-      
-      // Filter by groupId if provided
-      if (groupId) {
+
+      // Filter by groupIds if provided (any of the categories)
+      if (groupIds?.length) {
         query.$and.push({
           $or: [
-            { artikelgroepId: groupId },
-            { artikelomzetgroepId: groupId }
-          ]
+            { artikelgroepId: { $in: groupIds } },
+            { artikelomzetgroepId: { $in: groupIds } },
+          ],
         });
       }
-      
+
+      // Sadece stokta olanlar
+      if (inStockOnly) {
+        query.$and.push({ voorraad: { $gt: 0 } });
+      }
+
       const total = await this.productModel.countDocuments(query).exec();
       const skip = (page - 1) * limit;
       const totalPages = Math.ceil(total / limit);
-      
+
       const dbProducts = await this.productModel
         .find(query)
-        .sort({ omschrijving: 1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .exec();
@@ -537,14 +570,14 @@ export class ProductsService {
       isActive: { $ne: false }, // Include all except isActive: false
     };
     
-    // Filter by groupId if provided (can be artikelgroepId or artikelomzetgroepId)
-    if (groupId) {
+    // Filter by groupIds if provided (product in any of the categories)
+    if (groupIds?.length) {
       query.$and = [
         { isActive: { $ne: false } },
         {
           $or: [
-            { artikelgroepId: groupId },
-            { artikelomzetgroepId: groupId },
+            { artikelgroepId: { $in: groupIds } },
+            { artikelomzetgroepId: { $in: groupIds } },
           ],
         },
       ];
@@ -559,7 +592,7 @@ export class ProductsService {
         { artikelnummer: { $regex: searchLower, $options: 'i' } },
         { barcode: { $regex: searchLower, $options: 'i' } },
       ];
-      
+
       if (query.$and) {
         // If groupId filter exists, add search to $and
         query.$and.push({ $or: searchConditions });
@@ -572,18 +605,28 @@ export class ProductsService {
         delete query.isActive;
       }
     }
-    
+
+    // Sadece stokta olanlar
+    if (inStockOnly) {
+      if (!query.$and) {
+        query.$and = [{ isActive: { $ne: false } }, { voorraad: { $gt: 0 } }];
+        delete query.isActive;
+      } else {
+        query.$and.push({ voorraad: { $gt: 0 } });
+      }
+    }
+
     const total = await this.productModel.countDocuments(query).exec();
     const skip = (page - 1) * limit;
     const totalPages = Math.ceil(total / limit);
-    
+
     // Debug logging
     console.log(`[ProductsService] getProducts query:`, JSON.stringify(query, null, 2));
     console.log(`[ProductsService] getProducts - page=${page}, limit=${limit}, total=${total}, totalPages=${totalPages}`);
-    
+
     const dbProducts = await this.productModel
       .find(query)
-      .sort({ omschrijving: 1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit) // Use provided limit (no hard cap - pagination handles it)
       .exec();

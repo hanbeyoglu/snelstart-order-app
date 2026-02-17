@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useCartStore } from './store/cartStore';
 import { useToastStore } from './store/toastStore';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -26,6 +28,16 @@ import ToastContainer from './components/Toast';
 function App() {
   const { isAuthenticated, user } = useAuthStore();
   const { toasts, removeToast } = useToastStore();
+  const setCurrentUser = useCartStore((s) => s.setCurrentUser);
+
+  // Oturum devam ediyorsa (sayfa yenileme) kullanıcının sepetini yükle
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUser(user.id);
+    } else {
+      setCurrentUser(null);
+    }
+  }, [user?.id, setCurrentUser]);
 
   return (
     <>
