@@ -18,10 +18,13 @@ import OrderDetailPage from './pages/OrderDetailPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 import AdminPricingPage from './pages/AdminPricingPage';
 import AdminImagesPage from './pages/AdminImagesPage';
+import PriceWarningsPage from './pages/PriceWarningsPage';
 import UserPage from './pages/UserPage';
 import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
 import EditUserPage from './pages/EditUserPage';
+import ReportsPage from './pages/ReportsPage';
+import NotFoundPage from './pages/NotFoundPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
 
@@ -58,17 +61,24 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/user" element={<UserPage />} />
+            {/* Reports: sadece admin_cabir - route yoksa /reports 404'e düşer */}
+            {user?.username === 'admin_cabir' && (
+              <Route path="/reports" element={<ReportsPage />} />
+            )}
             {/* Bağlantı ayarları hem admin hem de sales_rep için açık */}
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             {user?.role === 'admin' && (
               <>
                 <Route path="/admin/pricing" element={<AdminPricingPage />} />
+                <Route path="/admin/price-warnings" element={<PriceWarningsPage />} />
                 <Route path="/admin/images" element={<AdminImagesPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/users/new" element={<CreateUserPage />} />
                 <Route path="/users/:userId/edit" element={<EditUserPage />} />
               </>
             )}
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         ) : (
           <Route path="*" element={<Navigate to="/login" />} />

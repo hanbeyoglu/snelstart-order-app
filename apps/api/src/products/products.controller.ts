@@ -38,6 +38,17 @@ export class ProductsController {
     return this.productsService.getProducts(groupIds, search, customerId, pageNum, limitNum, sortBy, inStock);
   }
 
+  @Get('price-warnings')
+  @ApiOperation({ summary: 'Ürünler: Satış < Alış veya kar marjı <%5' })
+  async getPriceWarnings(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.productsService.getPriceWarnings(pageNum, limitNum);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
   async getProductById(

@@ -712,6 +712,77 @@ export class ProductsService {
     return result;
   }
 
+  /**
+   * Ürünler: Satış fiyatı < Alış fiyatı VEYA kar marjı <%5 olanlar.
+   * Marj = (satış - alış) / alış * 100
+   */
+  async getPriceWarnings(page: number = 1, limit: number = 50) {
+    const dbProducts = await this.productModel
+      .find({ isActive: { $ne: false }, inkoopprijs: { $gt: 0 } })
+      .select('snelstartId omschrijving artikelnummer verkoopprijs inkoopprijs artikelgroepOmschrijving voorraad')
+      .lean()
+      .exec();
+
+    const warnings: any[] = [];
+    for (const p of dbProducts as any[]) {
+      const sales = p.verkoopprijs ?? 0;
+      const purchase = p.inkoopprijs ?? 0;
+      if (purchase <= 0) continue;
+
+      const isLoss = sales < purchase;
+      const marginPct = ((sales - purchase) / purchase) * 100;
+      const isLowMargin = marginPct < 5;
+
+      if (isLoss || isLowMargin) {
+        const minPrice = Math.round(purchase * 1.05 * 100) / 100;
+        warnings.push({
+          ...p,
+          id: p.snelstartId,
+          marginPct,
+          warningType: isLoss ? 'zarar' : 'dusuk-marj',
+          minPrice,
+        });
+      }
+    }
+
+    warnings.sort((a, b) => a.marginPct - b.marginPct);
+
+    const total = warnings.length;
+    const skip = (page - 1) * limit;
+    const pageItems = warnings.slice(skip, skip + limit);
+
+    const ids = pageItems.map((x) => x.snelstartId);
+    const coverImages = ids.length
+      ? await this.imagesService.getCoverImagesForProducts(ids)
+      : {};
+
+    const data = pageItems.map((p) => ({
+      id: p.snelstartId,
+      omschrijving: p.omschrijving,
+      artikelnummer: p.artikelnummer,
+      verkoopprijs: p.verkoopprijs,
+      inkoopprijs: p.inkoopprijs,
+      minPrice: p.minPrice,
+      marginPct: p.marginPct,
+      warningType: p.warningType,
+      artikelgroepOmschrijving: p.artikelgroepOmschrijving,
+      voorraad: p.voorraad,
+      coverImageUrl: coverImages[p.snelstartId] || null,
+    }));
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+      },
+    };
+  }
+
   async getProductById(id: string, customerId?: string) {
     const cacheKey = `product:${id}:${customerId || 'none'}`;
     const cached = await this.cacheService.get(cacheKey);

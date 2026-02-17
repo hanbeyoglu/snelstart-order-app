@@ -155,6 +155,7 @@ export default function Layout() {
     { to: '/categories', label: 'Kategoriler', icon: '📁' },
     { to: '/customers', label: 'Müşteriler', icon: '👥' },
     { to: '/orders', label: 'Siparişler', icon: '📋' },
+    ...(user?.username === 'admin_cabir' ? [{ to: '/reports', label: 'Raporlar', icon: '📈' }] : []),
   ];
 
   // Bağlantı ayarları hem admin hem de sales_rep için görünür
@@ -166,9 +167,16 @@ export default function Layout() {
     user?.role === 'admin'
       ? [
           // { to: '/admin/pricing', label: 'Fiyat Kuralları', icon: '💰' },
-          { to: '/admin/images', label: 'Resimler', icon: '🖼️' },
+          { to: '/admin/price-warnings', label: 'Fiyat Uyarıları', icon: '⚠️' },
+          { to: '/admin/images', label: 'Ürün Resimleri', icon: '🖼️' },
           { to: '/users', label: 'Kullanıcılar', icon: '👥' },
         ]
+      : [];
+
+  // Raporlar: sadece admin_cabir kullanıcısı için
+  const reportLinks =
+    user?.username === 'admin_cabir'
+      ? [{ to: '/reports', label: 'Raporlar', icon: '📊' }]
       : [];
 
   return (
@@ -802,6 +810,68 @@ export default function Layout() {
                         </>
                       )}
 
+                      {/* Reports (admin_cabir only) */}
+                      {reportLinks.length > 0 &&
+                        reportLinks.map((link, index) => {
+                          const isActive = isActiveLink(link.to);
+                          return (
+                            <motion.div
+                              key={link.to}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                            >
+                              <Link
+                                to={link.to}
+                                onClick={() => setUserMenuOpen(false)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  textDecoration: 'none',
+                                  color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                                  fontWeight: isActive ? 700 : 500,
+                                  padding: '0.75rem 1rem',
+                                  borderRadius: '10px',
+                                  transition: 'all 0.2s',
+                                  fontSize: '0.9rem',
+                                  marginBottom: '0.25rem',
+                                  background: isActive
+                                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                                    : 'transparent',
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.background =
+                                      'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)';
+                                    e.currentTarget.style.color = 'var(--primary)';
+                                    e.currentTarget.style.transform = 'translateX(4px)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.background = 'transparent';
+                                    e.currentTarget.style.color = 'var(--text-primary)';
+                                    e.currentTarget.style.transform = 'translateX(0)';
+                                  }
+                                }}
+                              >
+                                <span style={{ fontSize: '1.2em' }}>{link.icon}</span>
+                                <span>{link.label}</span>
+                              </Link>
+                            </motion.div>
+                          );
+                        })}
+                      {reportLinks.length > 0 && adminLinks.length > 0 && (
+                        <div
+                          style={{
+                            height: '1px',
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            margin: '0.5rem 0',
+                          }}
+                        />
+                      )}
+
                       {/* Admin Menu Items */}
                       {adminLinks.length > 0 && (
                         <>
@@ -1094,12 +1164,59 @@ export default function Layout() {
                     </motion.div>
                   );
                 })}
+                {reportLinks.map((link) => (
+                  <motion.div
+                    key={link.to}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: (navLinks.length + connectionLinks.length + reportLinks.indexOf(link)) * 0.05 }}
+                  >
+                    <Link
+                      to={link.to}
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        textDecoration: 'none',
+                        color: 'var(--text-primary)',
+                        fontWeight: 600,
+                        padding: '1rem 1.25rem',
+                        borderRadius: '12px',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        fontSize: '1rem',
+                        minHeight: '48px',
+                        background: 'transparent',
+                        border: '1px solid rgba(99, 102, 241, 0.2)',
+                        position: 'relative',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)';
+                        e.currentTarget.style.color = 'var(--primary)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                        e.currentTarget.style.transform = 'translateX(5px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
+                    >
+                      <span style={{ fontSize: '1.35rem', display: 'flex', alignItems: 'center' }}>
+                        {link.icon}
+                      </span>
+                      <span>{link.label}</span>
+                    </Link>
+                  </motion.div>
+                ))}
                 {adminLinks.map((link) => (
                   <motion.div
                     key={link.to}
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: (navLinks.length + connectionLinks.length + adminLinks.indexOf(link)) * 0.05 }}
+                    transition={{ delay: (navLinks.length + connectionLinks.length + reportLinks.length + adminLinks.indexOf(link)) * 0.05 }}
                   >
                     <Link
                       to={link.to}
