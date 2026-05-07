@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import QuantityInput from '../components/QuantityInput';
 
 export default function ProductsPage() {
   const { categoryId } = useParams();
@@ -34,6 +35,8 @@ export default function ProductsPage() {
   }, [groupIdFromUrl]);
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const cartItems = useCartStore((state) => state.items);
   const showToast = useToastStore((state) => state.showToast);
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -119,7 +122,34 @@ export default function ProductsPage() {
     syncMutation.mutate();
   };
 
-  const handleAddToCart = (product: any) => {
+  const getStockLimit = (product: any) => {
+    const stock = Number(product.voorraad);
+    return Number.isFinite(stock) ? Math.max(0, stock) : Infinity;
+  };
+
+  const isOutOfStock = (product: any) => {
+    const stock = Number(product.voorraad);
+    return Number.isFinite(stock) && stock <= 0;
+  };
+
+  const getCartQuantity = (productId: string) =>
+    cartItems.find((item) => item.productId === productId)?.quantity || 0;
+
+  const handleAddToCart = (product: any, event?: any) => {
+    event?.stopPropagation();
+    const currentQuantity = getCartQuantity(product.id);
+    const stockLimit = getStockLimit(product);
+
+    if (isOutOfStock(product)) {
+      showToast('Bu ürün stokta yok', 'error');
+      return;
+    }
+
+    if (currentQuantity >= stockLimit) {
+      showToast(`Stok miktarı aşılamaz. Maksimum: ${stockLimit} adet`, 'error');
+      return;
+    }
+
     addItem({
       productId: product.id,
       productName: product.omschrijving,
@@ -136,8 +166,21 @@ export default function ProductsPage() {
       ...(product.eenheid && { eenheid: product.eenheid }),
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
+      ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
     });
     showToast(`${product.omschrijving} sepete eklendi`, 'success');
+  };
+
+  const handleCartQuantityChange = (product: any, nextQuantity: number, event: any) => {
+    event.stopPropagation();
+    const stockLimit = getStockLimit(product);
+
+    if (nextQuantity > stockLimit) {
+      showToast(`Stok miktarı aşılamaz. Maksimum: ${stockLimit} adet`, 'error');
+      return;
+    }
+
+    updateQuantity(product.id, Math.max(0, nextQuantity));
   };
 
   if (isLoading) {
@@ -538,13 +581,28 @@ export default function ProductsPage() {
       </motion.div>
 
       <div className="responsive-grid">
-        {products?.map((product: any, index: number) => (
+        {products?.map((product: any, index: number) => {
+          const cartQuantity = getCartQuantity(product.id);
+          const outOfStock = isOutOfStock(product);
+          const stockLimit = getStockLimit(product);
+          const isAtStockLimit = Number.isFinite(stockLimit) && cartQuantity >= stockLimit;
+
+          return (
           <motion.div
             key={product.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             className="card product-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/products/${product.id}`)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate(`/products/${product.id}`);
+              }
+            }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             style={{
               display: 'flex',
@@ -553,6 +611,7 @@ export default function ProductsPage() {
               minHeight: 0,
               overflow: 'hidden',
               padding: '0.75rem',
+              cursor: 'pointer',
             }}
           >
             {/* Product Image - Square - Responsive with object-fit: cover */}
@@ -706,45 +765,121 @@ export default function ProductsPage() {
               </p>
             </div>
 
-            {/* Buttons - Compact */}
+            {/* Cart controls - Compact */}
             <div
               style={{
                 display: 'flex',
-                gap: 'clamp(0.5rem, 2vw, 0.75rem)',
+                gap: '0.5rem',
                 flexDirection: 'column',
                 marginTop: 'auto',
                 flexShrink: 0,
               }}
             >
-              <motion.button
-                onClick={() => handleAddToCart(product)}
-                className="btn-primary"
-                style={{
-                  width: '100%',
-                  padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                  fontSize: 'clamp(0.8rem, 3vw, 0.85rem)',
-                  minHeight: '44px',
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                🛒 Sepete Ekle
-              </motion.button>
-              <motion.button
-                onClick={() => navigate(`/products/${product.id}`)}
-                className="btn-secondary"
-                style={{
-                  width: '100%',
-                  padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                  fontSize: 'clamp(0.8rem, 3vw, 0.85rem)',
-                  minHeight: '44px',
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                📋 Detaylar
-              </motion.button>
+              {cartQuantity > 0 ? (
+                <>
+                  <div
+                    onClick={(event) => event.stopPropagation()}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '44px 1fr 44px',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={(event) =>
+                        handleCartQuantityChange(product, cartQuantity - 1, event)
+                      }
+                      className="btn-secondary"
+                      aria-label={`${product.omschrijving} adet azalt`}
+                      style={{
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        padding: 0,
+                        borderRadius: '8px',
+                        fontSize: '1.2rem',
+                        fontWeight: 800,
+                      }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      -
+                    </motion.button>
+                    <QuantityInput
+                      value={cartQuantity}
+                      onCommit={(newQuantity) => updateQuantity(product.id, newQuantity)}
+                      max={Number.isFinite(stockLimit) ? stockLimit : undefined}
+                      ariaLabel={`${product.omschrijving} sepetteki adet`}
+                      style={{
+                        minHeight: '44px',
+                        width: '100%',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        background: 'white',
+                        textAlign: 'center',
+                        fontSize: '1rem',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        padding: '0.5rem',
+                      }}
+                    />
+                    <motion.button
+                      type="button"
+                      onClick={(event) =>
+                        handleCartQuantityChange(product, cartQuantity + 1, event)
+                      }
+                      disabled={isAtStockLimit}
+                      className="btn-primary"
+                      aria-label={`${product.omschrijving} adet artır`}
+                      title={isAtStockLimit ? 'Stok limiti' : 'Adet artır'}
+                      style={{
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        padding: 0,
+                        borderRadius: '8px',
+                        fontSize: '1.2rem',
+                        fontWeight: 800,
+                      }}
+                      whileTap={!isAtStockLimit ? { scale: 0.96 } : {}}
+                    >
+                      +
+                    </motion.button>
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                    }}
+                  >
+                    Sepette: {cartQuantity} adet
+                  </p>
+                </>
+              ) : (
+                <motion.button
+                  type="button"
+                  onClick={(event) => handleAddToCart(product, event)}
+                  disabled={outOfStock}
+                  className="btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
+                    fontSize: 'clamp(0.8rem, 3vw, 0.85rem)',
+                    minHeight: '44px',
+                    opacity: outOfStock ? 0.55 : 1,
+                    cursor: outOfStock ? 'not-allowed' : 'pointer',
+                  }}
+                  whileTap={!outOfStock ? { scale: 0.98 } : {}}
+                >
+                  🛒 Sepete Ekle
+                </motion.button>
+              )}
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pagination */}

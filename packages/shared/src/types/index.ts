@@ -161,6 +161,7 @@ export interface CartItem {
   inkoopprijs?: number; // Alış fiyatı (minimum fiyat kontrolü için)
   eenheid?: string; // Ürün birimi (kg, st, m, vb.)
   coverImageUrl?: string; // Ürün kapak resmi URL'i
+  voorraad?: number; // Stok limiti (quantity input normalizasyonu için)
 }
 
 export interface User {

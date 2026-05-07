@@ -1,24 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import QuantityInput from '../components/QuantityInput';
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customerId');
   const [quantity, setQuantity] = useState(1);
-  const [discountPercentage, setDiscountPercentage] = useState<number | null>(null);
   const [showPurchasePrice, setShowPurchasePrice] = useState(false);
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
+  const cartItems = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
+  const cartItem = cartItems.find((item) => item.productId === productId);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', productId, customerId],
@@ -39,9 +42,11 @@ export default function ProductDetailPage() {
   });
 
   const basePrice = product?.basePrice || product?.finalPrice || 0;
-  const finalPrice = discountPercentage
-    ? basePrice * (1 - discountPercentage / 100)
-    : product?.finalPrice || basePrice;
+  const finalPrice = product?.finalPrice || basePrice;
+
+  useEffect(() => {
+    setQuantity(cartItem?.quantity || 1);
+  }, [cartItem?.quantity, productId]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -75,8 +80,11 @@ export default function ProductDetailPage() {
       }
     }
     
-    // Eğer indirim varsa, customUnitPrice olarak kaydet
-    const hasDiscount = discountPercentage !== null && discountPercentage > 0;
+    if (cartItem) {
+      updateQuantity(product.id, quantity);
+      showToast(`${product.omschrijving} miktarı güncellendi (${quantity} adet)`, 'success');
+      return;
+    }
     
     addItem({
       productId: product.id,
@@ -85,59 +93,17 @@ export default function ProductDetailPage() {
       quantity,
       unitPrice: basePrice, // Orijinal fiyat
       basePrice: basePrice, // Base price
-      totalPrice: finalPrice * quantity, // İndirimli toplam
+      totalPrice: finalPrice * quantity,
       vatPercentage: product.btwPercentage || 0,
-      // İndirim varsa customUnitPrice olarak kaydet
-      ...(hasDiscount && { customUnitPrice: finalPrice }),
       // Alış fiyatını kaydet (minimum fiyat kontrolü için)
       ...(product.inkoopprijs !== undefined && product.inkoopprijs !== null && { inkoopprijs: product.inkoopprijs }),
       // Birim bilgisini ekle
       ...(product.eenheid && { eenheid: product.eenheid }),
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
+      ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
     });
-    const discountText = discountPercentage ? ` (%${discountPercentage} indirim)` : '';
-    showToast(`${product.omschrijving} sepete eklendi (${quantity} adet)${discountText}`, 'success');
-    navigate('/cart');
-  };
-
-  const applyDiscount = (percentage: number) => {
-    if (!product) return;
-    
-    const basePrice = product.basePrice || product.finalPrice || 0;
-    const discountedPrice = basePrice * (1 - percentage / 100);
-    const purchasePrice = product.inkoopprijs;
-    
-    // Fiyat kontrolü: Yeni kurallar
-    let minPrice: number;
-    
-    if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
-      // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
-      minPrice = basePrice * 0.95;
-      if (discountedPrice < minPrice) {
-        showToast(
-          `⚠️ İndirim uygulanamaz! Maksimum %5 indirim yapılabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
-          'error',
-          5000
-        );
-        return;
-      }
-    } else {
-      // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
-      minPrice = purchasePrice * 1.05;
-      if (discountedPrice < minPrice) {
-        const purchasePriceText = isAdmin ? ` (€${purchasePrice.toFixed(2)})` : '';
-        showToast(
-          `⚠️ İndirim uygulanamaz! Fiyat alış fiyatının${purchasePriceText} %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
-          'error',
-          5000
-        );
-        return;
-      }
-    }
-    
-    setDiscountPercentage(percentage);
-    showToast(`%${percentage} indirim uygulandı`, 'success');
+    showToast(`${product.omschrijving} sepete eklendi (${quantity} adet)`, 'success');
   };
 
   if (isLoading) {
@@ -365,7 +331,7 @@ export default function ProductDetailPage() {
               marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
             }}
           >
-            {(discountPercentage || product.finalPrice !== product.basePrice) && (
+            {product.finalPrice !== product.basePrice && (
               <p
                 style={{
                   textDecoration: 'line-through',
@@ -375,18 +341,6 @@ export default function ProductDetailPage() {
                 }}
               >
                 Fiyat: €{basePrice.toFixed(2)}
-              </p>
-            )}
-            {discountPercentage && (
-              <p
-                style={{
-                  color: 'var(--success)',
-                  fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
-                  fontWeight: 600,
-                  marginBottom: '0.5rem',
-                }}
-              >
-                %{discountPercentage} İndirim Uygulandı! 🎉
               </p>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -456,98 +410,14 @@ export default function ProductDetailPage() {
             <p style={{ color: 'var(--text-secondary)' }}>KDV: %{product.btwPercentage || 0}</p>
           </div>
 
-          {/* Hazır İndirim Butonları */}
-          <div style={{ marginBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
-            <label style={{ display: 'block', marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-              💰 Hazır İndirimler:
-            </label>
-            <div style={{ display: 'flex', gap: 'clamp(0.5rem, 2vw, 0.75rem)', flexWrap: 'wrap' }}>
-              {[5, 10, 15].map((discount) => {
-                const basePrice = product?.basePrice || product?.finalPrice || 0;
-                const discountedPrice = basePrice * (1 - discount / 100);
-                const purchasePrice = product?.inkoopprijs;
-                const isDisabled = purchasePrice !== undefined && purchasePrice !== null && discountedPrice < purchasePrice;
-                
-                return (
-                  <motion.button
-                    key={discount}
-                    onClick={() => applyDiscount(discount)}
-                    disabled={isDisabled}
-                    style={{
-                      padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.25rem)',
-                      background: discountPercentage === discount
-                        ? 'linear-gradient(135deg, var(--success) 0%, #059669 100%)'
-                        : isDisabled
-                        ? '#f3f4f6'
-                        : 'white',
-                      color: discountPercentage === discount 
-                        ? 'white' 
-                        : isDisabled 
-                        ? '#9ca3af' 
-                        : 'var(--text-primary)',
-                      border: `2px solid ${
-                        discountPercentage === discount 
-                          ? 'var(--success)' 
-                          : isDisabled 
-                          ? '#e5e7eb' 
-                          : 'var(--border)'
-                      }`,
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      fontSize: 'clamp(0.85rem, 3vw, 0.95rem)',
-                      boxShadow: discountPercentage === discount ? 'var(--shadow)' : 'var(--shadow-sm)',
-                      transition: 'all 0.3s ease',
-                      opacity: isDisabled ? 0.6 : 1,
-                      minHeight: '44px',
-                      flex: '1 1 calc(33.333% - 0.5rem)',
-                      minWidth: 'calc(33.333% - 0.5rem)',
-                    }}
-                    whileTap={isDisabled ? {} : { scale: 0.98 }}
-                    title={
-                      isDisabled
-                        ? isAdmin && purchasePrice
-                          ? `Bu indirim uygulanamaz (Alış fiyatı: €${purchasePrice.toFixed(2)})`
-                          : 'Bu indirim uygulanamaz'
-                        : `%${discount} indirim uygula`
-                    }
-                  >
-                    %{discount} İndirim
-                  </motion.button>
-                );
-              })}
-              {discountPercentage !== null && (
-                <motion.button
-                  onClick={() => setDiscountPercentage(null)}
-                  style={{
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.25rem)',
-                    background: 'white',
-                    color: 'var(--danger)',
-                    border: '2px solid var(--danger)',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: 'clamp(0.85rem, 3vw, 0.95rem)',
-                    boxShadow: 'var(--shadow-sm)',
-                    minHeight: '44px',
-                    width: '100%',
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  ✕ İptal
-                </motion.button>
-              )}
-            </div>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)', marginBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <strong style={{ fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>Miktar:</strong>
-              <input
-                type="number"
-                min="1"
+              <QuantityInput
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                onCommit={setQuantity}
+                max={product?.voorraad}
+                ariaLabel="Ürün miktarı"
                 style={{ 
                   width: '100%',
                   maxWidth: '200px',

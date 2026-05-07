@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import QuantityInput from '../components/QuantityInput';
 
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -585,14 +586,11 @@ export default function CartPage() {
                     Miktar:
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <input
-                      type="number"
-                      min="1"
+                    <QuantityInput
                       value={item.quantity}
-                      onChange={(e) => {
-                        const newQuantity = parseInt(e.target.value) || 1;
-                        updateQuantity(item.productId, newQuantity);
-                      }}
+                      onCommit={(newQuantity) => updateQuantity(item.productId, newQuantity)}
+                      max={item.voorraad}
+                      ariaLabel={`${item.productName} miktarı`}
                       style={{ 
                         width: '60px',
                         padding: '0.5rem',
