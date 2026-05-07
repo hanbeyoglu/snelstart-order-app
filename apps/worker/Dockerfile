@@ -31,4 +31,4 @@ WORKDIR /app
 
 COPY --from=builder /app .
 
-CMD ["node", "apps/worker/dist/main.js"]
+CMD ["node", "/app/apps/worker/dist/index.js"]

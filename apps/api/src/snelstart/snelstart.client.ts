@@ -77,8 +77,8 @@ export class SnelStartClient {
         const settings = await this.connectionSettingsService.getActiveSettings();
         
         // Use SNELSTART_API_SUB_KEY from settings or env
-        const subscriptionKey = settings?.subscriptionKey || process.env.SNELSTART_API_SUB_KEY;
-        if (subscriptionKey) {
+	const subscriptionKey = process.env.SNELSTART_API_SUB_KEY || settings?.subscriptionKey;
+	 if (subscriptionKey) {
           config.headers['Ocp-Apim-Subscription-Key'] = subscriptionKey;
         }
         

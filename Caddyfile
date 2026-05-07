@@ -1,0 +1,23 @@
+order.dhyfoodbv.com {
+    reverse_proxy snelstart-web:80
+}
+
+order-api.dhyfoodbv.com {
+    reverse_proxy snelstart-api:80
+}
+
+mysmartmanagement.com {
+    reverse_proxy host.docker.internal:8080
+}
+
+api.mysmartmanagement.com {
+    reverse_proxy host.docker.internal:3000
+}
+
+syncbridge-api.hanbeyoglu.com {
+    reverse_proxy host.docker.internal:8085
+}
+
+syncbridge.hanbeyoglu.com {
+    reverse_proxy host.docker.internal:3005
+}

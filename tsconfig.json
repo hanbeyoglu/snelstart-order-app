@@ -13,7 +13,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+
+    "baseUrl": ".",
+    "paths": {
+      "@snelstart-order-app/shared": [
+        "packages/shared/src"
+      ]
+    }
   },
   "exclude": ["node_modules", "dist", "build"]
 }
