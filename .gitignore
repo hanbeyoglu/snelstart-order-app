@@ -37,3 +37,6 @@ Thumbs.db
 *.seed
 *.pid.lock
 
+
+.env.save
+*.tsbuildinfo
