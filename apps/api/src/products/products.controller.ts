@@ -1,12 +1,26 @@
-import { Controller, Get, Param, Query, Post, UseGuards, Inject, forwardRef } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Query,
+  Post,
+  UseGuards,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CategoriesService } from '../categories/categories.service';
 
 @ApiTags('Products')
 @Controller('products')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ProductsController {
   constructor(
@@ -47,6 +61,43 @@ export class ProductsController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 50;
     return this.productsService.getPriceWarnings(pageNum, limitNum);
+  }
+
+  @Get('visibility')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Admin: Get all products for visibility management' })
+  async getProductVisibility(
+    @Query('search') search?: string,
+    @Query('status') status?: 'all' | 'active' | 'inactive',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 25;
+    const normalizedStatus = ['active', 'inactive', 'all'].includes(status || '')
+      ? status
+      : 'all';
+
+    return this.productsService.getProductVisibility(
+      search,
+      normalizedStatus as 'all' | 'active' | 'inactive',
+      pageNum,
+      limitNum,
+    );
+  }
+
+  @Patch(':id/visibility')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Admin: Update product visibility' })
+  async updateProductVisibility(
+    @Param('id') id: string,
+    @Body() body: { isActive: boolean },
+  ) {
+    const updated = await this.productsService.updateProductVisibility(id, body.isActive === true);
+    if (!updated) {
+      throw new NotFoundException('Product not found');
+    }
+    return updated;
   }
 
   @Get(':id')
@@ -116,4 +167,3 @@ export class ProductsController {
     }
   }
 }
-

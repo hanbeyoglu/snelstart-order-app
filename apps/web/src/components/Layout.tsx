@@ -169,6 +169,7 @@ export default function Layout() {
           // { to: '/admin/pricing', label: 'Fiyat Kuralları', icon: '💰' },
           { to: '/admin/price-warnings', label: 'Fiyat Uyarıları', icon: '⚠️' },
           { to: '/admin/images', label: 'Ürün Resimleri', icon: '🖼️' },
+          { to: '/settings/product-visibility', label: 'Ürün Görünürlüğü', icon: '👁️' },
           { to: '/users', label: 'Kullanıcılar', icon: '👥' },
         ]
       : [];

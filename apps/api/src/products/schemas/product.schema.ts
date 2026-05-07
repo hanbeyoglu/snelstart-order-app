@@ -12,6 +12,9 @@ export class Product extends Document {
   @Prop()
   artikelcode?: string; // Article code (alternative identifier)
 
+  @Prop()
+  brand?: string;
+
   @Prop({ required: true })
   omschrijving: string; // Name
 
@@ -70,6 +73,7 @@ ProductSchema.index({ barcode: 1 }); // Barcode searches
 ProductSchema.index({ artikelgroepId: 1 }); // Category filtering
 ProductSchema.index({ artikelomzetgroepId: 1 }); // Category filtering
 ProductSchema.index({ isActive: 1 }); // Active products filter
+ProductSchema.index({ isActive: 1, omschrijving: 1 }); // Visibility admin pagination/filtering
 ProductSchema.index({ lastSyncedAt: -1 }); // Sync tracking
 ProductSchema.index({ modifiedOn: -1 }); // Delta sync tracking
 

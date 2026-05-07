@@ -33,7 +33,6 @@ export class ProductsService {
       let synced = 0;
       let updated = 0;
       let created = 0;
-      const syncedProductIds = new Set<string>();
 
       // Get all products using paginated API
       const allProducts = await this.snelStartService.getAllProductsPaginated(
@@ -96,6 +95,7 @@ export class ProductsService {
                 snelstartId: product.id, // Primary unique identifier
                 artikelnummer: artikelnummer, // Fallback to artikelcode if missing
                 artikelcode: product.artikelcode || artikelnummer, // May be empty or duplicate
+                brand: product.brand || product.merk,
                 omschrijving: product.omschrijving,
                 artikelgroepId: artikelgroepId, // Optional - may be null/undefined
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
@@ -109,7 +109,6 @@ export class ProductsService {
                 barcode: product.barcode,
                 modifiedOn: product.modifiedOn ? new Date(product.modifiedOn) : new Date(),
                 lastSyncedAt: new Date(),
-                isActive: true, // Mark as active since it exists in SnelStart
               };
 
               if (existingProduct) {
@@ -126,7 +125,7 @@ export class ProductsService {
                 return { action: 'updated', snelstartId: product.id };
               } else {
                 // Create new product
-                await this.productModel.create(updateData);
+                await this.productModel.create({ ...updateData, isActive: true });
                 created++;
                 if (isDebugProduct) {
                   console.log("Upsert success:", product.id);
@@ -158,7 +157,6 @@ export class ProductsService {
           const product = batch[index];
           if (result.status === 'fulfilled') {
             synced++;
-            syncedProductIds.add(product.id);
           } else {
             const errorMsg = result.reason?.message || 'Unknown error';
             errorProducts.push({ id: product.id, error: errorMsg });
@@ -199,21 +197,7 @@ export class ProductsService {
         );
       }
 
-      // Mark products that are no longer in SnelStart as inactive (optional)
-      // Only if you want to track deleted products
-      const markInactive = process.env.PRODUCT_SYNC_MARK_INACTIVE === 'true';
-      if (markInactive) {
-        const inactiveCount = await this.productModel.updateMany(
-          {
-            snelstartId: { $nin: Array.from(syncedProductIds) },
-            isActive: { $ne: false },
-          },
-          {
-            $set: { isActive: false },
-          },
-        ).exec();
-        console.log(`[ProductsService] Marked ${inactiveCount.modifiedCount} products as inactive`);
-      }
+      // Product visibility is managed by admins and must not be overwritten by SnelStart sync.
       
       // Invalidate product cache
       await this.cacheService.invalidateProductCache();
@@ -245,7 +229,6 @@ export class ProductsService {
       let synced = 0;
       let updated = 0;
       let created = 0;
-      const syncedProductIds = new Set<string>();
 
       // Get modified products using delta sync
       const modifiedProducts = await this.snelStartService.getAllProductsPaginated(
@@ -305,6 +288,7 @@ export class ProductsService {
                 snelstartId: product.id, // Primary unique identifier
                 artikelnummer: artikelnummer, // Fallback to artikelcode if missing
                 artikelcode: product.artikelcode || artikelnummer,
+                brand: product.brand || product.merk,
                 omschrijving: product.omschrijving,
                 artikelgroepId: artikelgroepId, // Optional - may be null/undefined
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
@@ -318,7 +302,6 @@ export class ProductsService {
                 barcode: product.barcode,
                 modifiedOn: product.modifiedOn ? new Date(product.modifiedOn) : new Date(),
                 lastSyncedAt: new Date(),
-                isActive: true,
               };
 
               if (existingProduct) {
@@ -333,7 +316,7 @@ export class ProductsService {
                 }
                 return { action: 'updated', snelstartId: product.id };
               } else {
-                await this.productModel.create(updateData);
+                await this.productModel.create({ ...updateData, isActive: true });
                 created++;
                 if (isDebugProduct) {
                   console.log("Upsert success:", product.id);
@@ -365,7 +348,6 @@ export class ProductsService {
           const product = batch[index];
           if (result.status === 'fulfilled') {
             synced++;
-            syncedProductIds.add(product.id);
           } else {
             const errorMsg = result.reason?.message || 'Unknown error';
             errorProducts.push({ id: product.id, error: errorMsg });
@@ -428,6 +410,92 @@ export class ProductsService {
       default:
         return { omschrijving: 1 };
     }
+  }
+
+  private mapVisibilityProduct(product: any) {
+    return {
+      id: product.snelstartId,
+      productName: product.omschrijving,
+      category:
+        product.artikelomzetgroepOmschrijving ||
+        product.artikelgroepOmschrijving ||
+        null,
+      brand: product.brand || null,
+      sku: product.artikelnummer || product.artikelcode || null,
+      isActive: product.isActive !== false,
+    };
+  }
+
+  async getProductVisibility(
+    search?: string,
+    status: 'all' | 'active' | 'inactive' = 'all',
+    page: number = 1,
+    limit: number = 25,
+  ) {
+    const safePage = Math.max(1, page || 1);
+    const safeLimit = Math.min(Math.max(1, limit || 25), 100);
+    const query: any = {};
+
+    if (status === 'active') {
+      query.isActive = { $ne: false };
+    } else if (status === 'inactive') {
+      query.isActive = false;
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      query.$or = [
+        { omschrijving: { $regex: term, $options: 'i' } },
+        { artikelnummer: { $regex: term, $options: 'i' } },
+        { artikelcode: { $regex: term, $options: 'i' } },
+        { brand: { $regex: term, $options: 'i' } },
+        { artikelgroepOmschrijving: { $regex: term, $options: 'i' } },
+        { artikelomzetgroepOmschrijving: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    const total = await this.productModel.countDocuments(query).exec();
+    const totalPages = Math.ceil(total / safeLimit);
+    const products = await this.productModel
+      .find(query)
+      .sort({ omschrijving: 1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .select('snelstartId omschrijving artikelnummer artikelcode brand artikelgroepOmschrijving artikelomzetgroepOmschrijving isActive')
+      .lean()
+      .exec();
+
+    return {
+      data: products.map((product) => this.mapVisibilityProduct(product)),
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        hasNextPage: safePage < totalPages,
+        hasPrevPage: safePage > 1,
+      },
+    };
+  }
+
+  async updateProductVisibility(id: string, isActive: boolean) {
+    const product = await this.productModel
+      .findOneAndUpdate(
+        { snelstartId: id },
+        { $set: { isActive } },
+        { new: true },
+      )
+      .select('snelstartId omschrijving artikelnummer artikelcode brand artikelgroepOmschrijving artikelomzetgroepOmschrijving isActive')
+      .lean()
+      .exec();
+
+    if (!product) {
+      return null;
+    }
+
+    await this.cacheService.invalidateProductCache(id);
+
+    return this.mapVisibilityProduct(product);
   }
 
   async getProducts(
@@ -903,4 +971,3 @@ export class ProductsService {
     return defaultDate;
   }
 }
-

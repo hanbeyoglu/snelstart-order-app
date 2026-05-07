@@ -38,7 +38,7 @@ snelstart-order-app/
 1. **Clone and install dependencies:**
 
 ```bash
-npm install
+pnpm install
 ```
 
 2. **Set up environment variables:**
@@ -60,15 +60,15 @@ docker-compose up -d mongodb redis minio
 ```bash
 # Terminal 1: API
 cd apps/api
-npm run dev
+pnpm run dev
 
 # Terminal 2: Worker
 cd apps/worker
-npm run dev
+pnpm run dev
 
 # Terminal 3: Web
 cd apps/web
-npm run dev
+pnpm run dev
 ```
 
 5. **Access the application:**
@@ -104,7 +104,6 @@ Set `SNELSTART_MOCK=true` in `.env` to use mock data without real API keys.
 2. **Production Mode:**
 
 1. Get your SnelStart API keys:
-
    - Subscription Key
    - Integration Key
 
@@ -155,7 +154,7 @@ See `env.example` for all available environment variables.
 
 ```bash
 cd apps/api
-npm test
+pnpm test
 ```
 
 ### Integration Tests
@@ -180,7 +179,7 @@ Swagger/OpenAPI docs available at:
 ### Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Docker
