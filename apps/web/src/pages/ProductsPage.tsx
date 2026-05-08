@@ -91,6 +91,16 @@ export default function ProductsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  useEffect(() => {
+    if (!categories.length || selectedCategoryIds.length === 0) return;
+
+    const visibleCategoryIds = new Set(categories.map((category: { id: string }) => category.id));
+    setSelectedCategoryIds((prev) => {
+      const next = prev.filter((id) => visibleCategoryIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [categories, selectedCategoryIds]);
+
   // Sync mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -154,6 +164,7 @@ export default function ProductsPage() {
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
+      categoryId: product.artikelomzetgroepId || product.artikelgroepId,
       quantity: 1,
       unitPrice: product.finalPrice || product.basePrice || 0,
       basePrice: product.basePrice || 0,

@@ -7,29 +7,43 @@ import { useCartStore } from '../store/cartStore';
 
 type VisibilityStatus = 'all' | 'active' | 'inactive';
 
-interface ProductVisibilityItem {
+interface CategoryVisibilityItem {
   id: string;
-  productName: string;
-  category?: string | null;
-  brand?: string | null;
-  sku?: string | null;
+  nummer?: number | string | null;
+  omschrijving: string;
+  productCount: number;
   isActive: boolean;
 }
 
 const PAGE_SIZES = [25, 50, 100];
 
-function removeProductFromCachedList(oldData: any, productId: string) {
+function removeCategoryFromCachedList(oldData: any, categoryId: string) {
   if (!oldData) return oldData;
 
   if (Array.isArray(oldData)) {
-    return oldData.filter((product) => product?.id !== productId && product?.snelstartId !== productId);
+    return oldData.filter((category) => category?.id !== categoryId && category?.snelstartId !== categoryId);
+  }
+
+  return oldData;
+}
+
+function removeCategoryProductsFromCachedList(oldData: any, categoryId: string) {
+  if (!oldData) return oldData;
+
+  const isInCategory = (product: any) =>
+    product?.artikelomzetgroepId === categoryId ||
+    product?.artikelgroepId === categoryId ||
+    product?.categoryId === categoryId;
+
+  if (Array.isArray(oldData)) {
+    return oldData.filter((product) => !isInCategory(product));
   }
 
   const filteredData = Array.isArray(oldData.data)
-    ? oldData.data.filter((product: any) => product?.id !== productId && product?.snelstartId !== productId)
+    ? oldData.data.filter((product: any) => !isInCategory(product))
     : oldData.data;
   const filteredProducts = Array.isArray(oldData.products)
-    ? oldData.products.filter((product: any) => product?.id !== productId && product?.snelstartId !== productId)
+    ? oldData.products.filter((product: any) => !isInCategory(product))
     : oldData.products;
 
   return {
@@ -84,7 +98,7 @@ function ToggleSwitch({
   );
 }
 
-export default function ProductVisibilityPage() {
+export default function CategoryVisibilityPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<VisibilityStatus>('all');
@@ -93,7 +107,7 @@ export default function ProductVisibilityPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
-  const removeCartItem = useCartStore((state) => state.removeItem);
+  const removeCartItemsByCategory = useCartStore((state) => state.removeItemsByCategory);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -109,9 +123,9 @@ export default function ProductVisibilityPage() {
   }, [status, pageSize]);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['product-visibility', debouncedSearch, status, page, pageSize],
+    queryKey: ['category-visibility', debouncedSearch, status, page, pageSize],
     queryFn: async () => {
-      const response = await api.get('/products/visibility', {
+      const response = await api.get('/categories/visibility', {
         params: {
           search: debouncedSearch || undefined,
           status,
@@ -127,27 +141,31 @@ export default function ProductVisibilityPage() {
   const visibilityMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       setUpdatingId(id);
-      const response = await api.patch(`/products/${id}/visibility`, { isActive });
+      const response = await api.patch(`/categories/${id}/visibility`, { isActive });
       return response.data;
     },
     onSuccess: (_data, variables) => {
       if (!variables.isActive) {
         queryClient.setQueriesData(
-          { queryKey: ['products'] },
-          (oldData) => removeProductFromCachedList(oldData, variables.id),
+          { queryKey: ['categories'] },
+          (oldData) => removeCategoryFromCachedList(oldData, variables.id),
         );
-        removeCartItem(variables.id);
+        queryClient.setQueriesData(
+          { queryKey: ['products'] },
+          (oldData) => removeCategoryProductsFromCachedList(oldData, variables.id),
+        );
+        removeCartItemsByCategory(variables.id);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['product-visibility'] });
       queryClient.invalidateQueries({ queryKey: ['category-visibility'] });
-      queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['product-visibility'] });
       queryClient.invalidateQueries({ queryKey: ['categories'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ['product'] });
       queryClient.invalidateQueries({ queryKey: ['cart-calculation'] });
-      queryClient.removeQueries({ queryKey: ['products'], type: 'inactive' });
       queryClient.removeQueries({ queryKey: ['categories'], type: 'inactive' });
-      showToast('Product visibility updated', 'success');
+      queryClient.removeQueries({ queryKey: ['products'], type: 'inactive' });
+      showToast('Category visibility updated', 'success');
     },
     onError: (err: any) => {
       showToast(err?.response?.data?.message || 'Visibility could not be updated', 'error');
@@ -157,7 +175,7 @@ export default function ProductVisibilityPage() {
     },
   });
 
-  const items: ProductVisibilityItem[] = data?.data ?? [];
+  const items: CategoryVisibilityItem[] = data?.data ?? [];
   const pagination = data?.pagination ?? {};
   const total = pagination.total ?? 0;
   const totalPages = Math.max(1, pagination.totalPages ?? 1);
@@ -190,7 +208,7 @@ export default function ProductVisibilityPage() {
     return (
       <div className="container">
         <div className="card" style={{ textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)' }}>
-          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Product Visibility</h2>
+          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Category Visibility</h2>
           <p style={{ color: 'var(--text-secondary)' }}>{message}</p>
         </div>
       </div>
@@ -210,10 +228,10 @@ export default function ProductVisibilityPage() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Product Visibility
+          Category Visibility
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Manage which synced products are visible to sales reps.
+          Manage which synced categories are visible to sales reps.
         </p>
       </motion.div>
 
@@ -230,7 +248,7 @@ export default function ProductVisibilityPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Product name, SKU, category, brand"
+              placeholder="Category name, code, ID"
               style={{ marginTop: '0.35rem' }}
             />
           </label>
@@ -266,10 +284,10 @@ export default function ProductVisibilityPage() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ borderRadius: '8px', padding: 0, overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(99, 102, 241, 0.08)', borderBottom: '1px solid var(--border)' }}>
-              {['Product Name', 'Category', 'Brand', 'SKU', 'Visibility Status'].map((heading) => (
+              {['Category Name', 'Category Code / ID', 'Product Count', 'Visibility Status'].map((heading) => (
                 <th key={heading} style={{ padding: '0.85rem 1rem', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {heading}
                 </th>
@@ -279,34 +297,33 @@ export default function ProductVisibilityPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  No products found.
+                <td colSpan={4} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  No categories found.
                 </td>
               </tr>
             ) : (
-              items.map((product) => {
-                const isPassive = !product.isActive;
+              items.map((category) => {
+                const isPassive = !category.isActive;
                 return (
                   <tr
-                    key={product.id}
+                    key={category.id}
                     style={{
                       borderBottom: '1px solid var(--border)',
                       background: isPassive ? '#f3f4f6' : 'white',
                       color: isPassive ? '#6b7280' : 'var(--text-primary)',
                     }}
                   >
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 650 }}>{product.productName}</td>
-                    <td style={{ padding: '0.85rem 1rem' }}>{product.category || '-'}</td>
-                    <td style={{ padding: '0.85rem 1rem' }}>{product.brand || '-'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontWeight: 650 }}>{category.omschrijving}</td>
                     <td style={{ padding: '0.85rem 1rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.9rem' }}>
-                      {product.sku || '-'}
+                      {category.nummer || category.id}
                     </td>
+                    <td style={{ padding: '0.85rem 1rem' }}>{category.productCount ?? 0}</td>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <ToggleSwitch
-                          checked={product.isActive}
-                          disabled={updatingId === product.id}
-                          onChange={(checked) => visibilityMutation.mutate({ id: product.id, isActive: checked })}
+                          checked={category.isActive}
+                          disabled={updatingId === category.id}
+                          onChange={(checked) => visibilityMutation.mutate({ id: category.id, isActive: checked })}
                         />
                         <span
                           style={{
@@ -316,11 +333,11 @@ export default function ProductVisibilityPage() {
                             fontSize: '0.82rem',
                             fontWeight: 700,
                             textAlign: 'center',
-                            background: product.isActive ? 'rgba(16, 185, 129, 0.14)' : 'rgba(107, 114, 128, 0.14)',
-                            color: product.isActive ? 'var(--success)' : '#6b7280',
+                            background: category.isActive ? 'rgba(16, 185, 129, 0.14)' : 'rgba(107, 114, 128, 0.14)',
+                            color: category.isActive ? 'var(--success)' : '#6b7280',
                           }}
                         >
-                          {product.isActive ? 'Active' : 'Passive'}
+                          {category.isActive ? 'Active' : 'Passive'}
                         </span>
                       </div>
                     </td>
@@ -343,7 +360,7 @@ export default function ProductVisibilityPage() {
           }}
         >
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {startItem}-{endItem} / {total} products
+            {startItem}-{endItem} / {total} categories
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button className="btn-secondary" onClick={() => goToPage(1)} disabled={page <= 1} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>

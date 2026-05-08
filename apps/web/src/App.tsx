@@ -20,6 +20,7 @@ import AdminPricingPage from './pages/AdminPricingPage';
 import AdminImagesPage from './pages/AdminImagesPage';
 import PriceWarningsPage from './pages/PriceWarningsPage';
 import ProductVisibilityPage from './pages/ProductVisibilityPage';
+import CategoryVisibilityPage from './pages/CategoryVisibilityPage';
 import UserPage from './pages/UserPage';
 import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
@@ -74,6 +75,7 @@ function App() {
                 <Route path="/admin/price-warnings" element={<PriceWarningsPage />} />
                 <Route path="/admin/images" element={<AdminImagesPage />} />
                 <Route path="/settings/product-visibility" element={<ProductVisibilityPage />} />
+                <Route path="/settings/category-visibility" element={<CategoryVisibilityPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/users/new" element={<CreateUserPage />} />
                 <Route path="/users/:userId/edit" element={<EditUserPage />} />

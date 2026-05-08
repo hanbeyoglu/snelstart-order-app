@@ -174,6 +174,7 @@ export default function Layout() {
   const catalogLinks: MenuLink[] = isAdmin
     ? [
         { to: '/settings/product-visibility', label: 'Ürün Görünürlüğü', icon: '👁️' },
+        { to: '/settings/category-visibility', label: 'Kategori Görünürlüğü', icon: '📁' },
         { to: '/admin/images', label: 'Ürün Resimleri', icon: '🖼️' },
         { to: '/admin/price-warnings', label: 'Fiyat Uyarıları', icon: '⚠️' },
       ]

@@ -90,6 +90,7 @@ export default function ProductDetailPage() {
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
+      categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
       quantity,
       unitPrice: basePrice, // Orijinal fiyat
       basePrice: basePrice, // Base price

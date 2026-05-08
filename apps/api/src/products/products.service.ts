@@ -426,6 +426,33 @@ export class ProductsService {
     };
   }
 
+  private buildEmptyProductsResult(page: number, limit: number) {
+    return {
+      data: [],
+      products: [],
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  }
+
+  private addActiveCategoryRule(query: any, activeCategoryIds: string[]) {
+    if (!query.$and) {
+      query.$and = [];
+      if (query.isActive) {
+        query.$and.push({ isActive: query.isActive });
+        delete query.isActive;
+      }
+    }
+
+    query.$and.push({ artikelomzetgroepId: { $in: activeCategoryIds } });
+  }
+
   async getProductVisibility(
     search?: string,
     status: 'all' | 'active' | 'inactive' = 'all',
@@ -493,7 +520,7 @@ export class ProductsService {
       return null;
     }
 
-    await this.cacheService.invalidateProductCache(id);
+    await this.cacheService.invalidateCatalogCache(id);
 
     return this.mapVisibilityProduct(product);
   }
@@ -516,6 +543,18 @@ export class ProductsService {
       return cached;
     }
 
+    const activeCategoryIds = await this.categoriesService.getActiveCategoryIds();
+    const activeCategoryIdSet = new Set(activeCategoryIds);
+    const visibleGroupIds = groupIds?.length
+      ? groupIds.filter((id) => activeCategoryIdSet.has(id))
+      : undefined;
+
+    if (activeCategoryIds.length === 0 || (groupIds?.length && visibleGroupIds?.length === 0)) {
+      const emptyResult = this.buildEmptyProductsResult(page, limit);
+      await this.cacheService.set(cacheKey, emptyResult, 300);
+      return emptyResult;
+    }
+
     const sort = this.getSortObject(sortBy);
 
     // If search is provided, try DB first (faster)
@@ -526,6 +565,7 @@ export class ProductsService {
           { isActive: { $ne: false } }, // Include all except isActive: false
         ],
       };
+      this.addActiveCategoryRule(query, activeCategoryIds);
 
       const searchLower = search.toLowerCase().trim();
 
@@ -539,11 +579,11 @@ export class ProductsService {
       query.$and.push({ $or: searchConditions });
 
       // Filter by groupIds if provided (any of the categories)
-      if (groupIds?.length) {
+      if (visibleGroupIds?.length) {
         query.$and.push({
           $or: [
-            { artikelgroepId: { $in: groupIds } },
-            { artikelomzetgroepId: { $in: groupIds } },
+            { artikelgroepId: { $in: visibleGroupIds } },
+            { artikelomzetgroepId: { $in: visibleGroupIds } },
           ],
         });
       }
@@ -637,19 +677,18 @@ export class ProductsService {
     const query: any = {
       isActive: { $ne: false }, // Include all except isActive: false
     };
+    this.addActiveCategoryRule(query, activeCategoryIds);
     
     // Filter by groupIds if provided (product in any of the categories)
-    if (groupIds?.length) {
-      query.$and = [
-        { isActive: { $ne: false } },
+    if (visibleGroupIds?.length) {
+      query.$and.push(
         {
           $or: [
-            { artikelgroepId: { $in: groupIds } },
-            { artikelomzetgroepId: { $in: groupIds } },
+            { artikelgroepId: { $in: visibleGroupIds } },
+            { artikelomzetgroepId: { $in: visibleGroupIds } },
           ],
         },
-      ];
-      delete query.isActive; // Remove from root since it's in $and
+      );
     }
     
     // Apply search if provided
