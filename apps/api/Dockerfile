@@ -13,7 +13,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 
 # Install deps
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Build shared first
 RUN pnpm --filter ./packages/shared build
