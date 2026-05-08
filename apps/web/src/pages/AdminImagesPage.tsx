@@ -820,10 +820,9 @@ export default function AdminImagesPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button - Improved */}
-              <motion.button
+              <button
+                className="close-x-button"
                 onClick={() => setShowUploadModal(false)}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
                 style={{
                   position: 'absolute',
                   top: 'clamp(0.75rem, 3vw, 1rem)',
@@ -845,18 +844,8 @@ export default function AdminImagesPage() {
                   minWidth: '44px',
                   minHeight: '44px',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--danger)';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                  e.currentTarget.style.color = 'var(--danger)';
-                }}
                 aria-label="Kapat"
-              >
-                ×
-              </motion.button>
+              />
 
               {/* Header */}
               <div style={{ marginBottom: '2rem', paddingRight: '3rem' }}>
@@ -1201,10 +1190,9 @@ export default function AdminImagesPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button */}
-              <motion.button
+              <button
+                className="close-x-button"
                 onClick={() => setShowDeleteModal(false)}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
                 style={{
                   position: 'absolute',
                   top: '1rem',
@@ -1224,18 +1212,8 @@ export default function AdminImagesPage() {
                   zIndex: 10,
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--danger)';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                  e.currentTarget.style.color = 'var(--danger)';
-                }}
                 aria-label="Kapat"
-              >
-                ×
-              </motion.button>
+              />
 
               {/* Content */}
               <div style={{ textAlign: 'center', paddingRight: '3rem' }}>

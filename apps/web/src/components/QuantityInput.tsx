@@ -5,6 +5,7 @@ interface QuantityInputProps {
   onCommit: (quantity: number) => void;
   max?: number | null;
   ariaLabel?: string;
+  className?: string;
   style?: CSSProperties;
 }
 
@@ -13,6 +14,7 @@ export default function QuantityInput({
   onCommit,
   max,
   ariaLabel = 'Miktar',
+  className,
   style,
 }: QuantityInputProps) {
   const [draftValue, setDraftValue] = useState(String(value));
@@ -57,6 +59,7 @@ export default function QuantityInput({
       onBlur={normalize}
       onKeyDown={handleKeyDown}
       aria-label={ariaLabel}
+      className={className}
       style={style}
     />
   );

@@ -94,7 +94,8 @@ function ToastItem({ toast, onClose }: ToastProps) {
       >
         {toast.message}
       </p>
-      <motion.button
+      <button
+        className="close-x-button"
         onClick={(e) => {
           e.stopPropagation();
           onClose(toast.id);
@@ -114,11 +115,8 @@ function ToastItem({ toast, onClose }: ToastProps) {
           padding: 0,
           flexShrink: 0,
         }}
-        whileHover={{ scale: 1.1, background: 'rgba(255, 255, 255, 0.3)' }}
-        whileTap={{ scale: 0.9 }}
-      >
-        ×
-      </motion.button>
+        aria-label="Kapat"
+      />
     </motion.div>
   );
 }

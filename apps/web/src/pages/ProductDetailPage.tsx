@@ -414,6 +414,7 @@ export default function ProductDetailPage() {
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <strong style={{ fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>Miktar:</strong>
               <QuantityInput
+                className="quantity-input"
                 value={quantity}
                 onCommit={setQuantity}
                 max={product?.voorraad}

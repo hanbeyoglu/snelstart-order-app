@@ -587,6 +587,7 @@ export default function CartPage() {
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <QuantityInput
+                      className="quantity-input"
                       value={item.quantity}
                       onCommit={(newQuantity) => updateQuantity(item.productId, newQuantity)}
                       max={item.voorraad}

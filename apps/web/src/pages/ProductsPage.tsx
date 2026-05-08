@@ -778,10 +778,11 @@ export default function ProductsPage() {
               {cartQuantity > 0 ? (
                 <>
                   <div
+                    className="quantity-control product-card-quantity-control"
                     onClick={(event) => event.stopPropagation()}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '44px 1fr 44px',
+                      gridTemplateColumns: 'minmax(40px, 44px) minmax(44px, 1fr) minmax(40px, 44px)',
                       alignItems: 'center',
                       gap: '0.5rem',
                     }}
@@ -806,6 +807,7 @@ export default function ProductsPage() {
                       -
                     </motion.button>
                     <QuantityInput
+                      className="quantity-input"
                       value={cartQuantity}
                       onCommit={(newQuantity) => updateQuantity(product.id, newQuantity)}
                       max={Number.isFinite(stockLimit) ? stockLimit : undefined}

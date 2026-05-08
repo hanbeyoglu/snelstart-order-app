@@ -125,6 +125,44 @@ button:active {
   opacity: 0.9;
 }
 
+.close-x-button {
+  appearance: none;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.close-x-button::before,
+.close-x-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.close-x-button::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-x-button::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.close-x-button:active {
+  opacity: 1;
+  transform: none !important;
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -621,8 +659,8 @@ h3 {
   }
 
   .responsive-grid {
-    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)) !important;
-    gap: 0.5rem !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 0.75rem !important;
   }
 
   .responsive-grid .card {
@@ -657,8 +695,42 @@ h3 {
 
   /* Smaller gaps */
   .responsive-grid {
-    gap: 0.75rem !important;
+    gap: 0.625rem !important;
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .product-card {
+    padding: 0.625rem !important;
+  }
+
+  .product-card h3 {
+    min-height: 5.4em !important;
+    max-height: 5.4em !important;
+    font-size: 0.9rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .product-card-quantity-control {
+    grid-template-columns: 40px minmax(40px, 1fr) 40px !important;
+    gap: 0.35rem !important;
+  }
+
+  .product-card-quantity-control button {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    font-size: 1rem !important;
+  }
+
+  .product-card-quantity-control .quantity-input {
+    min-width: 0 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding: 0.35rem !important;
+    font-size: 16px !important;
   }
 
   /* Touch-friendly inputs */
@@ -704,11 +776,24 @@ h3 {
   }
 }
 
+.quantity-input {
+  min-width: 0;
+  font-size: 16px;
+}
+
+.quantity-control {
+  min-width: 0;
+}
+
+.quantity-control button {
+  flex-shrink: 0;
+}
+
 /* Tablet optimizations */
 @media (min-width: 641px) and (max-width: 1024px) {
   .responsive-grid {
-    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)) !important;
-    gap: 0.5rem !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 0.75rem !important;
   }
 
   .container {
