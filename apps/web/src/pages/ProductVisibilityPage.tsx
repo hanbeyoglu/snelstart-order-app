@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useCartStore } from '../store/cartStore';
 
 type VisibilityStatus = 'all' | 'active' | 'inactive';
 
@@ -16,6 +17,27 @@ interface ProductVisibilityItem {
 }
 
 const PAGE_SIZES = [25, 50, 100];
+
+function removeProductFromCachedList(oldData: any, productId: string) {
+  if (!oldData) return oldData;
+
+  if (Array.isArray(oldData)) {
+    return oldData.filter((product) => product?.id !== productId && product?.snelstartId !== productId);
+  }
+
+  const filteredData = Array.isArray(oldData.data)
+    ? oldData.data.filter((product: any) => product?.id !== productId && product?.snelstartId !== productId)
+    : oldData.data;
+  const filteredProducts = Array.isArray(oldData.products)
+    ? oldData.products.filter((product: any) => product?.id !== productId && product?.snelstartId !== productId)
+    : oldData.products;
+
+  return {
+    ...oldData,
+    data: filteredData,
+    products: filteredProducts,
+  };
+}
 
 function ToggleSwitch({
   checked,
@@ -71,6 +93,7 @@ export default function ProductVisibilityPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
+  const removeCartItem = useCartStore((state) => state.removeItem);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -107,9 +130,23 @@ export default function ProductVisibilityPage() {
       const response = await api.patch(`/products/${id}/visibility`, { isActive });
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (!variables.isActive) {
+        queryClient.setQueriesData(
+          { queryKey: ['products'] },
+          (oldData) => removeProductFromCachedList(oldData, variables.id),
+        );
+        removeCartItem(variables.id);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['product-visibility'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['category-visibility'] });
+      queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['categories'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      queryClient.invalidateQueries({ queryKey: ['cart-calculation'] });
+      queryClient.removeQueries({ queryKey: ['products'], type: 'inactive' });
+      queryClient.removeQueries({ queryKey: ['categories'], type: 'inactive' });
       showToast('Product visibility updated', 'success');
     },
     onError: (err: any) => {

@@ -1,0 +1,32 @@
+{
+  "app": { "name": "DHY", "brand": "DHY Food BV" },
+  "languages": { "label": "Sprache", "current": "Aktuelle Sprache", "tr": "Türkçe", "en": "English", "nl": "Nederlands", "de": "Deutsch", "ar": "العربية" },
+  "navigation": {
+    "dashboard": "Dashboard", "products": "Alle Produkte", "categories": "Kategorien", "customers": "Kunden", "orders": "Bestellungen", "cart": "Warenkorb",
+    "catalog": "KATALOG", "system": "SYSTEM", "analysis": "ANALYSE", "account": "KONTO", "productVisibility": "Produktsichtbarkeit",
+    "categoryVisibility": "Kategoriesichtbarkeit", "productImages": "Produktbilder", "priceWarnings": "Preiswarnungen",
+    "connectionSettings": "Verbindungseinstellungen", "users": "Benutzer", "reports": "Berichte", "userInfo": "Benutzerinformationen",
+    "logout": "Abmelden", "openMenu": "Menu offnen", "closeMenu": "Menu schliessen"
+  },
+  "actions": {
+    "add": "Hinzufugen", "addToCart": "In den Warenkorb", "back": "Zuruck", "cancel": "Abbrechen", "clear": "Leeren", "close": "Schliessen",
+    "confirm": "Bestatigen", "create": "Erstellen", "delete": "Loschen", "edit": "Bearbeiten", "filter": "Filtern", "refresh": "Aktualisieren",
+    "remove": "Entfernen", "reset": "Zurucksetzen", "save": "Speichern", "search": "Suchen", "sync": "Synchronisieren", "update": "Aktualisieren",
+    "upload": "Hochladen", "view": "Ansehen", "yesDelete": "Ja, loschen", "continue": "Weiter"
+  },
+  "states": {
+    "active": "Aktiv", "inactive": "Passiv", "all": "Alle", "loading": "Wird geladen...", "saving": "Speichern...", "syncing": "Synchronisieren...",
+    "deleting": "Loschen...", "empty": "Keine Eintrage gefunden", "error": "Fehler", "success": "Erfolgreich", "warning": "Warnung",
+    "unknown": "Unbekannt", "notAvailable": "N/V"
+  },
+  "pagination": { "page": "Seite", "pageSize": "Pro Seite", "previous": "Zuruck", "next": "Weiter", "of": "von", "showing": "{{from}}-{{to}} von {{total}} angezeigt" },
+  "forms": {
+    "required": "Pflichtfeld", "name": "Name", "firstName": "Vorname", "lastName": "Nachname", "username": "Benutzername", "email": "E-Mail",
+    "password": "Passwort", "confirmPassword": "Passwort bestatigen", "role": "Rolle", "phone": "Telefon", "address": "Adresse", "street": "Strasse",
+    "postalCode": "Postleitzahl", "city": "Stadt", "country": "Land", "notes": "Notizen", "search": "Suchen", "status": "Status"
+  },
+  "format": { "currency": "EUR", "unit": "Stk." },
+  "time": { "expired": "Abgelaufen", "daysHours": "{{days}} Tage {{hours}} Stunden", "hoursMinutes": "{{hours}} Stunden {{minutes}} Minuten", "minutes": "{{minutes}} Minuten", "remaining": "Verbleibende Zeit:" },
+  "token": { "connectionStatus": "Verbindungsstatus", "valid": "Verbindung aktiv", "invalid": "Verbindung inaktiv" },
+  "notFound": { "title": "Seite nicht gefunden", "description": "Die gesuchte Seite existiert nicht.", "home": "Zur Startseite" }
+}

@@ -1,0 +1,15 @@
+{
+  "requiredFields": "Please fill in all required fields",
+  "usernameRequired": "Please enter a username",
+  "usernamePasswordRequired": "Please fill in username and password",
+  "passwordMin": "Password must be at least {{count}} characters",
+  "passwordMismatch": "Passwords do not match",
+  "fileRequired": "Please select a file",
+  "relationTypeRequired": "Please select at least one relation type",
+  "customerNameRequired": "Customer name is required",
+  "streetRequired": "Street address is required",
+  "postalCodeRequired": "Postal code is required",
+  "cityRequired": "City is required",
+  "emailInvalid": "Please enter a valid email address",
+  "phoneInvalid": "Please enter a valid phone number"
+}

@@ -1,0 +1,136 @@
+{
+  "app": {
+    "name": "DHY",
+    "brand": "DHY Food BV"
+  },
+  "languages": {
+    "label": "Dil",
+    "current": "Geçerli dil",
+    "tr": "Türkçe",
+    "en": "English",
+    "nl": "Nederlands",
+    "de": "Deutsch",
+    "ar": "العربية"
+  },
+  "navigation": {
+    "dashboard": "Gösterge Paneli",
+    "products": "Tüm Ürünler",
+    "categories": "Kategoriler",
+    "customers": "Müşteriler",
+    "orders": "Siparişler",
+    "cart": "Sepet",
+    "catalog": "KATALOG",
+    "system": "SİSTEM",
+    "analysis": "ANALİZ",
+    "account": "HESAP",
+    "productVisibility": "Ürün Görünürlüğü",
+    "categoryVisibility": "Kategori Görünürlüğü",
+    "productImages": "Ürün Resimleri",
+    "priceWarnings": "Fiyat Uyarıları",
+    "connectionSettings": "Bağlantı Ayarları",
+    "users": "Kullanıcılar",
+    "reports": "Raporlar",
+    "userInfo": "Kullanıcı Bilgileri",
+    "logout": "Çıkış Yap",
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat"
+  },
+  "actions": {
+    "add": "Ekle",
+    "addToCart": "Sepete Ekle",
+    "back": "Geri",
+    "cancel": "İptal",
+    "clear": "Temizle",
+    "close": "Kapat",
+    "confirm": "Onayla",
+    "create": "Oluştur",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "filter": "Filtrele",
+    "refresh": "Yenile",
+    "remove": "Kaldır",
+    "reset": "Sıfırla",
+    "save": "Kaydet",
+    "search": "Ara",
+    "sync": "Senkronize Et",
+    "update": "Güncelle",
+    "upload": "Yükle",
+    "view": "Görüntüle",
+    "yesDelete": "Evet, Sil",
+    "continue": "Devam Et"
+  },
+  "states": {
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "all": "Tümü",
+    "loading": "Yükleniyor...",
+    "saving": "Kaydediliyor...",
+    "syncing": "Senkronize ediliyor...",
+    "deleting": "Siliniyor...",
+    "empty": "Kayıt bulunamadı",
+    "error": "Hata",
+    "success": "Başarılı",
+    "warning": "Uyarı",
+    "unknown": "Bilinmiyor",
+    "notAvailable": "Yok"
+  },
+  "pagination": {
+    "page": "Sayfa",
+    "pageSize": "Sayfa başına",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "of": "/",
+    "showing": "{{total}} kayıttan {{from}}-{{to}} arası"
+  },
+  "forms": {
+    "required": "Zorunlu",
+    "name": "İsim",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "username": "Kullanıcı adı",
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirmPassword": "Şifreyi tekrar girin",
+    "role": "Rol",
+    "phone": "Telefon",
+    "address": "Adres",
+    "street": "Sokak",
+    "postalCode": "Posta Kodu",
+    "city": "Şehir",
+    "country": "Ülke",
+    "notes": "Notlar",
+    "search": "Ara",
+    "status": "Durum"
+  },
+  "format": {
+    "currency": "EUR",
+    "unit": "adet"
+  },
+  "time": {
+    "expired": "Süresi dolmuş",
+    "daysHours": "{{days}} gün {{hours}} saat",
+    "hoursMinutes": "{{hours}} saat {{minutes}} dakika",
+    "minutes": "{{minutes}} dakika",
+    "remaining": "Kalan Süre:"
+  },
+  "token": {
+    "connectionStatus": "Bağlantı Durumu",
+    "valid": "Bağlantı aktif",
+    "invalid": "Bağlantı pasif"
+  },
+  "notFound": {
+    "title": "Sayfa bulunamadı",
+    "description": "Aradığınız sayfa mevcut değil.",
+    "home": "Ana Sayfaya Dön"
+  },
+  "customers": {
+    "syncSuccess": "Müşteriler başarıyla senkronize edildi",
+    "sync": "🔄 Senkronize Et",
+    "create": "Yeni Müşteri Oluştur",
+    "name": "İsim *",
+    "address": "Adres",
+    "postalCode": "Posta Kodu",
+    "city": "Şehir",
+    "country": "Ülke"
+  }
+}

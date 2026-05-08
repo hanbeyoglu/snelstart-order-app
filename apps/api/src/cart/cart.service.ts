@@ -28,6 +28,7 @@ export class CartService {
         productId: product.id,
         productName: product.omschrijving,
         sku: product.artikelnummer,
+        categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
         quantity: item.quantity,
         unitPrice: finalPrice,
         basePrice,
@@ -42,4 +43,3 @@ export class CartService {
     return { items: cartItems, subtotal, total };
   }
 }
-

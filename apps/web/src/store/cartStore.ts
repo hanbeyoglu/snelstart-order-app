@@ -53,6 +53,7 @@ interface CartState {
   updateUnitPrice: (productId: string, unitPrice: number) => void;
   resetToOriginalPrice: (productId: string) => void;
   removeItem: (productId: string) => void;
+  removeItemsByCategory: (categoryId: string) => void;
   setCustomer: (customerId: string | null) => void;
   clear: () => void;
   /** Kullanıcıya özel sepeti yükle. logout'ta null ile çağrılır. */
@@ -135,6 +136,15 @@ export const useCartStore = create<CartState>()((set, get) => ({
   removeItem: (productId) =>
     set((state) => {
       const nextItems = state.items.filter((i) => i.productId !== productId);
+      if (state.currentUserId) {
+        saveCartForUser(state.currentUserId, nextItems, state.customerId);
+      }
+      return { items: nextItems };
+    }),
+
+  removeItemsByCategory: (categoryId) =>
+    set((state) => {
+      const nextItems = state.items.filter((i) => (i as CartItem & { categoryId?: string }).categoryId !== categoryId);
       if (state.currentUserId) {
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }

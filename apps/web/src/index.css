@@ -36,6 +36,42 @@ body {
   line-height: 1.6;
 }
 
+html[dir='rtl'],
+body[dir='rtl'] {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir='rtl'] input,
+html[dir='rtl'] select,
+html[dir='rtl'] textarea,
+html[dir='rtl'] table {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir='rtl'] input[type='number'] {
+  direction: ltr;
+  text-align: center;
+}
+
+html[dir='rtl'] .desktop-nav,
+html[dir='rtl'] .nav-link,
+html[dir='rtl'] .card,
+html[dir='rtl'] label {
+  direction: rtl;
+}
+
+html[dir='rtl'] th[style*='left'],
+html[dir='rtl'] td[style*='left'] {
+  text-align: right !important;
+}
+
+html[dir='rtl'] th[style*='right'],
+html[dir='rtl'] td[style*='right'] {
+  text-align: left !important;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -354,23 +390,32 @@ label {
 }
 
 /* Responsive Navigation */
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .desktop-nav {
     display: flex !important;
   }
 
   .mobile-menu-btn {
+    display: none !important;
+  }
+
+  .mobile-language-switcher {
     display: none !important;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .desktop-nav {
     display: none !important;
   }
 
   .mobile-menu-btn {
     display: flex !important;
+  }
+
+  .mobile-language-switcher {
+    display: inline-flex !important;
+    margin-inline-start: auto;
   }
 }
 

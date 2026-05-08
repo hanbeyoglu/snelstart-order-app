@@ -1,0 +1,50 @@
+{
+  "title": "Kunden",
+  "subtitle": "Verwalten Sie Ihre Kunden und fügen Sie neue Kunden hinzu",
+  "create": "Neuen Kunden hinzufügen",
+  "createTitle": "Neuen Kunden erstellen",
+  "editTitle": "Kunden bearbeiten",
+  "creating": "Wird erstellt...",
+  "updating": "Wird aktualisiert...",
+  "loading": "Kunden werden geladen...",
+  "createButton": "Kunden erstellen",
+  "relationType": "Beziehungstyp",
+  "customerName": "Kundenname",
+  "addressInfo": "Adressinformationen",
+  "contactInfo": "Kontaktinformationen",
+  "street": "Straße",
+  "postalCode": "Postleitzahl",
+  "city": "Stadt",
+  "phone": "Telefon",
+  "email": "E-Mail",
+  "kvkNumber": "KVK-Nummer",
+  "btwNumber": "USt-Nummer",
+  "searchPlaceholder": "Kunden suchen (Name, Code, E-Mail, Telefon)...",
+  "showWholesalers": "Mit Großhändlern anzeigen",
+  "cityFilter": "Stadtfilter",
+  "selectCity": "Stadt auswählen",
+  "citySearchPlaceholder": "Stadt suchen...",
+  "noCityFound": "Keine Stadt gefunden",
+  "emptyTitle": "Keine Kunden gefunden",
+  "emptyDescription": "Es wurden keine Kunden gefunden, die Ihren Kriterien entsprechen.",
+  "codeLabel": "Code: {{code}}",
+  "notesPlaceholder": "Notizen zum Kunden hinzufügen...",
+  "addToVisitPlan": "Kunden zum Besuchsplan hinzufügen",
+  "paginationSummary": "Seite {{page}} / {{totalPages}} (Gesamt: {{total}})",
+  "table": {
+    "name": "Name",
+    "code": "Code"
+  },
+  "status": {
+    "visited": "Besucht",
+    "planned": "Geplant",
+    "new": "Neu"
+  },
+  "messages": {
+    "created": "Kunde erfolgreich erstellt!",
+    "createError": "Beim Erstellen des Kunden ist ein Fehler aufgetreten",
+    "syncSuccess": "Kunden erfolgreich synchronisiert",
+    "syncError": "Synchronisierung fehlgeschlagen",
+    "syncUnexpectedError": "Bei der Synchronisierung ist ein Fehler aufgetreten"
+  }
+}

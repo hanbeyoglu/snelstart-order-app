@@ -1,0 +1,25 @@
+{
+  "title": "Winkelwagen",
+  "emptyTitle": "Uw winkelwagen is leeg",
+  "emptyDescription": "Voeg producten toe om een bestelling te maken.",
+  "selectCustomer": "Klant selecteren",
+  "customerSearchPlaceholder": "Zoek of selecteer een klant...",
+  "selectedCustomer": "Geselecteerde klant",
+  "subtotal": "Subtotaal:",
+  "total": "Totaal:",
+  "createOrder": "Bestelling maken",
+  "creatingOrder": "Bestelling maken...",
+  "clearCart": "Winkelwagen legen",
+  "removeProduct": "Product uit winkelwagen verwijderen",
+  "restoreOriginalPrice": "Oorspronkelijke prijs herstellen",
+  "confirmRemoveTitle": "Product uit winkelwagen verwijderen?",
+  "confirmRemoveDescription": "Dit product wordt uit uw winkelwagen verwijderd.",
+  "messages": {
+    "selectCustomer": "Selecteer een klant",
+    "orderCreated": "Bestelling succesvol aangemaakt!",
+    "orderCreateError": "Er is een fout opgetreden bij het maken van de bestelling",
+    "cartCleared": "Winkelwagen geleegd",
+    "priceRestored": "{{name}} hersteld naar oorspronkelijke prijs",
+    "removed": "{{name}} verwijderd uit winkelwagen"
+  }
+}

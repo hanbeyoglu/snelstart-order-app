@@ -152,6 +152,7 @@ export interface CartItem {
   productId: string;
   productName: string;
   sku: string;
+  categoryId?: string;
   quantity: number;
   unitPrice: number;
   basePrice: number;

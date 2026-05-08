@@ -1,0 +1,56 @@
+{
+  "title": "Products",
+  "allTitle": "All Products",
+  "detail": "Product Detail",
+  "searchPlaceholder": "Search products (name, barcode)...",
+  "categorySearchPlaceholder": "Search category...",
+  "selectCategories": "Select categories",
+  "inStockOnly": "In stock only",
+  "inCart": "In cart: {{count}} pcs",
+  "decreaseQuantity": "Decrease {{name}} quantity",
+  "increaseQuantity": "Increase {{name}} quantity",
+  "cartQuantity": "{{name}} quantity in cart",
+  "stockLimitTitle": "Stock limit",
+  "increaseTitle": "Increase quantity",
+  "hidePurchasePrice": "Hide purchase price",
+  "showPurchasePrice": "Show purchase price",
+  "pageSummary": "Page {{page}} / {{totalPages}} (Total: {{total}})",
+  "sort": {
+    "label": "Sort",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)",
+    "priceAsc": "Price (low to high)",
+    "priceDesc": "Price (high to low)",
+    "stockDesc": "Stock (high to low)"
+  },
+  "fields": {
+    "id": "ID",
+    "code": "Product Code",
+    "category": "Category",
+    "barcode": "Barcode",
+    "stock": "Stock",
+    "unit": "Unit",
+    "unitFallback": "pcs",
+    "quantity": "Quantity",
+    "salePrice": "Sale Price",
+    "purchasePrice": "Purchase Price",
+    "basePrice": "Base Price",
+    "vat": "VAT",
+    "date": "Date",
+    "discount": "Discount",
+    "customer": "Customer"
+  },
+  "messages": {
+    "syncSuccess": "Products and categories synced successfully",
+    "syncFailed": "Sync failed",
+    "syncError": "An error occurred during sync",
+    "notFound": "Product not found",
+    "outOfStock": "This product is out of stock",
+    "stockLimit": "Stock limit exceeded. Maximum: {{count}} pcs",
+    "addedToCart": "{{name}} added to cart",
+    "quantityUpdated": "{{name}} quantity updated ({{quantity}} pcs)"
+    ,"belowBasePrice": "Could not add to cart. The price can be at most 5% below the product price ({{basePrice}}). Minimum price: {{minPrice}}",
+    "belowPurchasePrice": "Could not add to cart. The price cannot be below 5% above the purchase price{{purchasePrice}}. Minimum price: {{minPrice}}",
+    "addedToCartWithQuantity": "{{name}} added to cart ({{quantity}} pcs)"
+  }
+}

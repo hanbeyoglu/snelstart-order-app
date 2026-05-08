@@ -4,8 +4,12 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function AdminSettingsPage() {
+  const { t } = useAppTranslation(['common', 'settings', 'orders']);
+  const { formatDateTime } = useLocaleFormat();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
   const [subscriptionKey, setSubscriptionKey] = useState('');
@@ -32,7 +36,7 @@ export default function AdminSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connection-settings'] });
-      alert('Ayarlar kaydedildi');
+      alert(t('settings:saved'));
     },
   });
 
@@ -47,13 +51,13 @@ export default function AdminSettingsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['connection-settings'] });
       if (data.success) {
-        showToast('Bağlantı başarılı! Token alındı.', 'success');
+        showToast(t('settings:connectionSuccess'), 'success');
       } else {
-        showToast(`Bağlantı başarısız: ${data.error}`, 'error', 5000);
+        showToast(t('settings:connectionFailed', { error: data.error }), 'error', 5000);
       }
     },
     onError: (error: any) => {
-      showToast(error?.response?.data?.error || 'Bağlantı test edilemedi', 'error', 5000);
+      showToast(error?.response?.data?.error || t('settings:connectionTestFailed'), 'error', 5000);
     },
   });
 
@@ -65,19 +69,19 @@ export default function AdminSettingsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['connection-settings'] });
       if (data.success) {
-        showToast('Token başarıyla yenilendi', 'success');
+        showToast(t('settings:tokenRefreshed'), 'success');
       } else {
-        showToast(`Token yenilenemedi: ${data.error}`, 'error', 5000);
+        showToast(t('settings:tokenRefreshFailedWithError', { error: data.error }), 'error', 5000);
       }
     },
     onError: (error: any) => {
-      showToast(error?.response?.data?.error || 'Token yenilenemedi', 'error', 5000);
+      showToast(error?.response?.data?.error || t('settings:tokenRefreshFailed'), 'error', 5000);
     },
   });
 
   return (
     <div className="container">
-      <h2>SnelStart Bağlantı Ayarları</h2>
+      <h2>{t('settings:title')}</h2>
 
       {settings?.exists && (
         <motion.div
@@ -95,7 +99,7 @@ export default function AdminSettingsPage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>🔗 Bağlantı Durumu</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>🔗 {t('settings:connectionStatus')}</h3>
             <span
               style={{
                 padding: '0.5rem 1rem',
@@ -106,42 +110,36 @@ export default function AdminSettingsPage() {
                 color: settings.isTokenValid ? '#10b981' : '#ef4444',
               }}
             >
-              {settings.isTokenValid ? '✅ Token Aktif' : '❌ Token Pasif'}
+              {settings.isTokenValid ? `✅ ${t('settings:tokenActive')}` : `❌ ${t('settings:tokenPassive')}`}
             </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
             <p>
-              <strong>Durum:</strong> {settings.isActive ? 'Aktif' : 'Pasif'}
+              <strong>{t('settings:status')}:</strong> {settings.isActive ? t('states.active') : t('states.inactive')}
             </p>
             {settings.tokenExpiresAt && (
               <p>
-                <strong>Token Geçerlilik:</strong>{' '}
-                {new Date(settings.tokenExpiresAt).toLocaleString('tr-TR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <strong>{t('settings:tokenValidity')}:</strong>{' '}
+                {formatDateTime(settings.tokenExpiresAt)}
               </p>
             )}
             {settings.lastTestedAt && (
               <p>
-                <strong>Son Test:</strong> {new Date(settings.lastTestedAt).toLocaleString('tr-TR')}
+                <strong>{t('settings:lastTest')}:</strong> {formatDateTime(settings.lastTestedAt)}
               </p>
             )}
             {settings.lastTestStatus && (
               <p>
-                <strong>Son Test Sonucu:</strong>{' '}
+                <strong>{t('settings:lastTestResult')}:</strong>{' '}
                 <span style={{ color: settings.lastTestStatus === 'success' ? '#10b981' : '#ef4444' }}>
-                  {settings.lastTestStatus === 'success' ? '✅ Başarılı' : '❌ Başarısız'}
+                  {settings.lastTestStatus === 'success' ? `✅ ${t('states.success')}` : `❌ ${t('orders:status.failed')}`}
                 </span>
               </p>
             )}
             {settings.lastTestError && (
               <p style={{ color: '#ef4444' }}>
-                <strong>Hata:</strong> {settings.lastTestError}
+                <strong>{t('settings:error')}:</strong> {settings.lastTestError}
               </p>
             )}
           </div>
@@ -158,10 +156,10 @@ export default function AdminSettingsPage() {
               {refreshTokenMutation.isPending ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <span className="loading" />
-                  Bağlanıyor...
+                  {t('settings:connecting')}
                 </span>
               ) : (
-                '🔄 Bağlantıyı Test Et / Bağlan'
+                `🔄 ${t('settings:testConnect')}`
               )}
             </motion.button>
           )}
@@ -178,10 +176,10 @@ export default function AdminSettingsPage() {
               {refreshTokenMutation.isPending ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <span className="loading" />
-                  Yenileniyor...
+                  {t('settings:refreshing')}
                 </span>
               ) : (
-                '🔄 Token\'ı Yenile'
+                `🔄 ${t('settings:refreshToken')}`
               )}
             </motion.button>
           )}
@@ -190,4 +188,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-

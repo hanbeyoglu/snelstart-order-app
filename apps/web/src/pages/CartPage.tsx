@@ -6,6 +6,8 @@ import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
 import QuantityInput from '../components/QuantityInput';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -16,6 +18,8 @@ const generateUUID = () => {
 };
 
 export default function CartPage() {
+  const { t } = useAppTranslation(['common', 'cart', 'products']);
+  const { formatCurrency } = useLocaleFormat();
   const { items, customerId, updateQuantity, updateUnitPrice, resetToOriginalPrice, removeItem, setCustomer, clear } = useCartStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -141,7 +145,7 @@ export default function CartPage() {
   const createOrderMutation = useMutation({
     mutationFn: async () => {
       if (!selectedCustomerId) {
-        throw new Error('Lütfen bir müşteri seçin');
+        throw new Error(t('cart:messages.selectCustomer'));
       }
 
       // Eğer customUnitPrice varsa, onu kullan; yoksa cartCalculation'dan gelen fiyatı kullan
@@ -170,11 +174,11 @@ export default function CartPage() {
     onSuccess: () => {
       clear();
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      showToast('Sipariş başarıyla oluşturuldu!', 'success');
+      showToast(t('cart:messages.orderCreated'), 'success');
       navigate('/orders');
     },
     onError: (error: any) => {
-      showToast(error?.message || 'Sipariş oluşturulurken bir hata oluştu', 'error', 4000);
+      showToast(error?.message || t('cart:messages.orderCreateError'), 'error', 4000);
     },
   });
 
@@ -194,9 +198,11 @@ export default function CartPage() {
           >
             🛒
           </motion.div>
-          <h2 style={{ marginBottom: '1rem', fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700 }}>Sepetiniz boş</h2>
+          <h2 style={{ marginBottom: '1rem', fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700 }}>
+            {t('cart:emptyTitle')}
+          </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Alışverişe başlamak için kategorilere göz atın
+            {t('cart:emptyDescription')}
           </p>
           <motion.button
             onClick={() => navigate('/')}
@@ -204,7 +210,7 @@ export default function CartPage() {
             style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}
             whileTap={{ scale: 0.95 }}
           >
-            🛍️ Alışverişe Başla
+            🛍️ {t('actions.add')}
           </motion.button>
         </motion.div>
       </div>
@@ -236,14 +242,14 @@ export default function CartPage() {
             lineHeight: '1.2',
           }}
         >
-          Sepet
+          {t('cart:title')}
         </h2>
         {items.length > 0 && (
           <motion.button
             type="button"
             onClick={() => {
               clear();
-              showToast('Sepet temizlendi', 'success');
+              showToast(t('cart:messages.cartCleared'), 'success');
             }}
             className="btn-secondary"
             style={{
@@ -253,7 +259,7 @@ export default function CartPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            🗑️ Sepeti Temizle
+            🗑️ {t('cart:clearCart')}
           </motion.button>
         )}
       </motion.div>
@@ -271,7 +277,7 @@ export default function CartPage() {
         }}
       >
         <label style={{ display: 'block', marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-          👤 Müşteri Seç:
+          👤 {t('cart:selectCustomer')}:
         </label>
         <div ref={customerSearchRef} style={{ position: 'relative', marginTop: '0.5rem', zIndex: 1000 }}>
           <input
@@ -286,7 +292,7 @@ export default function CartPage() {
               }
             }}
             onFocus={() => setShowCustomerList(true)}
-            placeholder="Müşteri ara veya seç..."
+            placeholder={t('cart:customerSearchPlaceholder')}
             style={{
               width: '100%',
               padding: '0.75rem',
@@ -315,7 +321,7 @@ export default function CartPage() {
                 padding: '0.25rem',
                 zIndex: 1001,
               }}
-              title="Temizle"
+              title={t('actions.clear')}
             >
               ✕
             </button>
@@ -339,10 +345,10 @@ export default function CartPage() {
               }}
             >
               {isLoadingCustomers ? (
-                <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>Yükleniyor...</div>
+                <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>{t('states.loading')}</div>
               ) : customers.length === 0 ? (
                 <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-                  {debouncedCustomerSearch ? 'Müşteri bulunamadı' : 'Müşteri ara...'}
+                  {debouncedCustomerSearch ? t('states.empty') : t('actions.search')}
                 </div>
               ) : (
                 customers.map((customer: any) => (
@@ -372,7 +378,7 @@ export default function CartPage() {
                     )}
                     {customer.relatiecode && (
                       <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                        Kod: {customer.relatiecode}
+                        {t('products:fields.code')}: {customer.relatiecode}
                       </div>
                     )}
                   </motion.div>
@@ -391,7 +397,7 @@ export default function CartPage() {
               border: '1px solid rgba(99, 102, 241, 0.2)',
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>✓ Seçilen Müşteri</div>
+            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>✓ {t('cart:selectedCustomer')}</div>
             <div style={{ fontSize: '0.9rem' }}>{selectedCustomer.naam}</div>
             {selectedCustomer.adres && (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
@@ -495,7 +501,7 @@ export default function CartPage() {
                     padding: '0.15rem 0.5rem',
                     borderRadius: '4px',
                   }}>
-                    Birim: {item.eenheid}
+                    {t('products:fields.unit')}: {item.eenheid}
                   </p>
                 )}
               </div>
@@ -538,14 +544,13 @@ export default function CartPage() {
                         // Fiyat kontrolü: Yeni kurallar
                         const purchasePrice = item.inkoopprijs;
                         let minPrice: number;
-                        let errorMessage: string;
-                        
+
                         if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
                           // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
                           minPrice = item.unitPrice * 0.95;
                           if (newPrice < minPrice) {
                             showToast(
-                              `⚠️ Fiyat ürün fiyatından (€${item.unitPrice.toFixed(2)}) maksimum %5 düşük olabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
+                              `⚠️ ${t('errors:generic')} ${formatCurrency(minPrice)}`,
                               'error',
                               4000,
                             );
@@ -556,7 +561,7 @@ export default function CartPage() {
                           minPrice = purchasePrice * 1.05;
                           if (newPrice < minPrice) {
                             showToast(
-                              `⚠️ Fiyat alış fiyatının (€${purchasePrice.toFixed(2)}) %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+                              `⚠️ ${t('errors:generic')} ${formatCurrency(minPrice)}`,
                               'error',
                               4000,
                             );
@@ -583,7 +588,7 @@ export default function CartPage() {
                 {/* Miktar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 500 }}>
-                    Miktar:
+                    {t('products:fields.quantity')}:
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <QuantityInput
@@ -591,7 +596,7 @@ export default function CartPage() {
                       value={item.quantity}
                       onCommit={(newQuantity) => updateQuantity(item.productId, newQuantity)}
                       max={item.voorraad}
-                      ariaLabel={`${item.productName} miktarı`}
+                      ariaLabel={`${item.productName} ${t('products:fields.quantity')}`}
                       style={{ 
                         width: '60px',
                         padding: '0.5rem',
@@ -603,14 +608,14 @@ export default function CartPage() {
                         minHeight: '36px',
                       }}
                     />
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>adet</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{t('format.unit')}</span>
                   </div>
                 </div>
 
               </div>
               {hasPriceErrorForItem && (
                 <div style={{ marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 500 }}>
-                  Fiyat geçersiz veya alış fiyatından düşük. Sipariş verilemez.
+                  {t('errors:generic')}
                 </div>
               )}
 
@@ -623,7 +628,7 @@ export default function CartPage() {
                     textDecoration: 'line-through',
                     opacity: 0.7
                   }}>
-                    Orijinal: €{item.unitPrice.toFixed(2)}
+                    {t('cart:restoreOriginalPrice')}: {formatCurrency(item.unitPrice)}
                   </span>
                   {(() => {
                     const discountPercentage = ((item.unitPrice - item.customUnitPrice) / item.unitPrice) * 100;
@@ -636,7 +641,7 @@ export default function CartPage() {
                         padding: '0.15rem 0.4rem',
                         borderRadius: '4px',
                       }}>
-                        %{discountPercentage.toFixed(1)} İndirim
+                        %{discountPercentage.toFixed(1)} {t('products:fields.discount')}
                       </span>
                     );
                   })()}
@@ -654,7 +659,7 @@ export default function CartPage() {
                       ...prev,
                       [item.productId]: item.unitPrice.toFixed(2),
                     }));
-                    showToast(`${item.productName} orijinal fiyatına döndürüldü`, 'success', 2500);
+                    showToast(t('cart:messages.priceRestored', { name: item.productName }), 'success', 2500);
                   }}
                   className="btn-secondary"
                   style={{ 
@@ -665,7 +670,7 @@ export default function CartPage() {
                     minWidth: '80px',
                   }}
                   whileTap={{ scale: 0.98 }}
-                  title="Orijinal fiyata dön"
+                  title={t('cart:restoreOriginalPrice')}
                 >
                   🔄
                 </motion.button>
@@ -682,7 +687,7 @@ export default function CartPage() {
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                title="Ürünü Sepetten Çıkar"
+                title={t('cart:removeProduct')}
               >
                 🗑️
               </motion.button>
@@ -710,8 +715,8 @@ export default function CartPage() {
               fontWeight: 500,
             }}
           >
-            <span>Ara Toplam:</span>
-            <span>€{cartTotals.subtotal.toFixed(2)}</span>
+            <span>{t('cart:subtotal')}</span>
+            <span>{formatCurrency(cartTotals.subtotal)}</span>
           </div>
           <div
             style={{
@@ -727,8 +732,8 @@ export default function CartPage() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            <span>Toplam:</span>
-            <span>€{cartTotals.total.toFixed(2)}</span>
+            <span>{t('cart:total')}</span>
+            <span>{formatCurrency(cartTotals.total)}</span>
           </div>
           <motion.button
             onClick={() => !hasPriceErrors && createOrderMutation.mutate()}
@@ -748,10 +753,10 @@ export default function CartPage() {
             {createOrderMutation.isPending ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
                 <span className="loading" />
-                Sipariş Oluşturuluyor...
+                {t('cart:creatingOrder')}
               </span>
             ) : (
-              '✅ Sipariş Oluştur'
+              `✅ ${t('cart:createOrder')}`
             )}
           </motion.button>
           {createOrderMutation.error && (
@@ -815,10 +820,10 @@ export default function CartPage() {
                     marginBottom: '0.5rem',
                   }}
                 >
-                  Ürünü Sepetten Çıkar
+                  {t('cart:removeProduct')}
                 </h3>
                 <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-                  <strong>{itemToRemove.productName}</strong> sepetten çıkarılsın mı?
+                  <strong>{itemToRemove.productName}</strong> {t('cart:confirmRemoveDescription')}
                 </p>
               </div>
 
@@ -840,12 +845,12 @@ export default function CartPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  İptal
+                  {t('actions.cancel')}
                 </motion.button>
                 <motion.button
                   onClick={() => {
                     removeItem(itemToRemove.productId);
-                    showToast(`${itemToRemove.productName} sepetten çıkarıldı`, 'info', 2500);
+                    showToast(t('cart:messages.removed', { name: itemToRemove.productName }), 'info', 2500);
                     setItemToRemove(null);
                   }}
                   className="btn-danger"
@@ -857,7 +862,7 @@ export default function CartPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Evet, Çıkar
+                  {t('actions.remove')}
                 </motion.button>
               </div>
             </motion.div>

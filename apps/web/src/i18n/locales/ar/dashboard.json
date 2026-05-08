@@ -1,0 +1,34 @@
+{
+  "title": "لوحة التحكم",
+  "loading": "جار تحميل لوحة التحكم...",
+  "summary": "ملخص وإحصاءات {{period}}",
+  "periods": {
+    "daily": "يومي",
+    "weekly": "أسبوعي",
+    "monthly": "شهري"
+  },
+  "stats": {
+    "totalOrders": "إجمالي الطلبات",
+    "totalRevenue": "إجمالي الإيرادات",
+    "visitedCustomers": "العملاء الذين تمت زيارتهم",
+    "plannedCustomers": "العملاء المخطط لهم"
+  },
+  "sections": {
+    "visitedCustomers": "العملاء الذين تمت زيارتهم",
+    "plannedCustomers": "عملاء مخطط لزيارتهم",
+    "ordersByCustomer": "الطلبات حسب العميل",
+    "topProducts": "المنتجات الأكثر طلبا"
+  },
+  "empty": {
+    "visitedCustomers": "لا توجد زيارات عملاء في هذه الفترة",
+    "plannedCustomers": "لا يوجد عملاء مخطط لهم",
+    "orders": "لا توجد طلبات في هذه الفترة",
+    "topProducts": "لا توجد منتجات مطلوبة في هذه الفترة"
+  },
+  "labels": {
+    "code": "الرمز",
+    "orders_one": "{{count}} طلب",
+    "orders_other": "{{count}} طلبات",
+    "pieces": "{{count}} قطعة"
+  }
+}

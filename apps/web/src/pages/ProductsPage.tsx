@@ -6,8 +6,10 @@ import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
 import QuantityInput from '../components/QuantityInput';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 export default function ProductsPage() {
+  const { t } = useAppTranslation(['common', 'products']);
   const { categoryId } = useParams();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customerId');
@@ -91,6 +93,16 @@ export default function ProductsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  useEffect(() => {
+    if (!categories.length || selectedCategoryIds.length === 0) return;
+
+    const visibleCategoryIds = new Set(categories.map((category: { id: string }) => category.id));
+    setSelectedCategoryIds((prev) => {
+      const next = prev.filter((id) => visibleCategoryIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [categories, selectedCategoryIds]);
+
   // Sync mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -99,18 +111,18 @@ export default function ProductsPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        showToast('Ürünler ve kategoriler başarıyla senkronize edildi', 'success');
+        showToast(t('products:messages.syncSuccess'), 'success');
         // Invalidate queries to refetch data
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } else {
-        showToast(data.message || 'Senkronizasyon başarısız', 'error');
+        showToast(data.message || t('products:messages.syncFailed'), 'error');
       }
       setIsSyncing(false);
     },
     onError: (error: any) => {
       showToast(
-        error.response?.data?.message || 'Senkronizasyon sırasında bir hata oluştu',
+        error.response?.data?.message || t('products:messages.syncError'),
         'error'
       );
       setIsSyncing(false);
@@ -141,12 +153,12 @@ export default function ProductsPage() {
     const stockLimit = getStockLimit(product);
 
     if (isOutOfStock(product)) {
-      showToast('Bu ürün stokta yok', 'error');
+      showToast(t('products:messages.outOfStock'), 'error');
       return;
     }
 
     if (currentQuantity >= stockLimit) {
-      showToast(`Stok miktarı aşılamaz. Maksimum: ${stockLimit} adet`, 'error');
+      showToast(t('products:messages.stockLimit', { count: stockLimit }), 'error');
       return;
     }
 
@@ -154,6 +166,7 @@ export default function ProductsPage() {
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
+      categoryId: product.artikelomzetgroepId || product.artikelgroepId,
       quantity: 1,
       unitPrice: product.finalPrice || product.basePrice || 0,
       basePrice: product.basePrice || 0,
@@ -168,7 +181,7 @@ export default function ProductsPage() {
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
       ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
     });
-    showToast(`${product.omschrijving} sepete eklendi`, 'success');
+    showToast(t('products:messages.addedToCart', { name: product.omschrijving }), 'success');
   };
 
   const handleCartQuantityChange = (product: any, nextQuantity: number, event: any) => {
@@ -176,7 +189,7 @@ export default function ProductsPage() {
     const stockLimit = getStockLimit(product);
 
     if (nextQuantity > stockLimit) {
-      showToast(`Stok miktarı aşılamaz. Maksimum: ${stockLimit} adet`, 'error');
+      showToast(t('products:messages.stockLimit', { count: stockLimit }), 'error');
       return;
     }
 
@@ -228,7 +241,7 @@ export default function ProductsPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
           type="text"
-          placeholder="🔍 Ürün ara (isim, barkod)..."
+          placeholder={`🔍 ${t('products:searchPlaceholder')}`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -272,13 +285,13 @@ export default function ProductsPage() {
                 justifyContent: 'space-between',
                 gap: '0.5rem',
               }}
-              aria-label="Kategorileri seç"
+              aria-label={t('products:selectCategories')}
               aria-expanded={categoryDropdownOpen}
             >
               <span>
                 {selectedCategoryIds.length === 0
-                  ? 'Tüm kategoriler'
-                  : `${selectedCategoryIds.length} kategori seçili`}
+                  ? t('states.all')
+                  : t('pagination.showing', { from: selectedCategoryIds.length, to: selectedCategoryIds.length, total: categories.length })}
               </span>
               <span style={{ fontSize: '0.8em', opacity: 0.7 }}>
                 {categoryDropdownOpen ? '▲' : '▼'}
@@ -317,7 +330,7 @@ export default function ProductsPage() {
                 >
                   <input
                     type="text"
-                    placeholder="Kategori ara..."
+                    placeholder={t('products:categorySearchPlaceholder')}
                     value={categorySearchTerm}
                     onChange={(e) => setCategorySearchTerm(e.target.value)}
                     onKeyDown={(e) => e.stopPropagation()}
@@ -333,7 +346,7 @@ export default function ProductsPage() {
                       boxSizing: 'border-box',
                       flexShrink: 0,
                     }}
-                    aria-label="Kategori ara"
+                    aria-label={t('products:categorySearchPlaceholder')}
                   />
                   <div
                     style={{
@@ -351,7 +364,7 @@ export default function ProductsPage() {
                           color: 'var(--text-secondary)',
                         }}
                       >
-                        Kategoriler yükleniyor...
+                        {t('states.loading')}
                       </div>
                     ) : (
                       <>
@@ -416,7 +429,7 @@ export default function ProductsPage() {
                           flexShrink: 0,
                         }}
                       >
-                        Eşleşen kategori yok
+                        {t('states.empty')}
                       </div>
                     )}
                   {selectedCategoryIds.length > 0 && (
@@ -436,7 +449,7 @@ export default function ProductsPage() {
                         borderRadius: '6px',
                       }}
                     >
-                      Seçimi temizle
+                      {t('actions.clear')}
                     </button>
                   )}
                 </div>
@@ -473,7 +486,7 @@ export default function ProductsPage() {
                         onClick={() =>
                           setSelectedCategoryIds((prev) => prev.filter((x) => x !== id))
                         }
-                        aria-label="Kaldır"
+                        aria-label={t('actions.remove')}
                         style={{
                           padding: 0,
                           margin: 0,
@@ -507,13 +520,13 @@ export default function ProductsPage() {
               color: 'var(--text-primary)',
               cursor: 'pointer',
             }}
-            aria-label="Sıralama"
+            aria-label={t('products:sort.label')}
           >
-            <option value="name_asc">İsme göre (A → Z)</option>
-            <option value="name_desc">İsme göre (Z → A)</option>
-            <option value="price_asc">Fiyat (düşükten yükseğe)</option>
-            <option value="price_desc">Fiyat (yüksekten düşüğe)</option>
-            <option value="stock_desc">Stok (çok olandan aza)</option>
+            <option value="name_asc">{t('products:sort.nameAsc')}</option>
+            <option value="name_desc">{t('products:sort.nameDesc')}</option>
+            <option value="price_asc">{t('products:sort.priceAsc')}</option>
+            <option value="price_desc">{t('products:sort.priceDesc')}</option>
+            <option value="stock_desc">{t('products:sort.stockDesc')}</option>
           </select>
           {/* <label
             style={{
@@ -531,9 +544,9 @@ export default function ProductsPage() {
               checked={inStockOnly}
               onChange={(e) => setInStockOnly(e.target.checked)}
               style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-              aria-label="Sadece stokta olanlar"
+              aria-label={t('products:inStockOnly')}
             />
-            Sadece stokta olanlar
+            {t('products:inStockOnly')}
           </label> */}
         </motion.div>
 
@@ -571,11 +584,11 @@ export default function ProductsPage() {
                 }}
               />
               <span style={{ fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                Senkronize Ediliyor...
+                {t('states.syncing')}
               </span>
             </>
           ) : (
-            <>🔄 Senkronize Et</>
+            <>🔄 {t('actions.sync')}</>
           )}
         </motion.button>
       </motion.div>
@@ -712,10 +725,10 @@ export default function ProductsPage() {
               }}
             >
               <p style={{ margin: '0.25rem 0' }}>
-                Birim: <strong>{product.eenheid || 'adet'}</strong>
+                {t('products:fields.unit')}: <strong>{product.eenheid || t('products:fields.unitFallback')}</strong>
               </p>
               <p style={{ margin: '0.25rem 0' }}>
-                Stok:{' '}
+                {t('products:fields.stock')}:{' '}
                 <span
                   style={{
                     color: product.voorraad > 0 ? 'var(--success)' : 'var(--danger)',
@@ -793,7 +806,7 @@ export default function ProductsPage() {
                         handleCartQuantityChange(product, cartQuantity - 1, event)
                       }
                       className="btn-secondary"
-                      aria-label={`${product.omschrijving} adet azalt`}
+                      aria-label={t('products:decreaseQuantity', { name: product.omschrijving })}
                       style={{
                         minWidth: '44px',
                         minHeight: '44px',
@@ -811,7 +824,7 @@ export default function ProductsPage() {
                       value={cartQuantity}
                       onCommit={(newQuantity) => updateQuantity(product.id, newQuantity)}
                       max={Number.isFinite(stockLimit) ? stockLimit : undefined}
-                      ariaLabel={`${product.omschrijving} sepetteki adet`}
+                      ariaLabel={t('products:cartQuantity', { name: product.omschrijving })}
                       style={{
                         minHeight: '44px',
                         width: '100%',
@@ -832,8 +845,8 @@ export default function ProductsPage() {
                       }
                       disabled={isAtStockLimit}
                       className="btn-primary"
-                      aria-label={`${product.omschrijving} adet artır`}
-                      title={isAtStockLimit ? 'Stok limiti' : 'Adet artır'}
+                      aria-label={t('products:increaseQuantity', { name: product.omschrijving })}
+                      title={isAtStockLimit ? t('products:stockLimitTitle') : t('products:increaseTitle')}
                       style={{
                         minWidth: '44px',
                         minHeight: '44px',
@@ -856,7 +869,7 @@ export default function ProductsPage() {
                       textAlign: 'center',
                     }}
                   >
-                    Sepette: {cartQuantity} adet
+                    {t('products:inCart', { count: cartQuantity })}
                   </p>
                 </>
               ) : (
@@ -875,7 +888,7 @@ export default function ProductsPage() {
                   }}
                   whileTap={!outOfStock ? { scale: 0.98 } : {}}
                 >
-                  🛒 Sepete Ekle
+                  🛒 {t('actions.addToCart')}
                 </motion.button>
               )}
             </div>
@@ -909,7 +922,7 @@ export default function ProductsPage() {
             }}
             whileTap={pagination.hasPrevPage ? { scale: 0.95 } : {}}
           >
-            ← Önceki
+            ← {t('pagination.previous')}
           </motion.button>
 
           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
@@ -953,7 +966,7 @@ export default function ProductsPage() {
             }}
             whileTap={pagination.hasNextPage ? { scale: 0.95 } : {}}
           >
-            Sonraki →
+            {t('pagination.next')} →
           </motion.button>
 
           <div
@@ -963,7 +976,7 @@ export default function ProductsPage() {
               fontSize: '0.9rem',
             }}
           >
-            Sayfa {pagination.page} / {pagination.totalPages} (Toplam: {pagination.total})
+            {t('products:pageSummary', { page: pagination.page, totalPages: pagination.totalPages, total: pagination.total })}
           </div>
         </motion.div>
       )}

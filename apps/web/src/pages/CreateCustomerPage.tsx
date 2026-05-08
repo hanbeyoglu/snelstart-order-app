@@ -4,8 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 export default function CreateCustomerPage() {
+  const { t } = useAppTranslation(['common', 'customers', 'validation']);
   const navigate = useNavigate();
   const showToast = useToastStore((state) => state.showToast);
   
@@ -30,11 +32,11 @@ export default function CreateCustomerPage() {
       return response.data;
     },
     onSuccess: () => {
-      showToast('Müşteri başarıyla oluşturuldu!', 'success');
+      showToast(t('customers:messages.created'), 'success');
       navigate('/customers');
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Müşteri oluşturulurken bir hata oluştu';
+      const errorMessage = error?.response?.data?.message || error?.message || t('customers:messages.createError');
       showToast(errorMessage, 'error', 5000);
     },
   });
@@ -62,31 +64,31 @@ export default function CreateCustomerPage() {
     const newErrors: Record<string, string> = {};
 
     if (formData.relatiesoort.length === 0) {
-      newErrors.relatiesoort = 'En az bir ilişki türü seçmelisiniz';
+      newErrors.relatiesoort = t('validation:relationTypeRequired');
     }
 
     if (!formData.naam.trim()) {
-      newErrors.naam = 'Müşteri adı zorunludur';
+      newErrors.naam = t('validation:customerNameRequired');
     }
 
     if (!formData.straat.trim()) {
-      newErrors.straat = 'Sokak adresi zorunludur';
+      newErrors.straat = t('validation:streetRequired');
     }
 
     if (!formData.postcode.trim()) {
-      newErrors.postcode = 'Posta kodu zorunludur';
+      newErrors.postcode = t('validation:postalCodeRequired');
     }
 
     if (!formData.plaats.trim()) {
-      newErrors.plaats = 'Şehir zorunludur';
+      newErrors.plaats = t('validation:cityRequired');
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
+      newErrors.email = t('validation:emailInvalid');
     }
 
     if (formData.telefoon && !/^[\d\s\+\-\(\)]+$/.test(formData.telefoon)) {
-      newErrors.telefoon = 'Geçerli bir telefon numarası giriniz';
+      newErrors.telefoon = t('validation:phoneInvalid');
     }
 
     setErrors(newErrors);
@@ -97,7 +99,7 @@ export default function CreateCustomerPage() {
     e.preventDefault();
     
     if (!validate()) {
-      showToast('Lütfen tüm zorunlu alanları doldurun', 'error');
+      showToast(t('validation:requiredFields'), 'error');
       return;
     }
 
@@ -128,7 +130,7 @@ export default function CreateCustomerPage() {
         style={{ marginBottom: 'clamp(1rem, 3vw, 1.5rem)', minHeight: '44px' }}
         whileTap={{ scale: 0.98 }}
       >
-        ← Geri
+        ← {t('actions.back')}
       </motion.button>
 
       <motion.div
@@ -137,14 +139,14 @@ export default function CreateCustomerPage() {
         className="card"
       >
         <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 700, marginBottom: '1.5rem' }}>
-          Yeni Müşteri Ekle
+          {t('customers:create')}
         </h2>
 
         <form onSubmit={handleSubmit}>
           {/* İlişki Türü */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-              İlişki Türü <span style={{ color: 'var(--danger)' }}>*</span>
+              {t('customers:relationType')} <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               {['Klant', 'Leverancier'].map((soort) => (
@@ -193,7 +195,7 @@ export default function CreateCustomerPage() {
           {/* Müşteri Adı */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-              Müşteri Adı <span style={{ color: 'var(--danger)' }}>*</span>
+              {t('customers:customerName')} <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
               type="text"
@@ -219,14 +221,14 @@ export default function CreateCustomerPage() {
           {/* Adres Bilgileri */}
           <div style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.25rem)', fontWeight: 600, marginBottom: '1rem' }}>
-              Adres Bilgileri
+              {t('customers:addressInfo')}
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               {/* Sokak */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Sokak <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('customers:street')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -252,7 +254,7 @@ export default function CreateCustomerPage() {
               {/* Posta Kodu */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Posta Kodu <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('customers:postalCode')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -278,7 +280,7 @@ export default function CreateCustomerPage() {
               {/* Şehir */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Şehir <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('customers:city')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -306,14 +308,14 @@ export default function CreateCustomerPage() {
           {/* İletişim Bilgileri */}
           <div style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.25rem)', fontWeight: 600, marginBottom: '1rem' }}>
-              İletişim Bilgileri
+              {t('customers:contactInfo')}
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               {/* Telefon */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Telefon
+                  {t('customers:phone')}
                 </label>
                 <input
                   type="tel"
@@ -339,7 +341,7 @@ export default function CreateCustomerPage() {
               {/* E-posta */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  E-posta
+                  {t('customers:email')}
                 </label>
                 <input
                   type="email"
@@ -365,7 +367,7 @@ export default function CreateCustomerPage() {
               {/* KVK Numara */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  KVK Numara
+                  {t('customers:kvkNumber')}
                 </label>
                 <input
                   type="text"
@@ -386,7 +388,7 @@ export default function CreateCustomerPage() {
                 {/* BTW Numara */}
                 <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  BTW Numara
+                  {t('customers:btwNumber')}
                 </label>
                 <input
                   type="text"
@@ -424,10 +426,10 @@ export default function CreateCustomerPage() {
               {createCustomerMutation.isPending ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <span className="loading" style={{ width: '16px', height: '16px' }} />
-                  Oluşturuluyor...
+                  {t('customers:creating')}
                 </span>
               ) : (
-                '✅ Müşteri Oluştur'
+                `✅ ${t('customers:createButton')}`
               )}
             </motion.button>
             
@@ -443,7 +445,7 @@ export default function CreateCustomerPage() {
               }}
               whileTap={{ scale: 0.98 }}
             >
-              İptal
+              {t('actions.cancel')}
             </motion.button>
           </div>
         </form>

@@ -1,0 +1,22 @@
+{
+  "saved": "Einstellungen gespeichert",
+  "title": "SnelStart Verbindungseinstellungen",
+  "connectionStatus": "Verbindungsstatus",
+  "connectionSuccess": "Verbindung erfolgreich! Token erhalten.",
+  "connectionFailed": "Verbindung fehlgeschlagen: {{error}}",
+  "connectionTestFailed": "Verbindung konnte nicht getestet werden",
+  "tokenRefreshed": "Token erfolgreich aktualisiert",
+  "tokenRefreshFailed": "Token konnte nicht aktualisiert werden",
+  "tokenRefreshFailedWithError": "Token konnte nicht aktualisiert werden: {{error}}",
+  "tokenActive": "Token aktiv",
+  "tokenPassive": "Token passiv",
+  "status": "Status",
+  "tokenValidity": "Token-Gültigkeit",
+  "lastTest": "Letzter Test",
+  "lastTestResult": "Letztes Testergebnis",
+  "error": "Fehler",
+  "connecting": "Verbinden...",
+  "refreshing": "Aktualisieren...",
+  "testConnect": "Verbindung testen / verbinden",
+  "refreshToken": "Token aktualisieren"
+}

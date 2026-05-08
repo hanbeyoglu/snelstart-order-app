@@ -1,0 +1,35 @@
+{
+  "title": "Siparişler",
+  "loading": "Siparişler yükleniyor...",
+  "emptyTitle": "Henüz sipariş yok",
+  "emptyDescription": "Siparişleriniz burada görünecek",
+  "statusFilter": "Durum Filtresi",
+  "fields": {
+    "orderId": "Sipariş ID",
+    "snelstartOrderId": "SnelStart Sipariş ID",
+    "snelstartId": "SnelStart ID",
+    "customer": "Müşteri",
+    "customerId": "Müşteri ID",
+    "date": "Tarih",
+    "status": "Durum",
+    "itemCount": "Ürün Sayısı",
+    "total": "Toplam",
+    "createdAt": "Oluşturulma Tarihi",
+    "productName": "Ürün Adı"
+  },
+  "status": {
+    "draft": "Taslak",
+    "pending": "Beklemede",
+    "synced": "Senkronize",
+    "failed": "Başarısız"
+  },
+  "messages": {
+    "noCustomer": "Müşteri yok",
+    "unknownProduct": "Bilinmeyen Ürün",
+    "deleted": "Sipariş başarıyla silindi",
+    "updated": "Sipariş başarıyla güncellendi",
+    "deleteError": "Sipariş silinirken bir hata oluştu",
+    "updateError": "Sipariş güncellenirken bir hata oluştu",
+    "editSoon": "Sipariş düzenleme özelliği yakında eklenecek"
+  }
+}

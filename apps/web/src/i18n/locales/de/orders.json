@@ -1,0 +1,35 @@
+{
+  "title": "Bestellungen",
+  "loading": "Bestellungen werden geladen...",
+  "emptyTitle": "Noch keine Bestellungen",
+  "emptyDescription": "Ihre Bestellungen werden hier angezeigt",
+  "statusFilter": "Statusfilter",
+  "fields": {
+    "orderId": "Bestell-ID",
+    "snelstartOrderId": "SnelStart Bestell-ID",
+    "snelstartId": "SnelStart ID",
+    "customer": "Kunde",
+    "customerId": "Kunden-ID",
+    "date": "Datum",
+    "status": "Status",
+    "itemCount": "Produktanzahl",
+    "total": "Gesamt",
+    "createdAt": "Erstellt am",
+    "productName": "Produktname"
+  },
+  "status": {
+    "draft": "Entwurf",
+    "pending": "Ausstehend",
+    "synced": "Synchronisiert",
+    "failed": "Fehlgeschlagen"
+  },
+  "messages": {
+    "noCustomer": "Kein Kunde",
+    "unknownProduct": "Unbekanntes Produkt",
+    "deleted": "Bestellung erfolgreich gelöscht",
+    "updated": "Bestellung erfolgreich aktualisiert",
+    "deleteError": "Beim Löschen der Bestellung ist ein Fehler aufgetreten",
+    "updateError": "Beim Aktualisieren der Bestellung ist ein Fehler aufgetreten",
+    "editSoon": "Bestellbearbeitung wird bald hinzugefügt"
+  }
+}

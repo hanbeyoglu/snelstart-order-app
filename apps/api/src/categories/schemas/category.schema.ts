@@ -33,9 +33,14 @@ export class Category extends Document {
   @Prop()
   imageUrl?: string;
 
+  @Prop({ default: true })
+  isActive: boolean;
+
   @Prop({ default: Date.now })
   lastSyncedAt: Date;
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
 export type CategoryDocument = Category & Document;
+
+CategorySchema.index({ isActive: 1, omschrijving: 1 });

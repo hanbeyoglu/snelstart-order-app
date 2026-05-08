@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useToastStore } from '../store/toastStore';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import dhyLogo from '../assets/image/DHY-logo.jpg';
 
 export default function LoginPage() {
+  const { t } = useAppTranslation(['auth', 'errors']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +24,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      showToast('Giriş başarılı! Hoş geldiniz.', 'success');
+      showToast(t('auth:login.success'), 'success');
       navigate('/');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -29,7 +32,7 @@ export default function LoginPage() {
         err.response?.data?.message || 
         err.response?.data?.error || 
         err.message || 
-        'Kullanıcı adı veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
+        t('errors:generic');
       setError(errorMessage);
       
       // Özel mesajlar için daha uzun gösterim süresi
@@ -197,8 +200,11 @@ export default function LoginPage() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Hoş Geldiniz
+            {t('auth:login.title')}
           </motion.h2>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <LanguageSwitcher />
+          </div>
 
           {error && (
             <motion.div
@@ -236,14 +242,14 @@ export default function LoginPage() {
               transition={{ delay: 0.3 }}
               style={{ marginBottom: '1.5rem' }}
             >
-              <label>Kullanıcı Adı veya E-posta</label>
+              <label>{t('auth:login.usernameOrEmail')}</label>
               <input
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
-                placeholder="kullaniciadi veya ornek@email.com"
+                placeholder={t('auth:login.usernameOrEmailPlaceholder')}
                 style={{
                   marginTop: '0.5rem',
                 }}
@@ -256,13 +262,13 @@ export default function LoginPage() {
               transition={{ delay: 0.4 }}
               style={{ marginBottom: '2rem' }}
             >
-              <label>Şifre</label>
+              <label>{t('auth:login.password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder={t('auth:login.passwordPlaceholder')}
                 style={{
                   marginTop: '0.5rem',
                 }}
@@ -292,10 +298,10 @@ export default function LoginPage() {
                   }}
                 >
                   <span className="loading" />
-                  Giriş yapılıyor...
+                  {t('auth:login.submitting')}
                 </span>
               ) : (
-                'Giriş Yap'
+                t('auth:login.submit')
               )}
             </motion.button>
           </form>

@@ -7,8 +7,12 @@ import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import QuantityInput from '../components/QuantityInput';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function ProductDetailPage() {
+  const { t } = useAppTranslation(['common', 'products']);
+  const { formatCurrency } = useLocaleFormat();
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customerId');
@@ -60,7 +64,7 @@ export default function ProductDetailPage() {
       minPrice = basePrice * 0.95;
       if (finalPrice < minPrice) {
         showToast(
-          `⚠️ Sepete eklenemedi! Fiyat ürün fiyatından (€${basePrice.toFixed(2)}) maksimum %5 düşük olabilir. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          `⚠️ ${t('products:messages.belowBasePrice', { basePrice: formatCurrency(basePrice), minPrice: formatCurrency(minPrice) })}`,
           'error',
           5000
         );
@@ -70,9 +74,9 @@ export default function ProductDetailPage() {
       // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
       minPrice = purchasePrice * 1.05;
       if (finalPrice < minPrice) {
-        const purchasePriceText = isAdmin ? ` (€${purchasePrice.toFixed(2)})` : '';
+        const purchasePriceText = isAdmin ? ` (${formatCurrency(purchasePrice)})` : '';
         showToast(
-          `⚠️ Sepete eklenemedi! Fiyat alış fiyatının${purchasePriceText} %5 üstünden düşük olamaz. Minimum fiyat: €${minPrice.toFixed(2)}`,
+          `⚠️ ${t('products:messages.belowPurchasePrice', { purchasePrice: purchasePriceText, minPrice: formatCurrency(minPrice) })}`,
           'error',
           5000
         );
@@ -82,7 +86,7 @@ export default function ProductDetailPage() {
     
     if (cartItem) {
       updateQuantity(product.id, quantity);
-      showToast(`${product.omschrijving} miktarı güncellendi (${quantity} adet)`, 'success');
+      showToast(t('products:messages.quantityUpdated', { name: product.omschrijving, quantity }), 'success');
       return;
     }
     
@@ -90,6 +94,7 @@ export default function ProductDetailPage() {
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
+      categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
       quantity,
       unitPrice: basePrice, // Orijinal fiyat
       basePrice: basePrice, // Base price
@@ -103,7 +108,7 @@ export default function ProductDetailPage() {
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
       ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
     });
-    showToast(`${product.omschrijving} sepete eklendi (${quantity} adet)`, 'success');
+    showToast(t('products:messages.addedToCartWithQuantity', { name: product.omschrijving, quantity }), 'success');
   };
 
   if (isLoading) {
@@ -135,9 +140,9 @@ export default function ProductDetailPage() {
           className="card"
           style={{ textAlign: 'center', padding: '3rem' }}
         >
-          <h2 style={{ color: 'var(--danger)', marginBottom: '1rem' }}>Ürün bulunamadı</h2>
+          <h2 style={{ color: 'var(--danger)', marginBottom: '1rem' }}>{t('products:messages.notFound')}</h2>
           <motion.button onClick={() => navigate(-1)} className="btn-primary" whileTap={{ scale: 0.98 }}>
-            ← Geri Dön
+            ← {t('actions.back')}
           </motion.button>
         </motion.div>
       </div>
@@ -162,7 +167,7 @@ export default function ProductDetailPage() {
         }}
         whileTap={{ scale: 0.98 }}
       >
-        ← Geri
+        ← {t('actions.back')}
       </motion.button>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'clamp(1rem, 3vw, 1.5rem)', alignItems: 'start' }} className="product-detail-grid">
@@ -242,11 +247,11 @@ export default function ProductDetailPage() {
               <strong>ID:</strong> <span style={{ wordBreak: 'break-all' }}>{product.id}</span>
             </p>
             <p style={{ marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-              <strong>Ürün Kodu:</strong> {product.artikelcode || product.artikelnummer}
+              <strong>{t('products:fields.code')}:</strong> {product.artikelcode || product.artikelnummer}
             </p>
             {product.artikelOmzetgroep && (
               <p style={{ marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-                <strong>Kategori:</strong> {product.artikelOmzetgroep.omschrijving || product.artikelomzetgroepOmschrijving || 'N/A'}
+                <strong>{t('products:fields.category')}:</strong> {product.artikelOmzetgroep.omschrijving || product.artikelomzetgroepOmschrijving || t('states.notAvailable')}
                 {product.artikelOmzetgroep.id && (
                   <span style={{ fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)', marginLeft: '0.5rem', opacity: 0.7, display: 'block', marginTop: '0.25rem' }}>
                     ({product.artikelOmzetgroep.id})
@@ -256,17 +261,17 @@ export default function ProductDetailPage() {
             )}
             {product.barcode && (
               <p style={{ marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-                <strong>Barkod:</strong> {product.barcode}
+                <strong>{t('products:fields.barcode')}:</strong> {product.barcode}
               </p>
             )}
             <p style={{ marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-              <strong>Stok:</strong>{' '}
+              <strong>{t('products:fields.stock')}:</strong>{' '}
               <span style={{ color: product.voorraad > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                {product.voorraad ?? 'N/A'}
+                {product.voorraad ?? t('states.notAvailable')}
               </span>
             </p>
             <p style={{ fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
-              <strong>Birim:</strong> {product.eenheid || 'adet'}
+              <strong>{t('products:fields.unit')}:</strong> {product.eenheid || t('products:fields.unitFallback')}
             </p>
           </div>
 
@@ -340,7 +345,7 @@ export default function ProductDetailPage() {
                   marginBottom: '0.5rem',
                 }}
               >
-                Fiyat: €{basePrice.toFixed(2)}
+                {t('products:fields.basePrice')}: {formatCurrency(basePrice)}
               </p>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -354,7 +359,7 @@ export default function ProductDetailPage() {
                   margin: 0,
                 }}
               >
-                €{finalPrice.toFixed(2)}
+                {formatCurrency(finalPrice)}
               </p>
               {/* Alış fiyatı sadece admin için görünür */}
               {isAdmin && product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
@@ -381,7 +386,7 @@ export default function ProductDetailPage() {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
                   }}
-                  title={showPurchasePrice ? 'Alış fiyatını gizle' : 'Alış fiyatını göster'}
+                  title={showPurchasePrice ? t('products:hidePurchasePrice') : t('products:showPurchasePrice')}
                 >
                   {showPurchasePrice ? '👁️' : '👁️‍🗨️'}
                 </motion.button>
@@ -402,23 +407,23 @@ export default function ProductDetailPage() {
                 }}
               >
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  <strong style={{ color: 'var(--success)' }}>Alış Fiyatı:</strong>{' '}
-                  <span style={{ color: 'var(--success)', fontWeight: 600 }}>€{product.inkoopprijs.toFixed(2)}</span>
+                  <strong style={{ color: 'var(--success)' }}>{t('products:fields.purchasePrice')}:</strong>{' '}
+                  <span style={{ color: 'var(--success)', fontWeight: 600 }}>{formatCurrency(product.inkoopprijs)}</span>
                 </p>
               </motion.div>
             )}
-            <p style={{ color: 'var(--text-secondary)' }}>KDV: %{product.btwPercentage || 0}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t('products:fields.vat')}: %{product.btwPercentage || 0}</p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)', marginBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <strong style={{ fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>Miktar:</strong>
+              <strong style={{ fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>{t('products:fields.quantity')}:</strong>
               <QuantityInput
                 className="quantity-input"
                 value={quantity}
                 onCommit={setQuantity}
                 max={product?.voorraad}
-                ariaLabel="Ürün miktarı"
+                ariaLabel={t('products:fields.quantity')}
                 style={{ 
                   width: '100%',
                   maxWidth: '200px',
@@ -443,7 +448,7 @@ export default function ProductDetailPage() {
             }}
             whileTap={{ scale: 0.98 }}
           >
-            🛒 Sepete Ekle
+            🛒 {t('actions.addToCart')}
           </motion.button>
         </motion.div>
       </div>

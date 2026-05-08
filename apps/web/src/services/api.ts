@@ -1,4 +1,5 @@
 import axios from 'axios';
+import i18n from '../i18n';
 
 const api = axios.create({
   baseURL: '/api',
@@ -71,7 +72,7 @@ export async function uploadToR2(file: File): Promise<{ key: string; publicUrl: 
     });
 
     if (!data.url || !data.key) {
-      throw new Error('Backend\'den geçersiz yanıt alındı');
+      throw new Error(i18n.t('errors:invalidBackendResponse'));
     }
 
     // Upload file directly to R2
@@ -88,23 +89,23 @@ export async function uploadToR2(file: File): Promise<{ key: string; publicUrl: 
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text().catch(() => uploadResponse.statusText);
-      throw new Error(`R2'ye yükleme başarısız: ${uploadResponse.status} ${errorText}`);
+      throw new Error(`${i18n.t('errors:presignedUrl')}: ${uploadResponse.status} ${errorText}`);
     }
 
     return { key: data.key, publicUrl: data.publicUrl };
   } catch (error: any) {
     // Network errors
     if (error.message === 'Network Error' || error.message === 'Failed to fetch') {
-      throw new Error('Backend\'e bağlanılamadı. Lütfen API sunucusunun çalıştığından emin olun.');
+      throw new Error(i18n.t('errors:network'));
     }
     
     // Axios errors
     if (error.response) {
       const errorMessage = error.response.data?.message || error.response.data?.error || error.message;
       if (error.response.status === 503) {
-        throw new Error('Cloudflare R2 yapılandırılmamış. Lütfen backend environment variables\'larını kontrol edin.');
+        throw new Error(i18n.t('errors:r2NotConfigured'));
       }
-      throw new Error(errorMessage || 'Presigned URL alınırken bir hata oluştu');
+      throw new Error(errorMessage || i18n.t('errors:presignedUrl'));
     }
     
     // Other errors

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 interface Customer {
   id: string;
@@ -23,6 +24,7 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  const { t, i18n } = useAppTranslation(['common', 'customers']);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -163,18 +165,18 @@ export default function CustomersPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        showToast('Müşteriler başarıyla senkronize edildi', 'success');
+        showToast(t('customers:messages.syncSuccess'), 'success');
         // Invalidate queries to refetch data
         queryClient.invalidateQueries({ queryKey: ['customers'] });
         queryClient.invalidateQueries({ queryKey: ['customers-cities'] });
       } else {
-        showToast(data.message || 'Senkronizasyon başarısız', 'error');
+        showToast(data.message || t('customers:messages.syncError'), 'error');
       }
       setIsSyncing(false);
     },
     onError: (error: any) => {
       showToast(
-        error.response?.data?.message || 'Senkronizasyon sırasında bir hata oluştu',
+        error.response?.data?.message || t('customers:messages.syncUnexpectedError'),
         'error'
       );
       setIsSyncing(false);
@@ -248,7 +250,7 @@ export default function CustomersPage() {
             transition={{ duration: 1.5, repeat: Infinity }}
             style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}
           >
-            Müşteriler yükleniyor...
+            {t('customers:loading')}
           </motion.p>
         </div>
       </div>
@@ -283,10 +285,10 @@ export default function CustomersPage() {
               letterSpacing: '-0.02em',
             }}
           >
-            Müşteriler
+            {t('customers:title')}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.9rem, 2vw, 1.1rem)' }}>
-            Müşterilerinizi yönetin ve yeni müşteri ekleyin
+            {t('customers:subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -317,10 +319,10 @@ export default function CustomersPage() {
                     borderRadius: '50%',
                   }}
                 />
-                Senkronize Ediliyor...
+                {t('common:states.syncing')}
               </>
             ) : (
-              <>🔄 Senkronize Et</>
+              <>🔄 {t('common:actions.sync')}</>
             )}
           </motion.button>
           <motion.button
@@ -328,7 +330,7 @@ export default function CustomersPage() {
             className="btn-primary"
             whileTap={{ scale: 0.95 }}
           >
-            ➕ Yeni Müşteri Ekle
+            ➕ {t('customers:create')}
           </motion.button>
         </div>
       </motion.div>
@@ -343,34 +345,36 @@ export default function CustomersPage() {
             transition={{ duration: 0.3 }}
             className="card mb-6 overflow-hidden"
           >
-            <h3 className="text-2xl font-bold mb-4 text-text-primary">Yeni Müşteri Oluştur</h3>
+            <h3 className="text-2xl font-bold mb-4 text-text-primary">
+              {t('customers:createTitle')}
+            </h3>
             <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-full">
-                <label className="label">İsim *</label>
+                <label className="label">{t('common:forms.name')} *</label>
                 <input type="text" name="naam" required className="input" />
               </div>
               <div className="col-span-full">
-                <label className="label">Adres</label>
+                <label className="label">{t('common:forms.address')}</label>
                 <input type="text" name="adres" className="input" />
               </div>
               <div>
-                <label className="label">Posta Kodu</label>
+                <label className="label">{t('common:forms.postalCode')}</label>
                 <input type="text" name="postcode" className="input" />
               </div>
               <div>
-                <label className="label">Şehir</label>
+                <label className="label">{t('common:forms.city')}</label>
                 <input type="text" name="plaats" className="input" />
               </div>
               <div className="col-span-full">
-                <label className="label">Ülke</label>
+                <label className="label">{t('common:forms.country')}</label>
                 <input type="text" name="land" defaultValue="NL" className="input" />
               </div>
               <div>
-                <label className="label">Telefon</label>
+                <label className="label">{t('common:forms.phone')}</label>
                 <input type="tel" name="telefoon" className="input" />
               </div>
               <div>
-                <label className="label">E-posta</label>
+                <label className="label">{t('common:forms.email')}</label>
                 <input type="email" name="email" className="input" />
               </div>
               <div className="col-span-full mt-4">
@@ -380,7 +384,9 @@ export default function CustomersPage() {
                   disabled={createCustomerMutation.isPending}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {createCustomerMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
+                  {createCustomerMutation.isPending
+                    ? t('customers:creating')
+                    : t('common:actions.create')}
                 </motion.button>
                 {createCustomerMutation.error && (
                   <motion.div
@@ -411,7 +417,7 @@ export default function CustomersPage() {
       >
         <input
           type="text"
-          placeholder="🔍 Müşteri ara (isim, kod, e-posta, telefon)..."
+          placeholder={`🔍 ${t('customers:searchPlaceholder')}`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input"
@@ -452,7 +458,7 @@ export default function CustomersPage() {
               }}
             />
             <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-              Toptancılar İle Beraber Göster
+              {t('customers:showWholesalers')}
             </span>
           </motion.label>
         )}
@@ -463,7 +469,7 @@ export default function CustomersPage() {
             style={{ padding: '0.75rem 1.5rem', whiteSpace: 'nowrap' }}
             whileTap={{ scale: 0.95 }}
           >
-            📍 Şehir Filtresi
+            📍 {t('customers:cityFilter')}
             {selectedCities.length > 0 && ` (${selectedCities.length})`}
           </motion.button>
 
@@ -496,7 +502,9 @@ export default function CustomersPage() {
                       marginBottom: '0.75rem',
                     }}
                   >
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Şehir Seç</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
+                      {t('customers:selectCity')}
+                    </h3>
                     {selectedCities.length > 0 && (
                       <motion.button
                         onClick={handleClearCities}
@@ -504,13 +512,13 @@ export default function CustomersPage() {
                         style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        Temizle
+                        {t('common:actions.clear')}
                       </motion.button>
                     )}
                   </div>
                   <input
                     type="text"
-                    placeholder="🔍 Şehir ara..."
+                    placeholder={`🔍 ${t('customers:citySearchPlaceholder')}`}
                     value={citySearch}
                     onChange={(e) => setCitySearch(e.target.value)}
                     className="input"
@@ -625,7 +633,7 @@ export default function CustomersPage() {
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      Şehir bulunamadı
+                      {t('customers:noCityFound')}
                     </div>
                   )}
                 </div>
@@ -641,8 +649,8 @@ export default function CustomersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center text-text-secondary p-8 card"
         >
-          <h3 className="text-2xl font-bold mb-2">Müşteri Bulunamadı</h3>
-          <p>Aradığınız kriterlere uygun müşteri bulunamadı.</p>
+          <h3 className="text-2xl font-bold mb-2">{t('customers:emptyTitle')}</h3>
+          <p>{t('customers:emptyDescription')}</p>
         </motion.div>
       ) : (
         <motion.div
@@ -682,7 +690,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  İsim
+                  {t('customers:table.name')}
                 </th>
                 <th
                   style={{
@@ -695,7 +703,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  Kod
+                  {t('customers:table.code')}
                 </th>
                 <th
                   style={{
@@ -708,7 +716,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  Telefon
+                  {t('common:forms.phone')}
                 </th>
                 <th
                   style={{
@@ -721,7 +729,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  E-posta
+                  {t('common:forms.email')}
                 </th>
                 <th
                   style={{
@@ -734,7 +742,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  Şehir
+                  {t('common:forms.city')}
                 </th>
                 <th
                   style={{
@@ -747,7 +755,7 @@ export default function CustomersPage() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  Durum
+                  {t('common:forms.status')}
                 </th>
               </tr>
             </thead>
@@ -761,10 +769,10 @@ export default function CustomersPage() {
                       : '👤';
                 const statusText =
                   customer.visitStatus === 'VISITED'
-                    ? 'Gidildi'
+                    ? t('customers:status.visited')
                     : customer.visitStatus === 'PLANNED'
-                      ? 'Planlandı'
-                      : 'Yeni';
+                      ? t('customers:status.planned')
+                      : t('customers:status.new');
 
                 return (
                   <motion.tr
@@ -893,7 +901,7 @@ export default function CustomersPage() {
             }}
             whileTap={pagination.hasPrevPage ? { scale: 0.95 } : {}}
           >
-            ← Önceki
+            ← {t('common:pagination.previous')}
           </motion.button>
 
           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
@@ -937,7 +945,7 @@ export default function CustomersPage() {
             }}
             whileTap={pagination.hasNextPage ? { scale: 0.95 } : {}}
           >
-            Sonraki →
+            {t('common:pagination.next')} →
           </motion.button>
 
           <div
@@ -947,7 +955,11 @@ export default function CustomersPage() {
               fontSize: '0.9rem',
             }}
           >
-            Sayfa {pagination.page} / {pagination.totalPages} (Toplam: {pagination.total})
+            {t('customers:paginationSummary', {
+              page: pagination.page,
+              totalPages: pagination.totalPages,
+              total: pagination.total,
+            })}
           </div>
         </motion.div>
       )}
@@ -1063,7 +1075,7 @@ export default function CustomersPage() {
                         </h2>
                         {displayCustomer?.relatiecode && (
                           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                            Kod: {displayCustomer.relatiecode}
+                            {t('customers:codeLabel', { code: displayCustomer.relatiecode })}
                           </p>
                         )}
                       </div>
@@ -1096,7 +1108,7 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          📍 Adres
+                          📍 {t('common:forms.address')}
                         </p>
                         <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                           {displayCustomer.adres}
@@ -1113,7 +1125,7 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          🏙️ Şehir
+                          🏙️ {t('common:forms.city')}
                         </p>
                         <p style={{ color: 'var(--text-primary)' }}>
                           {displayCustomer.postcode} {displayCustomer.plaats}
@@ -1130,7 +1142,7 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          📞 Telefon
+                          📞 {t('common:forms.phone')}
                         </p>
                         <p style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                           {displayCustomer.telefoon}
@@ -1147,7 +1159,7 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          📧 E-posta
+                          📧 {t('common:forms.email')}
                         </p>
                         <p style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                           {displayCustomer.email}
@@ -1164,10 +1176,12 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          ✅ Gidildi
+                          ✅ {t('customers:status.visited')}
                         </p>
                         <p style={{ color: 'var(--text-primary)' }}>
-                          {new Date(displayCustomer.visitedAt).toLocaleString('tr-TR')}
+                          {new Date(displayCustomer.visitedAt).toLocaleString(
+                            i18n.resolvedLanguage || i18n.language
+                          )}
                         </p>
                       </div>
                     )}
@@ -1181,10 +1195,12 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          📅 Planlandı
+                          📅 {t('customers:status.planned')}
                         </p>
                         <p style={{ color: 'var(--text-primary)' }}>
-                          {new Date(displayCustomer.plannedAt).toLocaleString('tr-TR')}
+                          {new Date(displayCustomer.plannedAt).toLocaleString(
+                            i18n.resolvedLanguage || i18n.language
+                          )}
                         </p>
                       </div>
                     )}
@@ -1198,7 +1214,7 @@ export default function CustomersPage() {
                             marginBottom: '0.25rem',
                           }}
                         >
-                          📝 Notlar
+                          📝 {t('common:forms.notes')}
                         </p>
                         <p
                           style={{
@@ -1222,12 +1238,12 @@ export default function CustomersPage() {
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      Notlar
+                      {t('common:forms.notes')}
                     </label>
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Müşteri hakkında notlar ekleyin..."
+                      placeholder={t('customers:notesPlaceholder')}
                       className="input"
                       rows={3}
                       style={{ width: '100%', resize: 'vertical' }}
@@ -1251,8 +1267,8 @@ export default function CustomersPage() {
                       whileTap={{ scale: 0.98 }}
                     >
                       {updateVisitStatusMutation.isPending
-                        ? 'Güncelleniyor...'
-                        : '📅 Müşteri Gitme Planına Ekle'}
+                        ? t('customers:updating')
+                        : `📅 ${t('customers:addToVisitPlan')}`}
                     </motion.button>
                     <motion.button
                       onClick={() => handleUpdateStatus('VISITED')}
@@ -1266,7 +1282,9 @@ export default function CustomersPage() {
                       disabled={updateVisitStatusMutation.isPending}
                       whileTap={{ scale: 0.98 }}
                     >
-                      {updateVisitStatusMutation.isPending ? 'Güncelleniyor...' : '✅ Gidildi'}
+                      {updateVisitStatusMutation.isPending
+                        ? t('customers:updating')
+                        : `✅ ${t('customers:status.visited')}`}
                     </motion.button>
                   </div>
 

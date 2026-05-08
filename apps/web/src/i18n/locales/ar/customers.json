@@ -1,0 +1,50 @@
+{
+  "title": "العملاء",
+  "subtitle": "إدارة عملائك وإضافة عملاء جدد",
+  "create": "إضافة عميل جديد",
+  "createTitle": "إنشاء عميل جديد",
+  "editTitle": "تعديل العميل",
+  "creating": "جار الإنشاء...",
+  "updating": "جار التحديث...",
+  "loading": "جار تحميل العملاء...",
+  "createButton": "إنشاء العميل",
+  "relationType": "نوع العلاقة",
+  "customerName": "اسم العميل",
+  "addressInfo": "معلومات العنوان",
+  "contactInfo": "معلومات الاتصال",
+  "street": "الشارع",
+  "postalCode": "الرمز البريدي",
+  "city": "المدينة",
+  "phone": "الهاتف",
+  "email": "البريد الإلكتروني",
+  "kvkNumber": "رقم KVK",
+  "btwNumber": "رقم ضريبة القيمة المضافة",
+  "searchPlaceholder": "البحث عن العملاء (الاسم، الرمز، البريد الإلكتروني، الهاتف)...",
+  "showWholesalers": "إظهار تجار الجملة أيضًا",
+  "cityFilter": "تصفية المدينة",
+  "selectCity": "اختر المدينة",
+  "citySearchPlaceholder": "البحث عن مدينة...",
+  "noCityFound": "لم يتم العثور على مدينة",
+  "emptyTitle": "لم يتم العثور على عملاء",
+  "emptyDescription": "لم يتم العثور على عملاء يطابقون معايير البحث.",
+  "codeLabel": "الرمز: {{code}}",
+  "notesPlaceholder": "أضف ملاحظات حول العميل...",
+  "addToVisitPlan": "إضافة العميل إلى خطة الزيارة",
+  "paginationSummary": "الصفحة {{page}} / {{totalPages}} (الإجمالي: {{total}})",
+  "table": {
+    "name": "الاسم",
+    "code": "الرمز"
+  },
+  "status": {
+    "visited": "تمت الزيارة",
+    "planned": "مخطط",
+    "new": "جديد"
+  },
+  "messages": {
+    "created": "تم إنشاء العميل بنجاح!",
+    "createError": "حدث خطأ أثناء إنشاء العميل",
+    "syncSuccess": "تمت مزامنة العملاء بنجاح",
+    "syncError": "فشلت المزامنة",
+    "syncUnexpectedError": "حدث خطأ أثناء المزامنة"
+  }
+}

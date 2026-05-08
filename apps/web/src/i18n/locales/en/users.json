@@ -1,0 +1,22 @@
+{
+  "title": "Users",
+  "create": "Add New User",
+  "edit": "Edit",
+  "createdAt": "Created",
+  "emptyTitle": "No users yet",
+  "emptyDescription": "Start by adding the first user",
+  "unknown": "Unknown User",
+  "deleteTitle": "Delete User",
+  "deleteDescription": "You are about to delete {{name}}. This action cannot be undone.",
+  "roles": {
+    "admin": "Admin",
+    "salesRep": "Employee"
+  },
+  "messages": {
+    "deleted": "User deleted successfully",
+    "deleteError": "An error occurred while deleting the user",
+    "created": "User created successfully",
+    "updated": "User updated successfully",
+    "notFound": "User not found"
+  }
+}

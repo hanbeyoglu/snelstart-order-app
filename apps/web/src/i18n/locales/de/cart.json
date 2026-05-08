@@ -1,0 +1,25 @@
+{
+  "title": "Warenkorb",
+  "emptyTitle": "Ihr Warenkorb ist leer",
+  "emptyDescription": "Fugen Sie Produkte hinzu, um eine Bestellung zu erstellen.",
+  "selectCustomer": "Kunden auswahlen",
+  "customerSearchPlaceholder": "Kunden suchen oder auswahlen...",
+  "selectedCustomer": "Ausgewahlter Kunde",
+  "subtotal": "Zwischensumme:",
+  "total": "Gesamt:",
+  "createOrder": "Bestellung erstellen",
+  "creatingOrder": "Bestellung wird erstellt...",
+  "clearCart": "Warenkorb leeren",
+  "removeProduct": "Produkt aus Warenkorb entfernen",
+  "restoreOriginalPrice": "Originalpreis wiederherstellen",
+  "confirmRemoveTitle": "Produkt aus Warenkorb entfernen?",
+  "confirmRemoveDescription": "Dieses Produkt wird aus Ihrem Warenkorb entfernt.",
+  "messages": {
+    "selectCustomer": "Bitte wahlen Sie einen Kunden aus",
+    "orderCreated": "Bestellung erfolgreich erstellt!",
+    "orderCreateError": "Beim Erstellen der Bestellung ist ein Fehler aufgetreten",
+    "cartCleared": "Warenkorb geleert",
+    "priceRestored": "{{name}} auf Originalpreis zuruckgesetzt",
+    "removed": "{{name}} aus Warenkorb entfernt"
+  }
+}

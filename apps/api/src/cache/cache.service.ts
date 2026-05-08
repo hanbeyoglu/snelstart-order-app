@@ -121,6 +121,20 @@ export class CacheService {
     await this.deletePattern('categories:*');
   }
 
+  async invalidateCatalogCache(productId?: string): Promise<void> {
+    if (productId) {
+      await this.deletePattern(`product:${productId}:*`);
+    }
+
+    await Promise.all([
+      this.deletePattern('products:*'),
+      this.deletePattern('categories:*'),
+      this.deletePattern('product-list:*'),
+      this.deletePattern('category-list:*'),
+      this.deletePattern('catalog:*'),
+    ]);
+  }
+
   async invalidateCustomerCache(): Promise<void> {
     await this.deletePattern('customers:*');
     await this.deletePattern('customer:*');
@@ -143,4 +157,3 @@ export class CacheService {
     );
   }
 }
-

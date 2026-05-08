@@ -1,0 +1,15 @@
+{
+  "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+  "usernameRequired": "يرجى إدخال اسم المستخدم",
+  "usernamePasswordRequired": "يرجى إدخال اسم المستخدم وكلمة المرور",
+  "passwordMin": "يجب أن تتكون كلمة المرور من {{count}} أحرف على الأقل",
+  "passwordMismatch": "كلمتا المرور غير متطابقتين",
+  "fileRequired": "يرجى اختيار ملف",
+  "relationTypeRequired": "يرجى اختيار نوع علاقة واحد على الأقل",
+  "customerNameRequired": "اسم العميل مطلوب",
+  "streetRequired": "عنوان الشارع مطلوب",
+  "postalCodeRequired": "الرمز البريدي مطلوب",
+  "cityRequired": "المدينة مطلوبة",
+  "emailInvalid": "يرجى إدخال بريد إلكتروني صالح",
+  "phoneInvalid": "يرجى إدخال رقم هاتف صالح"
+}
