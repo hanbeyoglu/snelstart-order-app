@@ -1,1 +1,28 @@
-{}
+{
+  "visibility": {
+    "title": "Categoriezichtbaarheid",
+    "subtitle": "Beheer welke gesynchroniseerde categorieen zichtbaar zijn voor verkoopmedewerkers.",
+    "searchPlaceholder": "Categorienaam, code, ID",
+    "empty": "Geen categorieen gevonden.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} categorieen",
+    "table": {
+      "categoryName": "Categorienaam",
+      "categoryCode": "Categoriecode / ID",
+      "productCount": "Aantal producten",
+      "visibilityStatus": "Zichtbaarheidsstatus"
+    },
+    "status": {
+      "passive": "Passief"
+    },
+    "pagination": {
+      "first": "Eerste",
+      "prev": "Vorige",
+      "last": "Laatste"
+    },
+    "messages": {
+      "updated": "Categoriezichtbaarheid bijgewerkt",
+      "updateError": "Zichtbaarheid kon niet worden bijgewerkt",
+      "genericError": "Er is een fout opgetreden."
+    }
+  }
+}

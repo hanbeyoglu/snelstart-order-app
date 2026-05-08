@@ -6,12 +6,28 @@ dotenv.config({
 });
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
+import { assertProductionSecrets } from './security/env';
+import { securityHeadersMiddleware } from './security/security-headers.middleware';
+import { createRateLimitMiddleware } from './security/rate-limit.middleware';
+import { mongoSanitizeMiddleware } from './security/mongo-sanitize.middleware';
+import { SanitizedExceptionFilter } from './security/sanitized-exception.filter';
+
+function getAllowedOrigins(): string[] {
+  const configured = process.env.FRONTEND_URL || 'http://localhost:3000';
+  return configured
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .filter((origin) => origin !== '*');
+}
 
 async function bootstrap() {
+  assertProductionSecrets();
+
   const app = await NestFactory.create(AppModule);
 
   // İlk admin kullanıcısını oluştur
@@ -20,10 +36,31 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api');
 
+  app.use(securityHeadersMiddleware);
+  app.use(mongoSanitizeMiddleware);
+  app.use(
+    '/api/auth/login',
+    createRateLimitMiddleware({
+      keyPrefix: 'login',
+      windowMs: 15 * 60 * 1000,
+      max: 10,
+    }),
+  );
+  app.use(
+    '/api',
+    createRateLimitMiddleware({
+      keyPrefix: 'api',
+      windowMs: 60 * 1000,
+      max: Number(process.env.API_RATE_LIMIT_PER_MINUTE || 300),
+    }),
+  );
+
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: getAllowedOrigins(),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
   });
 
   // Global validation
@@ -32,8 +69,10 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: () => new BadRequestException('Invalid request payload'),
     })
   );
+  app.useGlobalFilters(new SanitizedExceptionFilter());
 
   // Swagger
   const config = new DocumentBuilder()
@@ -54,16 +93,20 @@ async function bootstrap() {
 async function createInitialAdmin(app: any) {
   try {
     const authService = app.get(AuthService);
-    const adminUsername = 'admin_cabir';
-    const adminEmail = 'admin@test.com';
-    const adminPassword = 'admin1903';
+    const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin_cabir';
+    const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@test.com';
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      console.warn('INITIAL_ADMIN_PASSWORD is not set; skipping initial admin creation');
+      return;
+    }
 
     // Admin kullanıcısını oluştur (varsa oluşturmaz)
     await authService.createAdminIfNotExists(adminUsername, adminEmail, adminPassword);
-    console.log('✅ İlk admin kullanıcısı hazır:');
+    console.log('İlk admin kullanıcısı hazır:');
     console.log(`   Kullanıcı Adı: ${adminUsername}`);
     console.log(`   Email: ${adminEmail}`);
-    console.log(`   Şifre: ${adminPassword}`);
     console.log(`   Rol: admin`);
   } catch (error: any) {
     console.warn('⚠️  Admin kullanıcısı oluşturulurken hata:', error.message);

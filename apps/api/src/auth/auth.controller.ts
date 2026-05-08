@@ -2,10 +2,13 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UnauthorizedException, Ge
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 import { ConnectionSettingsService } from '../connection-settings/connection-settings.service';
 import { SnelStartService } from '../snelstart/snelstart.service';
 import { CategoriesService } from '../categories/categories.service';
 import { ProductsService } from '../products/products.service';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -21,7 +24,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login' })
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     // email field'ı artık username veya email olabilir
     try {
       const user = await this.authService.validateUser(body.email, body.password);
@@ -86,10 +89,11 @@ export class AuthController {
   }
 
   @Post('register')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Register new user' })
-  async register(
-    @Body() body: { username: string; email: string; password: string; role?: 'admin' | 'sales_rep' },
-  ) {
+  async register(@Body() body: RegisterDto) {
     return this.authService.register(body.username, body.email, body.password, body.role);
   }
 
@@ -108,4 +112,3 @@ export class AuthController {
     };
   }
 }
-

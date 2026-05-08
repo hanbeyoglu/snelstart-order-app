@@ -18,8 +18,8 @@ export class RequireAdminCabirGuard implements CanActivate {
       throw new NotFoundException();
     }
 
-    // Username must be exactly "admin_cabir"
-    if (user.username !== ADMIN_CABIR_USERNAME) {
+    // Username and role must match the dedicated admin account.
+    if (user.username !== ADMIN_CABIR_USERNAME || user.role !== 'admin') {
       throw new NotFoundException();
     }
 

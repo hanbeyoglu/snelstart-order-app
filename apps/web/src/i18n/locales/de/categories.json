@@ -1,1 +1,28 @@
-{}
+{
+  "visibility": {
+    "title": "Kategoriesichtbarkeit",
+    "subtitle": "Verwalten Sie, welche synchronisierten Kategorien für Vertriebsmitarbeiter sichtbar sind.",
+    "searchPlaceholder": "Kategoriename, Code, ID",
+    "empty": "Keine Kategorien gefunden.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} Kategorien",
+    "table": {
+      "categoryName": "Kategoriename",
+      "categoryCode": "Kategoriecode / ID",
+      "productCount": "Produktanzahl",
+      "visibilityStatus": "Sichtbarkeitsstatus"
+    },
+    "status": {
+      "passive": "Passiv"
+    },
+    "pagination": {
+      "first": "Erste",
+      "prev": "Zurück",
+      "last": "Letzte"
+    },
+    "messages": {
+      "updated": "Kategoriesichtbarkeit aktualisiert",
+      "updateError": "Sichtbarkeit konnte nicht aktualisiert werden",
+      "genericError": "Ein Fehler ist aufgetreten."
+    }
+  }
+}

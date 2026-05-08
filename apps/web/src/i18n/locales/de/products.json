@@ -40,6 +40,32 @@
     "discount": "Rabatt",
     "customer": "Kunde"
   },
+  "visibility": {
+    "title": "Produktsichtbarkeit",
+    "subtitle": "Verwalten Sie, welche synchronisierten Produkte für Vertriebsmitarbeiter sichtbar sind.",
+    "searchPlaceholder": "Produktname, SKU, Kategorie, Marke",
+    "empty": "Keine Produkte gefunden.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} Produkte",
+    "table": {
+      "productName": "Produktname",
+      "brand": "Marke",
+      "sku": "SKU",
+      "visibilityStatus": "Sichtbarkeitsstatus"
+    },
+    "status": {
+      "passive": "Passiv"
+    },
+    "pagination": {
+      "first": "Erste",
+      "prev": "Zurück",
+      "last": "Letzte"
+    },
+    "messages": {
+      "updated": "Produktsichtbarkeit aktualisiert",
+      "updateError": "Sichtbarkeit konnte nicht aktualisiert werden",
+      "genericError": "Ein Fehler ist aufgetreten."
+    }
+  },
   "messages": {
     "syncSuccess": "Produkte und Kategorien erfolgreich synchronisiert",
     "syncFailed": "Synchronisierung fehlgeschlagen",

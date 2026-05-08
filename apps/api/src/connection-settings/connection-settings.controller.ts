@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { snelStartConnectionTestSchema } from '@snelstart-order-app/shared';
+import { parseOrBadRequest } from '../common/validation/zod-validation';
 
 @ApiTags('Connection Settings')
 @Controller('connection-settings')
@@ -57,7 +58,7 @@ export class ConnectionSettingsController {
       integrationKey: string;
     },
   ) {
-    const validated = snelStartConnectionTestSchema.parse(body);
+    const validated = parseOrBadRequest(snelStartConnectionTestSchema, body);
     await this.connectionSettingsService.saveSettings(
       validated.subscriptionKey,
       validated.integrationKey,
@@ -76,7 +77,7 @@ export class ConnectionSettingsController {
       integrationKey: string;
     },
   ) {
-    const validated = snelStartConnectionTestSchema.parse(body);
+    const validated = parseOrBadRequest(snelStartConnectionTestSchema, body);
     try {
       const success = await this.snelStartService.testConnection(
         validated.subscriptionKey,
@@ -98,14 +99,14 @@ export class ConnectionSettingsController {
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
       await this.connectionSettingsService.updateTestStatus(false, errorMessage);
-      return { success: false, error: errorMessage };
+      return { success: false, error: 'Connection test failed' };
     }
   }
 
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin', 'sales_rep')
-  @ApiOperation({ summary: 'Refresh SnelStart access token (available to all authenticated users)' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Refresh SnelStart access token (admin only)' })
   async refreshToken() {
     const settings = await this.connectionSettingsService.getActiveSettings();
     if (!settings) {
@@ -141,7 +142,7 @@ export class ConnectionSettingsController {
       }
       return { success: false, error: 'Invalid token response' };
     } catch (error: any) {
-      return { success: false, error: error.message };
+      return { success: false, error: 'Token refresh failed' };
     }
   }
 
@@ -153,8 +154,7 @@ export class ConnectionSettingsController {
       const companyInfo = await this.snelStartService.getCompanyInfo();
       return companyInfo;
     } catch (error: any) {
-      throw new Error(`Company info alınamadı: ${error.message}`);
+      throw new Error('Company info alınamadı');
     }
   }
 }
-

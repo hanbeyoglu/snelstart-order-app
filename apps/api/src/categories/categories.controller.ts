@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ProductsService } from '../products/products.service';
+import { VisibilityDto } from '../common/dto/common.dto';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -63,7 +64,7 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Admin: Update category visibility' })
   async updateCategoryVisibility(
     @Param('id') id: string,
-    @Body() body: { isActive: boolean },
+    @Body() body: VisibilityDto,
   ) {
     const updated = await this.categoriesService.updateCategoryVisibility(id, body.isActive === true);
     if (!updated) {
@@ -79,6 +80,7 @@ export class CategoriesController {
   }
 
   @Post('sync')
+  @Roles('admin')
   @ApiOperation({ summary: 'Sync categories and products from SnelStart API' })
   async syncCategories() {
     try {

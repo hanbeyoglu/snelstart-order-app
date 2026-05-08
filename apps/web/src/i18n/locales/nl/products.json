@@ -40,6 +40,32 @@
     "discount": "Korting",
     "customer": "Klant"
   },
+  "visibility": {
+    "title": "Productzichtbaarheid",
+    "subtitle": "Beheer welke gesynchroniseerde producten zichtbaar zijn voor verkoopmedewerkers.",
+    "searchPlaceholder": "Productnaam, SKU, categorie, merk",
+    "empty": "Geen producten gevonden.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} producten",
+    "table": {
+      "productName": "Productnaam",
+      "brand": "Merk",
+      "sku": "SKU",
+      "visibilityStatus": "Zichtbaarheidsstatus"
+    },
+    "status": {
+      "passive": "Passief"
+    },
+    "pagination": {
+      "first": "Eerste",
+      "prev": "Vorige",
+      "last": "Laatste"
+    },
+    "messages": {
+      "updated": "Productzichtbaarheid bijgewerkt",
+      "updateError": "Zichtbaarheid kon niet worden bijgewerkt",
+      "genericError": "Er is een fout opgetreden."
+    }
+  },
   "messages": {
     "syncSuccess": "Producten en categorieen succesvol gesynchroniseerd",
     "syncFailed": "Synchronisatie mislukt",

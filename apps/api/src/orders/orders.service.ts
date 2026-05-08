@@ -9,6 +9,8 @@ import { AuditService } from '../audit/audit.service';
 import { CustomersService } from '../customers/customers.service';
 import { createOrderSchema } from '@snelstart-order-app/shared';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
+import { ProductsService } from '../products/products.service';
+import { parseOrBadRequest } from '../common/validation/zod-validation';
 
 @Injectable()
 export class OrdersService {
@@ -21,6 +23,7 @@ export class OrdersService {
     private snelStartService: SnelStartService,
     private auditService: AuditService,
     @Inject(forwardRef(() => CustomersService)) private customersService: CustomersService,
+    private productsService: ProductsService,
   ) {}
 
   private getMinimumAllowedPrice(basePrice: number, purchasePrice?: number | null) {
@@ -63,16 +66,26 @@ export class OrdersService {
   }
 
   async createOrder(orderData: any, user?: any) {
-    const validated = createOrderSchema.parse(orderData);
-    await this.validateOrderPrices(validated.items, user);
+    const requested = parseOrBadRequest(createOrderSchema, orderData);
 
     // Check idempotency
     const existing = await this.orderModel
-      .findOne({ idempotencyKey: validated.idempotencyKey })
+      .findOne({ idempotencyKey: requested.idempotencyKey })
       .exec();
     if (existing) {
       return existing;
     }
+
+    const trustedItems = await this.buildTrustedOrderItems(
+      requested.items,
+      requested.customerId,
+      user,
+    );
+    const validated = {
+      idempotencyKey: requested.idempotencyKey,
+      customerId: requested.customerId,
+      items: trustedItems,
+    };
 
     // Calculate subtotal and total from items
     const subtotal = validated.items.reduce((sum, item) => {
@@ -159,6 +172,70 @@ export class OrdersService {
 
   async getOrders(filters?: any) {
     return this.orderModel.find(filters || {}).sort({ createdAt: -1 }).exec();
+  }
+
+  private async buildTrustedOrderItems(
+    items: Array<any>,
+    customerId: string,
+    user?: any,
+  ) {
+    const trustedItems = [];
+
+    for (const item of items) {
+      const product: any = await this.productsService.getProductById(item.productId, customerId);
+      const basePrice = Number(product.basePrice || product.verkoopprijs || 0);
+      const trustedUnitPrice = Number(product.finalPrice ?? basePrice);
+      const vatPercentage = Number(product.btwPercentage || 0);
+      const requestedUnitPrice = Number(item.unitPrice);
+      const hasRequestedPrice = Number.isFinite(requestedUnitPrice);
+      const priceChanged = hasRequestedPrice && requestedUnitPrice !== trustedUnitPrice;
+      const hasAdminOverride =
+        item.adminOverride === true ||
+        item.adminPriceOverrideConfirmed === true ||
+        item.customUnitPrice !== undefined;
+
+      let unitPrice = trustedUnitPrice;
+      if (priceChanged) {
+        if (user?.role !== 'admin') {
+          throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
+        }
+        if (!hasAdminOverride) {
+          throw new BadRequestException('PRICE_OVERRIDE_CONFIRMATION_REQUIRED');
+        }
+
+        const minPrice = this.getMinimumAllowedPrice(basePrice, product.inkoopprijs);
+        if (requestedUnitPrice < minPrice && !item.adminPriceOverrideConfirmed) {
+          throw new BadRequestException('PRICE_BELOW_MINIMUM');
+        }
+
+        unitPrice = requestedUnitPrice;
+      }
+
+      trustedItems.push({
+        productId: product.id || item.productId,
+        productName: product.omschrijving,
+        sku: product.artikelnummer || product.artikelcode || '',
+        categoryId:
+          product.artikelomzetgroepId ||
+          product.artikelgroepId ||
+          product.artikelOmzetgroep?.id,
+        quantity: item.quantity,
+        unitPrice,
+        basePrice,
+        totalPrice: unitPrice * item.quantity,
+        vatPercentage,
+        ...(priceChanged
+          ? {
+              customUnitPrice: unitPrice,
+              adminOverride: true,
+              adminPriceOverrideConfirmed: item.adminPriceOverrideConfirmed === true,
+              adminOverrideReason: item.adminOverrideReason,
+            }
+          : {}),
+      });
+    }
+
+    return trustedItems;
   }
 
   async getOrderById(id: string) {

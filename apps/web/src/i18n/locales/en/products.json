@@ -40,6 +40,32 @@
     "discount": "Discount",
     "customer": "Customer"
   },
+  "visibility": {
+    "title": "Product Visibility",
+    "subtitle": "Manage which synced products are visible to sales reps.",
+    "searchPlaceholder": "Product name, SKU, category, brand",
+    "empty": "No products found.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} products",
+    "table": {
+      "productName": "Product Name",
+      "brand": "Brand",
+      "sku": "SKU",
+      "visibilityStatus": "Visibility Status"
+    },
+    "status": {
+      "passive": "Passive"
+    },
+    "pagination": {
+      "first": "First",
+      "prev": "Prev",
+      "last": "Last"
+    },
+    "messages": {
+      "updated": "Product visibility updated",
+      "updateError": "Visibility could not be updated",
+      "genericError": "An error occurred."
+    }
+  },
   "messages": {
     "syncSuccess": "Products and categories synced successfully",
     "syncFailed": "Sync failed",

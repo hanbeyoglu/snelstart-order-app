@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { priceOverrideRuleSchema } from '@snelstart-order-app/shared';
+import { parseOrBadRequest } from '../common/validation/zod-validation';
 
 @ApiTags('Pricing')
 @Controller('pricing')
@@ -35,7 +36,7 @@ export class PricingController {
   @Roles('admin')
   @ApiOperation({ summary: 'Create price override rule' })
   async createRule(@Body() body: any) {
-    const validated = priceOverrideRuleSchema.parse(body);
+    const validated = parseOrBadRequest(priceOverrideRuleSchema, body);
     return this.pricingService.createRule(validated);
   }
 
@@ -43,7 +44,7 @@ export class PricingController {
   @Roles('admin')
   @ApiOperation({ summary: 'Update price override rule' })
   async updateRule(@Param('id') id: string, @Body() body: any) {
-    const validated = priceOverrideRuleSchema.partial().parse(body);
+    const validated = parseOrBadRequest(priceOverrideRuleSchema.partial(), body);
     return this.pricingService.updateRule(id, validated);
   }
 
@@ -54,4 +55,3 @@ export class PricingController {
     return this.pricingService.deleteRule(id);
   }
 }
-

@@ -40,6 +40,32 @@
     "discount": "الخصم",
     "customer": "العميل"
   },
+  "visibility": {
+    "title": "ظهور المنتجات",
+    "subtitle": "إدارة المنتجات المتزامنة التي تظهر لمندوبي المبيعات.",
+    "searchPlaceholder": "اسم المنتج، SKU، الفئة، العلامة التجارية",
+    "empty": "لم يتم العثور على منتجات.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} منتج",
+    "table": {
+      "productName": "اسم المنتج",
+      "brand": "العلامة التجارية",
+      "sku": "SKU",
+      "visibilityStatus": "حالة الظهور"
+    },
+    "status": {
+      "passive": "غير نشط"
+    },
+    "pagination": {
+      "first": "الأول",
+      "prev": "السابق",
+      "last": "الأخير"
+    },
+    "messages": {
+      "updated": "تم تحديث ظهور المنتج",
+      "updateError": "تعذر تحديث الظهور",
+      "genericError": "حدث خطأ."
+    }
+  },
   "messages": {
     "syncSuccess": "تمت مزامنة المنتجات والفئات بنجاح",
     "syncFailed": "فشلت المزامنة",

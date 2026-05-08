@@ -79,6 +79,17 @@ export const createOrderSchema = z.object({
   items: z.array(cartItemSchema),
 });
 
+export const createOrderRequestSchema = z.object({
+  idempotencyKey: z.string().uuid(),
+  customerId: z.string(),
+  items: z.array(
+    z.object({
+      productId: z.string(),
+      quantity: z.number().positive(),
+    }),
+  ).min(1),
+});
+
 export const priceOverrideRuleSchema = z.object({
   type: z.enum([
     'PRODUCT_CUSTOMER_FIXED',

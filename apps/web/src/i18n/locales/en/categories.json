@@ -1,1 +1,28 @@
-{}
+{
+  "visibility": {
+    "title": "Category Visibility",
+    "subtitle": "Manage which synced categories are visible to sales reps.",
+    "searchPlaceholder": "Category name, code, ID",
+    "empty": "No categories found.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} categories",
+    "table": {
+      "categoryName": "Category Name",
+      "categoryCode": "Category Code / ID",
+      "productCount": "Product Count",
+      "visibilityStatus": "Visibility Status"
+    },
+    "status": {
+      "passive": "Passive"
+    },
+    "pagination": {
+      "first": "First",
+      "prev": "Prev",
+      "last": "Last"
+    },
+    "messages": {
+      "updated": "Category visibility updated",
+      "updateError": "Visibility could not be updated",
+      "genericError": "An error occurred."
+    }
+  }
+}

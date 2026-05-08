@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CategoriesService } from '../categories/categories.service';
+import { VisibilityDto } from '../common/dto/common.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -91,7 +92,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Admin: Update product visibility' })
   async updateProductVisibility(
     @Param('id') id: string,
-    @Body() body: { isActive: boolean },
+    @Body() body: VisibilityDto,
   ) {
     const updated = await this.productsService.updateProductVisibility(id, body.isActive === true);
     if (!updated) {
@@ -110,6 +111,7 @@ export class ProductsController {
   }
 
   @Post('sync')
+  @Roles('admin')
   @ApiOperation({ summary: 'Full sync: Sync all products and categories from SnelStart API using dynamic pagination' })
   async syncProductsAndCategories() {
     try {
@@ -133,6 +135,7 @@ export class ProductsController {
   }
 
   @Post('sync/delta')
+  @Roles('admin')
   @ApiOperation({ summary: 'Delta sync: Sync only products modified since last sync' })
   async syncProductsDelta(@Query('since') since?: string) {
     try {

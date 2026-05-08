@@ -13,6 +13,7 @@ import { ImagesService } from './images.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ImageUrlDto } from '../common/dto/common.dto';
 
 @ApiTags('Images')
 @Controller('images')
@@ -54,7 +55,7 @@ export class ImagesController {
   @ApiOperation({ summary: 'Add image by URL (R2 CDN URL or external URL)' })
   async addImageByUrl(
     @Param('productId') productId: string,
-    @Body() body: { imageUrl: string; isCover?: boolean },
+    @Body() body: ImageUrlDto,
   ) {
     if (!body.imageUrl) {
       throw new Error('imageUrl is required');
@@ -74,7 +75,7 @@ export class ImagesController {
   @ApiOperation({ summary: 'Add category image by URL (R2 CDN URL or external URL)' })
   async addCategoryImageByUrl(
     @Param('categoryId') categoryId: string,
-    @Body() body: { imageUrl: string; isCover?: boolean },
+    @Body() body: ImageUrlDto,
   ) {
     if (!body.imageUrl) {
       throw new Error('imageUrl is required');
@@ -93,4 +94,3 @@ export class ImagesController {
     return { success: true };
   }
 }
-

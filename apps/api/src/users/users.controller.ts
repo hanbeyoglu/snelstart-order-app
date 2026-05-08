@@ -4,6 +4,7 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateUserDto, UpdateCurrentUserDto, UpdateUserDto } from './dto/user.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -22,7 +23,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update current user profile (username, email, firstName, lastName, password)' })
   async updateCurrentUser(
     @Request() req: any,
-    @Body() body: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string },
+    @Body() body: UpdateCurrentUserDto,
   ) {
     // Kullanıcı kendi bilgilerini güncelleyebilir, ancak rol değiştiremez
     return this.usersService.updateUser(req.user.userId, body, false);
@@ -45,7 +46,7 @@ export class UsersController {
   @Post()
   @Roles('admin')
   @ApiOperation({ summary: 'Create new user' })
-  async createUser(@Body() body: { username: string; email?: string; firstName?: string; lastName?: string; password: string; role?: 'admin' | 'sales_rep' }) {
+  async createUser(@Body() body: CreateUserDto) {
     return this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName);
   }
 
@@ -54,7 +55,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user (admin only)' })
   async updateUser(
     @Param('id') id: string,
-    @Body() body: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: 'admin' | 'sales_rep' },
+    @Body() body: UpdateUserDto,
   ) {
     // Admin tüm alanları değiştirebilir (rol dahil)
     return this.usersService.updateUser(id, body, true);

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useCartStore } from '../store/cartStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 type VisibilityStatus = 'all' | 'active' | 'inactive';
 
@@ -56,10 +57,14 @@ function removeCategoryProductsFromCachedList(oldData: any, categoryId: string) 
 function ToggleSwitch({
   checked,
   disabled,
+  activeLabel,
+  passiveLabel,
   onChange,
 }: {
   checked: boolean;
   disabled?: boolean;
+  activeLabel: string;
+  passiveLabel: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
@@ -82,7 +87,7 @@ function ToggleSwitch({
         boxShadow: checked ? '0 4px 12px rgba(16, 185, 129, 0.22)' : 'var(--shadow-sm)',
         transition: 'all 0.2s ease',
       }}
-      title={checked ? 'Active' : 'Passive'}
+      title={checked ? activeLabel : passiveLabel}
     >
       <span
         style={{
@@ -99,6 +104,7 @@ function ToggleSwitch({
 }
 
 export default function CategoryVisibilityPage() {
+  const { t } = useAppTranslation(['common', 'categories']);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<VisibilityStatus>('all');
@@ -165,10 +171,10 @@ export default function CategoryVisibilityPage() {
       queryClient.invalidateQueries({ queryKey: ['cart-calculation'] });
       queryClient.removeQueries({ queryKey: ['categories'], type: 'inactive' });
       queryClient.removeQueries({ queryKey: ['products'], type: 'inactive' });
-      showToast('Category visibility updated', 'success');
+      showToast(t('categories:visibility.messages.updated'), 'success');
     },
     onError: (err: any) => {
-      showToast(err?.response?.data?.message || 'Visibility could not be updated', 'error');
+      showToast(err?.response?.data?.message || t('categories:visibility.messages.updateError'), 'error');
     },
     onSettled: () => {
       setUpdatingId(null);
@@ -204,11 +210,11 @@ export default function CategoryVisibilityPage() {
   }
 
   if (isError) {
-    const message = (error as any)?.response?.data?.message || (error as Error)?.message || 'An error occurred.';
+    const message = (error as any)?.response?.data?.message || (error as Error)?.message || t('categories:visibility.messages.genericError');
     return (
       <div className="container">
         <div className="card" style={{ textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)' }}>
-          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Category Visibility</h2>
+          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>{t('categories:visibility.title')}</h2>
           <p style={{ color: 'var(--text-secondary)' }}>{message}</p>
         </div>
       </div>
@@ -228,10 +234,10 @@ export default function CategoryVisibilityPage() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Category Visibility
+          {t('categories:visibility.title')}
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Manage which synced categories are visible to sales reps.
+          {t('categories:visibility.subtitle')}
         </p>
       </motion.div>
 
@@ -243,31 +249,31 @@ export default function CategoryVisibilityPage() {
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'end' }}>
           <label style={{ margin: 0, flex: '1 1 260px', minWidth: 0 }}>
-            Search
+            {t('common:actions.search')}
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Category name, code, ID"
+              placeholder={t('categories:visibility.searchPlaceholder')}
               style={{ marginTop: '0.35rem' }}
             />
           </label>
 
           <label style={{ margin: 0, flex: '0 1 180px', minWidth: '150px' }}>
-            Status
+            {t('common:forms.status')}
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as VisibilityStatus)}
               style={{ marginTop: '0.35rem' }}
             >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Passive</option>
+              <option value="all">{t('common:states.all')}</option>
+              <option value="active">{t('common:states.active')}</option>
+              <option value="inactive">{t('categories:visibility.status.passive')}</option>
             </select>
           </label>
 
           <label style={{ margin: 0, flex: '0 1 140px', minWidth: '130px' }}>
-            Per page
+            {t('common:pagination.pageSize')}
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
@@ -287,7 +293,12 @@ export default function CategoryVisibilityPage() {
         <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(99, 102, 241, 0.08)', borderBottom: '1px solid var(--border)' }}>
-              {['Category Name', 'Category Code / ID', 'Product Count', 'Visibility Status'].map((heading) => (
+              {[
+                t('categories:visibility.table.categoryName'),
+                t('categories:visibility.table.categoryCode'),
+                t('categories:visibility.table.productCount'),
+                t('categories:visibility.table.visibilityStatus'),
+              ].map((heading) => (
                 <th key={heading} style={{ padding: '0.85rem 1rem', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {heading}
                 </th>
@@ -298,7 +309,7 @@ export default function CategoryVisibilityPage() {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={4} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  No categories found.
+                  {t('categories:visibility.empty')}
                 </td>
               </tr>
             ) : (
@@ -323,6 +334,8 @@ export default function CategoryVisibilityPage() {
                         <ToggleSwitch
                           checked={category.isActive}
                           disabled={updatingId === category.id}
+                          activeLabel={t('common:states.active')}
+                          passiveLabel={t('categories:visibility.status.passive')}
                           onChange={(checked) => visibilityMutation.mutate({ id: category.id, isActive: checked })}
                         />
                         <span
@@ -337,7 +350,7 @@ export default function CategoryVisibilityPage() {
                             color: category.isActive ? 'var(--success)' : '#6b7280',
                           }}
                         >
-                          {category.isActive ? 'Active' : 'Passive'}
+                          {category.isActive ? t('common:states.active') : t('categories:visibility.status.passive')}
                         </span>
                       </div>
                     </td>
@@ -360,23 +373,23 @@ export default function CategoryVisibilityPage() {
           }}
         >
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {startItem}-{endItem} / {total} categories
+            {t('categories:visibility.rangeSummary', { start: startItem, end: endItem, total })}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button className="btn-secondary" onClick={() => goToPage(1)} disabled={page <= 1} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              First
+              {t('categories:visibility.pagination.first')}
             </button>
             <button className="btn-secondary" onClick={() => goToPage(page - 1)} disabled={page <= 1} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              Prev
+              {t('categories:visibility.pagination.prev')}
             </button>
             <span style={{ fontWeight: 700, minWidth: '96px', textAlign: 'center' }}>
               {page} / {totalPages}
             </span>
             <button className="btn-secondary" onClick={() => goToPage(page + 1)} disabled={page >= totalPages} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              Next
+              {t('common:pagination.next')}
             </button>
             <button className="btn-secondary" onClick={() => goToPage(totalPages)} disabled={page >= totalPages} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              Last
+              {t('categories:visibility.pagination.last')}
             </button>
           </div>
         </div>

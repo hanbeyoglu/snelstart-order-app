@@ -12,13 +12,14 @@ import { SnelStartModule } from '../snelstart/snelstart.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { ProductsModule } from '../products/products.module';
 import { CacheModule } from '../cache/cache.module';
+import { getJwtSecret } from '../security/env';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+      secret: getJwtSecret(),
       signOptions: { expiresIn: '7d' },
     }),
     forwardRef(() => ConnectionSettingsModule),
@@ -32,4 +33,3 @@ import { CacheModule } from '../cache/cache.module';
   exports: [AuthService],
 })
 export class AuthModule {}
-

@@ -1,1 +1,28 @@
-{}
+{
+  "visibility": {
+    "title": "ظهور الفئات",
+    "subtitle": "إدارة الفئات المتزامنة التي تظهر لمندوبي المبيعات.",
+    "searchPlaceholder": "اسم الفئة، الرمز، ID",
+    "empty": "لم يتم العثور على فئات.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} فئة",
+    "table": {
+      "categoryName": "اسم الفئة",
+      "categoryCode": "رمز الفئة / ID",
+      "productCount": "عدد المنتجات",
+      "visibilityStatus": "حالة الظهور"
+    },
+    "status": {
+      "passive": "غير نشط"
+    },
+    "pagination": {
+      "first": "الأول",
+      "prev": "السابق",
+      "last": "الأخير"
+    },
+    "messages": {
+      "updated": "تم تحديث ظهور الفئة",
+      "updateError": "تعذر تحديث الظهور",
+      "genericError": "حدث خطأ."
+    }
+  }
+}

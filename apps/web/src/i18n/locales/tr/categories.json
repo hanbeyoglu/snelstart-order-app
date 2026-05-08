@@ -1,1 +1,28 @@
-{}
+{
+  "visibility": {
+    "title": "Kategori Görünürlüğü",
+    "subtitle": "Senkronize edilen kategorilerin satış temsilcilerine görünüp görünmeyeceğini yönetin.",
+    "searchPlaceholder": "Kategori adı, kod, ID",
+    "empty": "Kategori bulunamadı.",
+    "rangeSummary": "{{start}}-{{end}} / {{total}} kategori",
+    "table": {
+      "categoryName": "Kategori Adı",
+      "categoryCode": "Kategori Kodu / ID",
+      "productCount": "Ürün Sayısı",
+      "visibilityStatus": "Görünürlük Durumu"
+    },
+    "status": {
+      "passive": "Pasif"
+    },
+    "pagination": {
+      "first": "İlk",
+      "prev": "Önceki",
+      "last": "Son"
+    },
+    "messages": {
+      "updated": "Kategori görünürlüğü güncellendi",
+      "updateError": "Görünürlük güncellenemedi",
+      "genericError": "Bir hata oluştu."
+    }
+  }
+}

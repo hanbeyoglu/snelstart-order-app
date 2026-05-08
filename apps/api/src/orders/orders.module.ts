@@ -8,6 +8,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { AuditModule } from '../audit/audit.module';
 import { CustomersModule } from '../customers/customers.module';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Product, ProductSchema } from '../products/schemas/product.schema';
     }),
     AuditModule,
     forwardRef(() => CustomersModule),
+    ProductsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
