@@ -14,6 +14,13 @@
   "restoreOriginalPrice": "Restore original price",
   "confirmRemoveTitle": "Remove product from cart?",
   "confirmRemoveDescription": "This product will be removed from your cart.",
+  "adminPriceOverride": {
+    "title": "Below price criteria",
+    "description": "This price is below the defined sales criteria. Are you sure you want to change it?",
+    "minPrice": "Minimum criteria price: {{minPrice}}",
+    "cancel": "Cancel",
+    "confirm": "Yes, continue"
+  },
   "messages": {
     "selectCustomer": "Please select a customer",
     "orderCreated": "Order created successfully!",

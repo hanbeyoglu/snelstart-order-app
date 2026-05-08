@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -12,8 +12,8 @@ export class OrdersController {
 
   @Post()
   @ApiOperation({ summary: 'Create order' })
-  async createOrder(@Body() body: any) {
-    return this.ordersService.createOrder(body);
+  async createOrder(@Body() body: any, @Req() req: any) {
+    return this.ordersService.createOrder(body, req.user);
   }
 
   @Get('dashboard')
@@ -38,19 +38,19 @@ export class OrdersController {
 
   @Post(':id/retry')
   @ApiOperation({ summary: 'Retry failed order sync' })
-  async retryOrder(@Param('id') id: string) {
-    return this.ordersService.retryOrder(id);
+  async retryOrder(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.retryOrder(id, req.user?.userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete order' })
-  async deleteOrder(@Param('id') id: string) {
-    return this.ordersService.deleteOrder(id);
+  async deleteOrder(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.deleteOrder(id, req.user?.userId);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update order' })
-  async updateOrder(@Param('id') id: string, @Body() body: any) {
-    return this.ordersService.updateOrder(id, body);
+  async updateOrder(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.ordersService.updateOrder(id, body, req.user);
   }
 }

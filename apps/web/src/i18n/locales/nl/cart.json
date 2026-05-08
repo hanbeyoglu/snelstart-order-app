@@ -14,6 +14,13 @@
   "restoreOriginalPrice": "Oorspronkelijke prijs herstellen",
   "confirmRemoveTitle": "Product uit winkelwagen verwijderen?",
   "confirmRemoveDescription": "Dit product wordt uit uw winkelwagen verwijderd.",
+  "adminPriceOverride": {
+    "title": "Onder prijscriteria",
+    "description": "Deze prijs ligt onder de vastgestelde verkoopcriteria. Weet u zeker dat u deze wilt wijzigen?",
+    "minPrice": "Minimum criteriaprijs: {{minPrice}}",
+    "cancel": "Annuleren",
+    "confirm": "Ja, doorgaan"
+  },
   "messages": {
     "selectCustomer": "Selecteer een klant",
     "orderCreated": "Bestelling succesvol aangemaakt!",

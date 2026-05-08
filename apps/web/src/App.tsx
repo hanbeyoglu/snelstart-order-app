@@ -31,6 +31,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
 import LegacyDomI18n from './components/LegacyDomI18n';
+import { AdminPriceOverrideProvider } from './components/AdminPriceOverrideProvider';
 import { normalizeLanguage, supportedLanguages } from './i18n/constants';
 
 function App() {
@@ -60,10 +61,11 @@ function App() {
 
   return (
     <>
-      <Routes>
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
-        {isAuthenticated ? (
-          <Route element={<Layout />}>
+      <AdminPriceOverrideProvider>
+        <Routes>
+          <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+          {isAuthenticated ? (
+            <Route element={<Layout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/products" element={<ProductsPage />} />
@@ -97,11 +99,12 @@ function App() {
             )}
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        ) : (
-          <Route path="*" element={<Navigate to="/login" />} />
-        )}
-      </Routes>
+            </Route>
+          ) : (
+            <Route path="*" element={<Navigate to="/login" />} />
+          )}
+        </Routes>
+      </AdminPriceOverrideProvider>
       <LegacyDomI18n />
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </>

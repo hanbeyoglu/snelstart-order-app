@@ -4,5 +4,8 @@
   "invalidBackendResponse": "Ungultige Antwort vom Backend erhalten",
   "presignedUrl": "Beim Abrufen der presigned URL ist ein Fehler aufgetreten",
   "r2NotConfigured": "Cloudflare R2 ist nicht konfiguriert. Bitte Backend-Umgebungsvariablen prufen.",
-  "visibilityUpdate": "Sichtbarkeit konnte nicht aktualisiert werden"
+  "visibilityUpdate": "Sichtbarkeit konnte nicht aktualisiert werden",
+  "priceBelowMinimum": "Der Preis liegt unter dem Mindestkriterium. Mindestpreis: {{minPrice}}",
+  "priceBelowMinimumNoValue": "Der Preis liegt unter den Mindestverkaufskriterien.",
+  "adminPriceOverrideRequired": "Nur ein Admin kann diese Niedrigpreis-Ubersteuerung senden."
 }

@@ -5,11 +5,16 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
+import { useAdminPriceOverride } from '../components/AdminPriceOverrideProvider';
 import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { validatePrice } from '../utils/priceValidation';
 
 export default function ProductsPage() {
   const { t } = useAppTranslation(['common', 'products']);
+  const { formatCurrency } = useLocaleFormat();
   const { categoryId } = useParams();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customerId');
@@ -40,6 +45,9 @@ export default function ProductsPage() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const cartItems = useCartStore((state) => state.items);
   const showToast = useToastStore((state) => state.showToast);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'admin';
+  const { confirmPriceOverride } = useAdminPriceOverride();
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -144,10 +152,12 @@ export default function ProductsPage() {
     return Number.isFinite(stock) && stock <= 0;
   };
 
-  const getCartQuantity = (productId: string) =>
-    cartItems.find((item) => item.productId === productId)?.quantity || 0;
+  const getCartItem = (productId: string) =>
+    cartItems.find((item) => item.productId === productId);
 
-  const handleAddToCart = (product: any, event?: any) => {
+  const getCartQuantity = (productId: string) => getCartItem(productId)?.quantity || 0;
+
+  const handleAddToCart = async (product: any, event?: any) => {
     event?.stopPropagation();
     const currentQuantity = getCartQuantity(product.id);
     const stockLimit = getStockLimit(product);
@@ -162,16 +172,57 @@ export default function ProductsPage() {
       return;
     }
 
+    const unitPrice = product.finalPrice || product.basePrice || 0;
+    const basePrice = product.basePrice || unitPrice;
+    const existingCartItem = getCartItem(product.id);
+    const validation = validatePrice({
+      price: unitPrice,
+      basePrice,
+      purchasePrice: product.inkoopprijs,
+    });
+    let adminOverride = false;
+    let adminPriceOverrideConfirmed = existingCartItem?.adminPriceOverrideConfirmed || false;
+
+    if (!validation.isValid) {
+      if (!isAdmin) {
+        if (validation.rule === 'base-price') {
+          showToast(
+            `⚠️ ${t('products:messages.belowBasePrice', { basePrice: formatCurrency(basePrice), minPrice: formatCurrency(validation.minPrice) })}`,
+            'error',
+            5000,
+          );
+        } else {
+          showToast(
+            `⚠️ ${t('products:messages.belowPurchasePrice', { purchasePrice: '', minPrice: formatCurrency(validation.minPrice) })}`,
+            'error',
+            5000,
+          );
+        }
+        return;
+      }
+
+      adminOverride = true;
+      if (!adminPriceOverrideConfirmed) {
+        adminPriceOverrideConfirmed = await confirmPriceOverride({ minPrice: formatCurrency(validation.minPrice) });
+        if (!adminPriceOverrideConfirmed) return;
+      }
+    }
+
     addItem({
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
       categoryId: product.artikelomzetgroepId || product.artikelgroepId,
       quantity: 1,
-      unitPrice: product.finalPrice || product.basePrice || 0,
-      basePrice: product.basePrice || 0,
-      totalPrice: product.finalPrice || product.basePrice || 0,
+      unitPrice,
+      basePrice,
+      totalPrice: unitPrice,
       vatPercentage: product.btwPercentage || 0,
+      ...(adminOverride && {
+        adminOverride: true,
+        adminPriceOverrideConfirmed,
+        adminOverrideReason: 'PRICE_BELOW_MINIMUM_CONFIRMED',
+      }),
       // Alış fiyatını kaydet (minimum fiyat kontrolü için)
       ...(product.inkoopprijs !== undefined &&
         product.inkoopprijs !== null && { inkoopprijs: product.inkoopprijs }),

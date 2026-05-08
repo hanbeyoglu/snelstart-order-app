@@ -6,9 +6,11 @@ import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { useAdminPriceOverride } from '../components/AdminPriceOverrideProvider';
 import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { validatePrice } from '../utils/priceValidation';
 
 export default function ProductDetailPage() {
   const { t } = useAppTranslation(['common', 'products']);
@@ -25,6 +27,7 @@ export default function ProductDetailPage() {
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
+  const { confirmPriceOverride } = useAdminPriceOverride();
   const cartItem = cartItems.find((item) => item.productId === productId);
 
   const { data: product, isLoading } = useQuery({
@@ -52,35 +55,39 @@ export default function ProductDetailPage() {
     setQuantity(cartItem?.quantity || 1);
   }, [cartItem?.quantity, productId]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
     
-    // Son kontrol: Yeni fiyat kuralları
-    const purchasePrice = product.inkoopprijs;
-    let minPrice: number;
-    
-    if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
-      // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
-      minPrice = basePrice * 0.95;
-      if (finalPrice < minPrice) {
+    const validation = validatePrice({
+      price: finalPrice,
+      basePrice,
+      purchasePrice: product.inkoopprijs,
+    });
+    let adminOverride = false;
+    let adminPriceOverrideConfirmed = cartItem?.adminPriceOverrideConfirmed || false;
+
+    if (!validation.isValid) {
+      if (!isAdmin) {
+        if (validation.rule === 'base-price') {
         showToast(
-          `⚠️ ${t('products:messages.belowBasePrice', { basePrice: formatCurrency(basePrice), minPrice: formatCurrency(minPrice) })}`,
+            `⚠️ ${t('products:messages.belowBasePrice', { basePrice: formatCurrency(basePrice), minPrice: formatCurrency(validation.minPrice) })}`,
           'error',
           5000
         );
+        } else {
+        showToast(
+            `⚠️ ${t('products:messages.belowPurchasePrice', { purchasePrice: '', minPrice: formatCurrency(validation.minPrice) })}`,
+          'error',
+          5000
+        );
+      }
         return;
       }
-    } else {
-      // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
-      minPrice = purchasePrice * 1.05;
-      if (finalPrice < minPrice) {
-        const purchasePriceText = isAdmin ? ` (${formatCurrency(purchasePrice)})` : '';
-        showToast(
-          `⚠️ ${t('products:messages.belowPurchasePrice', { purchasePrice: purchasePriceText, minPrice: formatCurrency(minPrice) })}`,
-          'error',
-          5000
-        );
-        return;
+
+      adminOverride = true;
+      if (!adminPriceOverrideConfirmed) {
+        adminPriceOverrideConfirmed = await confirmPriceOverride({ minPrice: formatCurrency(validation.minPrice) });
+        if (!adminPriceOverrideConfirmed) return;
       }
     }
     
@@ -96,10 +103,15 @@ export default function ProductDetailPage() {
       sku: product.artikelnummer,
       categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
       quantity,
-      unitPrice: basePrice, // Orijinal fiyat
+      unitPrice: finalPrice,
       basePrice: basePrice, // Base price
       totalPrice: finalPrice * quantity,
       vatPercentage: product.btwPercentage || 0,
+      ...(adminOverride && {
+        adminOverride: true,
+        adminPriceOverrideConfirmed,
+        adminOverrideReason: 'PRICE_BELOW_MINIMUM_CONFIRMED',
+      }),
       // Alış fiyatını kaydet (minimum fiyat kontrolü için)
       ...(product.inkoopprijs !== undefined && product.inkoopprijs !== null && { inkoopprijs: product.inkoopprijs }),
       // Birim bilgisini ekle

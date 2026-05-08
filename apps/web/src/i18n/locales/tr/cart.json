@@ -14,6 +14,13 @@
   "restoreOriginalPrice": "Orijinal fiyata dön",
   "confirmRemoveTitle": "Ürün sepetten çıkarılsın mı?",
   "confirmRemoveDescription": "Bu ürün sepetinizden kaldırılacak.",
+  "adminPriceOverride": {
+    "title": "Fiyat kriterlerinin altında",
+    "description": "Bu fiyat belirlenen satış kriterlerinin altında. Değiştirmek istediğinize emin misiniz?",
+    "minPrice": "Minimum kriter fiyatı: {{minPrice}}",
+    "cancel": "Vazgeç",
+    "confirm": "Evet, devam et"
+  },
   "messages": {
     "selectCustomer": "Lütfen bir müşteri seçin",
     "orderCreated": "Sipariş başarıyla oluşturuldu!",

@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
+import { useAdminPriceOverride } from '../components/AdminPriceOverrideProvider';
 import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { validatePrice } from '../utils/priceValidation';
 
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -18,7 +21,7 @@ const generateUUID = () => {
 };
 
 export default function CartPage() {
-  const { t } = useAppTranslation(['common', 'cart', 'products']);
+  const { t } = useAppTranslation(['common', 'cart', 'products', 'errors']);
   const { formatCurrency } = useLocaleFormat();
   const { items, customerId, updateQuantity, updateUnitPrice, resetToOriginalPrice, removeItem, setCustomer, clear } = useCartStore();
   const navigate = useNavigate();
@@ -31,6 +34,9 @@ export default function CartPage() {
   const [localUnitPrices, setLocalUnitPrices] = useState<Record<string, string>>({});
   const [itemToRemove, setItemToRemove] = useState<{ productId: string; productName: string } | null>(null);
   const showToast = useToastStore((state) => state.showToast);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'admin';
+  const { confirmPriceOverride } = useAdminPriceOverride();
 
   // Debounce customer search
   useEffect(() => {
@@ -78,12 +84,14 @@ export default function CartPage() {
       if (raw === '') return true;
       const val = parseFloat(raw);
       if (Number.isNaN(val)) return true;
-      if (item.inkoopprijs !== undefined && item.inkoopprijs !== null && val < item.inkoopprijs) {
-        return true;
-      }
-      return false;
+      const validation = validatePrice({
+        price: val,
+        basePrice: item.basePrice || item.unitPrice,
+        purchasePrice: item.inkoopprijs,
+      });
+      return !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed);
     });
-  }, [items, localUnitPrices]);
+  }, [items, localUnitPrices, isAdmin]);
 
   const { data: customersResponse, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ['customers', debouncedCustomerSearch],
@@ -158,9 +166,13 @@ export default function CartPage() {
           sku: item.sku || item.productId || 'N/A', // Fallback: sku yoksa productId veya 'N/A'
           quantity: item.quantity,
           unitPrice: unitPrice,
-          basePrice: item.unitPrice, // Orijinal fiyat
+          basePrice: item.basePrice || item.unitPrice,
           totalPrice: totalPrice,
           vatPercentage: item.vatPercentage || 0,
+          customUnitPrice: item.customUnitPrice,
+          adminOverride: item.adminOverride,
+          adminPriceOverrideConfirmed: item.adminPriceOverrideConfirmed,
+          adminOverrideReason: item.adminOverrideReason,
         };
       });
 
@@ -178,7 +190,14 @@ export default function CartPage() {
       navigate('/orders');
     },
     onError: (error: any) => {
-      showToast(error?.message || t('cart:messages.orderCreateError'), 'error', 4000);
+      const apiMessage = error?.response?.data?.message;
+      const message =
+        apiMessage === 'PRICE_BELOW_MINIMUM'
+          ? t('errors:priceBelowMinimumNoValue')
+          : apiMessage === 'ADMIN_PRICE_OVERRIDE_REQUIRED'
+            ? t('errors:adminPriceOverrideRequired')
+            : error?.message || t('cart:messages.orderCreateError');
+      showToast(message, 'error', 4000);
     },
   });
 
@@ -414,21 +433,17 @@ export default function CartPage() {
           const displayPrice = localUnitPrices[item.productId] ?? (item.customUnitPrice ?? item.unitPrice).toFixed(2);
           const rawPrice = displayPrice.replace(',', '.').trim();
           const numericPrice = rawPrice === '' ? NaN : parseFloat(rawPrice);
-          // Fiyat hatası kontrolü: Yeni kurallar
-          const purchasePrice = item.inkoopprijs;
-          let minPrice: number;
-          if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
-            // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
-            minPrice = item.unitPrice * 0.95;
-          } else {
-            // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
-            minPrice = purchasePrice * 1.05;
-          }
-          
+          const validation = Number.isNaN(numericPrice)
+            ? null
+            : validatePrice({
+                price: numericPrice,
+                basePrice: item.basePrice || item.unitPrice,
+                purchasePrice: item.inkoopprijs,
+              });
           const hasPriceErrorForItem =
             rawPrice === '' ||
             Number.isNaN(numericPrice) ||
-            numericPrice < minPrice;
+            (!!validation && !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed));
 
           return (
           <motion.div
@@ -522,7 +537,7 @@ export default function CartPage() {
                       step="0.01"
                       inputMode="decimal"
                       value={displayPrice}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const displayValue = e.target.value;
                         const raw = displayValue.replace(',', '.');
                         // Önce local state'i güncelle ki input gerçekten boş kalabilsin
@@ -540,36 +555,46 @@ export default function CartPage() {
                         if (Number.isNaN(newPrice)) {
                           return;
                         }
-                        
-                        // Fiyat kontrolü: Yeni kurallar
-                        const purchasePrice = item.inkoopprijs;
-                        let minPrice: number;
+                        const priceValidation = validatePrice({
+                          price: newPrice,
+                          basePrice: item.basePrice || item.unitPrice,
+                          purchasePrice: item.inkoopprijs,
+                        });
+                        let adminOverride = false;
+                        let adminPriceOverrideConfirmed = item.adminPriceOverrideConfirmed;
 
-                        if (purchasePrice === undefined || purchasePrice === null || purchasePrice === 0) {
-                          // Alış fiyatı yok veya 0 ise: Ürün fiyatından maksimum %5 indirim
-                          minPrice = item.unitPrice * 0.95;
-                          if (newPrice < minPrice) {
+                        if (!priceValidation.isValid) {
+                          if (!isAdmin) {
                             showToast(
-                              `⚠️ ${t('errors:generic')} ${formatCurrency(minPrice)}`,
+                              `⚠️ ${t('errors:priceBelowMinimum', { minPrice: formatCurrency(priceValidation.minPrice) })}`,
                               'error',
                               4000,
                             );
                             return;
                           }
-                        } else {
-                          // Alış fiyatı varsa: Alış fiyatının %5 üstü minimum
-                          minPrice = purchasePrice * 1.05;
-                          if (newPrice < minPrice) {
-                            showToast(
-                              `⚠️ ${t('errors:generic')} ${formatCurrency(minPrice)}`,
-                              'error',
-                              4000,
-                            );
-                            return;
+
+                          adminOverride = true;
+                          if (!adminPriceOverrideConfirmed) {
+                            adminPriceOverrideConfirmed = await confirmPriceOverride({
+                              minPrice: formatCurrency(priceValidation.minPrice),
+                            });
+                            if (!adminPriceOverrideConfirmed) {
+                              setLocalUnitPrices((prev) => ({
+                                ...prev,
+                                [item.productId]: (item.customUnitPrice ?? item.unitPrice).toFixed(2),
+                              }));
+                              return;
+                            }
                           }
                         }
                         
-                        updateUnitPrice(item.productId, newPrice);
+                        updateUnitPrice(item.productId, newPrice, {
+                          adminOverride,
+                          adminPriceOverrideConfirmed,
+                          adminOverrideReason: adminPriceOverrideConfirmed
+                            ? 'PRICE_BELOW_MINIMUM_CONFIRMED'
+                            : undefined,
+                        });
                       }}
                       style={{
                         flex: 1,
