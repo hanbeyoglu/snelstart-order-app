@@ -14,6 +14,13 @@
   "restoreOriginalPrice": "Originalpreis wiederherstellen",
   "confirmRemoveTitle": "Produkt aus Warenkorb entfernen?",
   "confirmRemoveDescription": "Dieses Produkt wird aus Ihrem Warenkorb entfernt.",
+  "adminPriceOverride": {
+    "title": "Unter den Preiskriterien",
+    "description": "Dieser Preis liegt unter den festgelegten Verkaufskriterien. Sind Sie sicher, dass Sie ihn andern mochten?",
+    "minPrice": "Mindestkriterienpreis: {{minPrice}}",
+    "cancel": "Abbrechen",
+    "confirm": "Ja, fortfahren"
+  },
   "messages": {
     "selectCustomer": "Bitte wahlen Sie einen Kunden aus",
     "orderCreated": "Bestellung erfolgreich erstellt!",

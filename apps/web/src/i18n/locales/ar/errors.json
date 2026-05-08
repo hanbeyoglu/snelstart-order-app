@@ -4,5 +4,8 @@
   "invalidBackendResponse": "تم استلام استجابة غير صالحة من الخادم الخلفي",
   "presignedUrl": "حدث خطأ أثناء الحصول على رابط الرفع",
   "r2NotConfigured": "لم يتم إعداد Cloudflare R2. يرجى التحقق من متغيرات بيئة الخادم الخلفي.",
-  "visibilityUpdate": "تعذر تحديث الظهور"
+  "visibilityUpdate": "تعذر تحديث الظهور",
+  "priceBelowMinimum": "السعر أقل من الحد الأدنى للمعايير. الحد الأدنى للسعر: {{minPrice}}",
+  "priceBelowMinimumNoValue": "السعر أقل من الحد الأدنى لمعايير البيع.",
+  "adminPriceOverrideRequired": "يمكن للمسؤول فقط إرسال تجاوز لهذا السعر المنخفض."
 }

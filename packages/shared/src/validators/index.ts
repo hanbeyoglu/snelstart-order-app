@@ -68,6 +68,9 @@ export const cartItemSchema = z.object({
   totalPrice: z.number().nonnegative(),
   vatPercentage: z.number().nonnegative(),
   customUnitPrice: z.number().nonnegative().optional(),
+  adminOverride: z.boolean().optional(),
+  adminPriceOverrideConfirmed: z.boolean().optional(),
+  adminOverrideReason: z.string().optional(),
 });
 
 export const createOrderSchema = z.object({

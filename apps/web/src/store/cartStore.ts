@@ -50,7 +50,15 @@ interface CartState {
   currentUserId: string | null;
   addItem: (item: CartItem) => void;
   updateQuantity: (productId: string, quantity: number) => void;
-  updateUnitPrice: (productId: string, unitPrice: number) => void;
+  updateUnitPrice: (
+    productId: string,
+    unitPrice: number,
+    options?: {
+      adminOverride?: boolean;
+      adminPriceOverrideConfirmed?: boolean;
+      adminOverrideReason?: string;
+    },
+  ) => void;
   resetToOriginalPrice: (productId: string) => void;
   removeItem: (productId: string) => void;
   removeItemsByCategory: (categoryId: string) => void;
@@ -97,7 +105,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
       return { items: nextItems };
     }),
 
-  updateUnitPrice: (productId, unitPrice) =>
+  updateUnitPrice: (productId, unitPrice, options) =>
     set((state) => {
       const nextItems = state.items.map((i) =>
         i.productId === productId
@@ -105,6 +113,10 @@ export const useCartStore = create<CartState>()((set, get) => ({
               ...i,
               customUnitPrice: unitPrice,
               totalPrice: unitPrice * i.quantity,
+              adminOverride: options?.adminOverride || undefined,
+              adminPriceOverrideConfirmed:
+                options?.adminPriceOverrideConfirmed ?? i.adminPriceOverrideConfirmed,
+              adminOverrideReason: options?.adminOverrideReason,
             }
           : i,
       );
@@ -123,6 +135,10 @@ export const useCartStore = create<CartState>()((set, get) => ({
           ? {
               ...i,
               customUnitPrice: undefined,
+              adminOverride: undefined,
+              adminOverrideReason: i.adminPriceOverrideConfirmed
+                ? i.adminOverrideReason
+                : undefined,
               totalPrice: i.unitPrice * i.quantity,
             }
           : i,

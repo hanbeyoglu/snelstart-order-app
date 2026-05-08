@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -8,6 +8,7 @@ import { SnelStartService } from '../snelstart/snelstart.service';
 import { AuditService } from '../audit/audit.service';
 import { CustomersService } from '../customers/customers.service';
 import { createOrderSchema } from '@snelstart-order-app/shared';
+import { Product, ProductDocument } from '../products/schemas/product.schema';
 
 @Injectable()
 export class OrdersService {
@@ -15,14 +16,55 @@ export class OrdersService {
 
   constructor(
     @InjectModel(LocalOrder.name) private orderModel: Model<LocalOrderDocument>,
+    @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectQueue('order-sync') private orderSyncQueue: Queue,
     private snelStartService: SnelStartService,
     private auditService: AuditService,
     @Inject(forwardRef(() => CustomersService)) private customersService: CustomersService,
   ) {}
 
-  async createOrder(orderData: any, userId?: string) {
+  private getMinimumAllowedPrice(basePrice: number, purchasePrice?: number | null) {
+    if (purchasePrice && purchasePrice > 0) {
+      return purchasePrice * 1.05;
+    }
+    return basePrice * 0.95;
+  }
+
+  private async validateOrderPrices(items: any[], user?: any) {
+    const productIds = items.map((item) => item.productId);
+    const products = await this.productModel
+      .find({ snelstartId: { $in: productIds } })
+      .select('snelstartId verkoopprijs inkoopprijs')
+      .lean()
+      .exec();
+    const productById = new Map<string, any>(
+      products.map((product: any) => [product.snelstartId, product]),
+    );
+
+    for (const item of items) {
+      const product = productById.get(item.productId);
+      const unitPrice = item.unitPrice;
+      const basePrice = product?.verkoopprijs ?? item.basePrice ?? unitPrice;
+      const purchasePrice = product?.inkoopprijs;
+      const minPrice = this.getMinimumAllowedPrice(basePrice, purchasePrice);
+
+      if (unitPrice >= minPrice) {
+        continue;
+      }
+
+      if (!item.adminOverride && !item.adminPriceOverrideConfirmed) {
+        throw new BadRequestException('PRICE_BELOW_MINIMUM');
+      }
+
+      if (user?.role !== 'admin') {
+        throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
+      }
+    }
+  }
+
+  async createOrder(orderData: any, user?: any) {
     const validated = createOrderSchema.parse(orderData);
+    await this.validateOrderPrices(validated.items, user);
 
     // Check idempotency
     const existing = await this.orderModel
@@ -84,7 +126,7 @@ export class OrdersService {
         action: 'ORDER_SYNCED',
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
-        userId,
+        userId: user?.userId,
         metadata: { snelstartOrderId: snelStartOrder.id },
       });
 
@@ -107,7 +149,7 @@ export class OrdersService {
         action: 'ORDER_SYNC_FAILED',
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
-        userId,
+        userId: user?.userId,
         metadata: { error: error.message },
       });
 
@@ -250,7 +292,7 @@ export class OrdersService {
     return { success: true };
   }
 
-  async updateOrder(id: string, orderData: any, userId?: string) {
+  async updateOrder(id: string, orderData: any, user?: any) {
     const order = await this.orderModel.findById(id).exec();
     if (!order) {
       throw new Error('Order not found');
@@ -277,6 +319,7 @@ export class OrdersService {
 
     // Update order fields
     if (orderData.items) {
+      await this.validateOrderPrices(orderData.items, user);
       const subtotal = orderData.items.reduce((sum: number, item: any) => {
         return sum + (item.unitPrice * item.quantity);
       }, 0);
@@ -291,7 +334,7 @@ export class OrdersService {
       action: 'ORDER_UPDATED',
       entityType: 'LocalOrder',
       entityId: id,
-      userId,
+      userId: user?.userId,
     });
 
     return order;
@@ -384,4 +427,3 @@ export class OrdersService {
     };
   }
 }
-

@@ -4,5 +4,8 @@
   "invalidBackendResponse": "Backend'den geçersiz yanıt alındı",
   "presignedUrl": "Presigned URL alınırken bir hata oluştu",
   "r2NotConfigured": "Cloudflare R2 yapılandırılmamış. Lütfen backend ortam değişkenlerini kontrol edin.",
-  "visibilityUpdate": "Görünürlük güncellenemedi"
+  "visibilityUpdate": "Görünürlük güncellenemedi",
+  "priceBelowMinimum": "Fiyat minimum kriterin altında. Minimum fiyat: {{minPrice}}",
+  "priceBelowMinimumNoValue": "Fiyat minimum satış kriterlerinin altında.",
+  "adminPriceOverrideRequired": "Bu düşük fiyatı sadece admin onayıyla gönderebilirsiniz."
 }

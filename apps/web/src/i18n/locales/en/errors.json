@@ -4,5 +4,8 @@
   "invalidBackendResponse": "Invalid response received from backend",
   "presignedUrl": "An error occurred while getting the presigned URL",
   "r2NotConfigured": "Cloudflare R2 is not configured. Please check backend environment variables.",
-  "visibilityUpdate": "Visibility could not be updated"
+  "visibilityUpdate": "Visibility could not be updated",
+  "priceBelowMinimum": "Price is below the minimum criteria. Minimum price: {{minPrice}}",
+  "priceBelowMinimumNoValue": "Price is below the minimum sales criteria.",
+  "adminPriceOverrideRequired": "Only an admin can submit this low-price override."
 }

@@ -11,6 +11,9 @@ export interface CartItem {
   totalPrice: number;
   vatPercentage: number;
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
+  adminOverride?: boolean;
+  adminPriceOverrideConfirmed?: boolean;
+  adminOverrideReason?: string;
 }
 
 @Schema({ timestamps: true })
@@ -48,4 +51,3 @@ export class LocalOrder extends Document {
 
 export const LocalOrderSchema = SchemaFactory.createForClass(LocalOrder);
 export type LocalOrderDocument = LocalOrder & Document;
-

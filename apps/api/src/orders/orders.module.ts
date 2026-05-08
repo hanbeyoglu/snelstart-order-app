@@ -7,10 +7,14 @@ import { SnelStartModule } from '../snelstart/snelstart.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AuditModule } from '../audit/audit.module';
 import { CustomersModule } from '../customers/customers.module';
+import { Product, ProductSchema } from '../products/schemas/product.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: LocalOrder.name, schema: LocalOrderSchema }]),
+    MongooseModule.forFeature([
+      { name: LocalOrder.name, schema: LocalOrderSchema },
+      { name: Product.name, schema: ProductSchema },
+    ]),
     SnelStartModule,
     BullModule.registerQueue({
       name: 'order-sync',
@@ -23,4 +27,3 @@ import { CustomersModule } from '../customers/customers.module';
   exports: [OrdersService],
 })
 export class OrdersModule {}
-

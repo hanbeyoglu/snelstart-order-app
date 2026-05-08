@@ -159,6 +159,9 @@ export interface CartItem {
   totalPrice: number;
   vatPercentage: number;
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
+  adminOverride?: boolean; // Admin düşük fiyat onayı verdi mi?
+  adminPriceOverrideConfirmed?: boolean; // Ürün bazlı admin override onayı
+  adminOverrideReason?: string; // Admin override açıklaması
   inkoopprijs?: number; // Alış fiyatı (minimum fiyat kontrolü için)
   eenheid?: string; // Ürün birimi (kg, st, m, vb.)
   coverImageUrl?: string; // Ürün kapak resmi URL'i

@@ -4,5 +4,8 @@
   "invalidBackendResponse": "Ongeldig antwoord ontvangen van backend",
   "presignedUrl": "Er is een fout opgetreden bij het ophalen van de presigned URL",
   "r2NotConfigured": "Cloudflare R2 is niet geconfigureerd. Controleer de backend environment variables.",
-  "visibilityUpdate": "Zichtbaarheid kon niet worden bijgewerkt"
+  "visibilityUpdate": "Zichtbaarheid kon niet worden bijgewerkt",
+  "priceBelowMinimum": "Prijs ligt onder het minimumcriterium. Minimumprijs: {{minPrice}}",
+  "priceBelowMinimumNoValue": "Prijs ligt onder de minimale verkoopcriteria.",
+  "adminPriceOverrideRequired": "Alleen een admin kan deze lage prijs met override verzenden."
 }
