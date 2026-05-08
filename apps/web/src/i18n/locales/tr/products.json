@@ -1,0 +1,56 @@
+{
+  "title": "Ürünler",
+  "allTitle": "Tüm Ürünler",
+  "detail": "Ürün Detayı",
+  "searchPlaceholder": "Ürün ara (isim, barkod)...",
+  "categorySearchPlaceholder": "Kategori ara...",
+  "selectCategories": "Kategorileri seç",
+  "inStockOnly": "Sadece stokta olanlar",
+  "inCart": "Sepette: {{count}} adet",
+  "decreaseQuantity": "{{name}} adet azalt",
+  "increaseQuantity": "{{name}} adet artır",
+  "cartQuantity": "{{name}} sepetteki adet",
+  "stockLimitTitle": "Stok limiti",
+  "increaseTitle": "Adet artır",
+  "hidePurchasePrice": "Alış fiyatını gizle",
+  "showPurchasePrice": "Alış fiyatını göster",
+  "pageSummary": "Sayfa {{page}} / {{totalPages}} (Toplam: {{total}})",
+  "sort": {
+    "label": "Sıralama",
+    "nameAsc": "İsme göre (A-Z)",
+    "nameDesc": "İsme göre (Z-A)",
+    "priceAsc": "Fiyat (düşükten yükseğe)",
+    "priceDesc": "Fiyat (yüksekten düşüğe)",
+    "stockDesc": "Stok (çok olandan aza)"
+  },
+  "fields": {
+    "id": "ID",
+    "code": "Ürün Kodu",
+    "category": "Kategori",
+    "barcode": "Barkod",
+    "stock": "Stok",
+    "unit": "Birim",
+    "unitFallback": "adet",
+    "quantity": "Miktar",
+    "salePrice": "Satış Fiyatı",
+    "purchasePrice": "Alış Fiyatı",
+    "basePrice": "Baz Fiyat",
+    "vat": "KDV",
+    "date": "Tarih",
+    "discount": "İndirim",
+    "customer": "Müşteri"
+  },
+  "messages": {
+    "syncSuccess": "Ürünler ve kategoriler başarıyla senkronize edildi",
+    "syncFailed": "Senkronizasyon başarısız",
+    "syncError": "Senkronizasyon sırasında bir hata oluştu",
+    "notFound": "Ürün bulunamadı",
+    "outOfStock": "Bu ürün stokta yok",
+    "stockLimit": "Stok miktarı aşılamaz. Maksimum: {{count}} adet",
+    "addedToCart": "{{name}} sepete eklendi",
+    "quantityUpdated": "{{name}} miktarı güncellendi ({{quantity}} adet)"
+    ,"belowBasePrice": "Sepete eklenemedi! Fiyat ürün fiyatından ({{basePrice}}) maksimum %5 düşük olabilir. Minimum fiyat: {{minPrice}}",
+    "belowPurchasePrice": "Sepete eklenemedi! Fiyat alış fiyatının{{purchasePrice}} %5 üstünden düşük olamaz. Minimum fiyat: {{minPrice}}",
+    "addedToCartWithQuantity": "{{name}} sepete eklendi ({{quantity}} adet)"
+  }
+}

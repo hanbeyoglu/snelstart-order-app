@@ -1,0 +1,25 @@
+{
+  "title": "Cart",
+  "emptyTitle": "Your cart is empty",
+  "emptyDescription": "Add products to create an order.",
+  "selectCustomer": "Select customer",
+  "customerSearchPlaceholder": "Search or select a customer...",
+  "selectedCustomer": "Selected Customer",
+  "subtotal": "Subtotal:",
+  "total": "Total:",
+  "createOrder": "Create Order",
+  "creatingOrder": "Creating order...",
+  "clearCart": "Clear Cart",
+  "removeProduct": "Remove Product from Cart",
+  "restoreOriginalPrice": "Restore original price",
+  "confirmRemoveTitle": "Remove product from cart?",
+  "confirmRemoveDescription": "This product will be removed from your cart.",
+  "messages": {
+    "selectCustomer": "Please select a customer",
+    "orderCreated": "Order created successfully!",
+    "orderCreateError": "An error occurred while creating the order",
+    "cartCleared": "Cart cleared",
+    "priceRestored": "{{name}} restored to original price",
+    "removed": "{{name}} removed from cart"
+  }
+}

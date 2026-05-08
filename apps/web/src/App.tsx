@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useCartStore } from './store/cartStore';
@@ -29,11 +30,14 @@ import ReportsPage from './pages/ReportsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
+import LegacyDomI18n from './components/LegacyDomI18n';
+import { normalizeLanguage, supportedLanguages } from './i18n/constants';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
   const { toasts, removeToast } = useToastStore();
   const setCurrentUser = useCartStore((s) => s.setCurrentUser);
+  const { i18n } = useTranslation();
 
   // Oturum devam ediyorsa (sayfa yenileme) kullanıcının sepetini yükle
   useEffect(() => {
@@ -43,6 +47,16 @@ function App() {
       setCurrentUser(null);
     }
   }, [user?.id, setCurrentUser]);
+
+  useEffect(() => {
+    const language = normalizeLanguage(i18n.resolvedLanguage || i18n.language);
+    const direction = supportedLanguages[language].direction;
+    document.documentElement.lang = language;
+    document.documentElement.dir = direction;
+    document.body.dir = direction;
+    document.body.dataset.language = language;
+    document.body.dataset.direction = direction;
+  }, [i18n.language, i18n.resolvedLanguage]);
 
   return (
     <>
@@ -88,6 +102,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" />} />
         )}
       </Routes>
+      <LegacyDomI18n />
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </>
   );

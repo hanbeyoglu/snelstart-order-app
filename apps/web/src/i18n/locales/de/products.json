@@ -1,0 +1,56 @@
+{
+  "title": "Produkte",
+  "allTitle": "Alle Produkte",
+  "detail": "Produktdetail",
+  "searchPlaceholder": "Produkte suchen (Name, Barcode)...",
+  "categorySearchPlaceholder": "Kategorie suchen...",
+  "selectCategories": "Kategorien auswahlen",
+  "inStockOnly": "Nur auf Lager",
+  "inCart": "Im Warenkorb: {{count}} Stk.",
+  "decreaseQuantity": "Menge von {{name}} verringern",
+  "increaseQuantity": "Menge von {{name}} erhöhen",
+  "cartQuantity": "Menge von {{name}} im Warenkorb",
+  "stockLimitTitle": "Bestandslimit",
+  "increaseTitle": "Menge erhöhen",
+  "hidePurchasePrice": "Einkaufspreis ausblenden",
+  "showPurchasePrice": "Einkaufspreis anzeigen",
+  "pageSummary": "Seite {{page}} / {{totalPages}} (Gesamt: {{total}})",
+  "sort": {
+    "label": "Sortierung",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)",
+    "priceAsc": "Preis (niedrig bis hoch)",
+    "priceDesc": "Preis (hoch bis niedrig)",
+    "stockDesc": "Lagerbestand (hoch bis niedrig)"
+  },
+  "fields": {
+    "id": "ID",
+    "code": "Produktcode",
+    "category": "Kategorie",
+    "barcode": "Barcode",
+    "stock": "Lagerbestand",
+    "unit": "Einheit",
+    "unitFallback": "Stk.",
+    "quantity": "Menge",
+    "salePrice": "Verkaufspreis",
+    "purchasePrice": "Einkaufspreis",
+    "basePrice": "Basispreis",
+    "vat": "MwSt.",
+    "date": "Datum",
+    "discount": "Rabatt",
+    "customer": "Kunde"
+  },
+  "messages": {
+    "syncSuccess": "Produkte und Kategorien erfolgreich synchronisiert",
+    "syncFailed": "Synchronisierung fehlgeschlagen",
+    "syncError": "Bei der Synchronisierung ist ein Fehler aufgetreten",
+    "notFound": "Produkt nicht gefunden",
+    "outOfStock": "Dieses Produkt ist nicht auf Lager",
+    "stockLimit": "Lagergrenze uberschritten. Maximum: {{count}} Stk.",
+    "addedToCart": "{{name}} in den Warenkorb gelegt",
+    "quantityUpdated": "Menge von {{name}} aktualisiert ({{quantity}} Stk.)"
+    ,"belowBasePrice": "Konnte nicht in den Warenkorb gelegt werden. Der Preis darf höchstens 5% unter dem Produktpreis ({{basePrice}}) liegen. Mindestpreis: {{minPrice}}",
+    "belowPurchasePrice": "Konnte nicht in den Warenkorb gelegt werden. Der Preis darf nicht unter 5% über dem Einkaufspreis{{purchasePrice}} liegen. Mindestpreis: {{minPrice}}",
+    "addedToCartWithQuantity": "{{name}} in den Warenkorb gelegt ({{quantity}} Stk.)"
+  }
+}

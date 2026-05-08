@@ -1,0 +1,50 @@
+{
+  "title": "Customers",
+  "subtitle": "Manage your customers and add new customers",
+  "create": "Add New Customer",
+  "createTitle": "Create New Customer",
+  "editTitle": "Edit Customer",
+  "creating": "Creating...",
+  "updating": "Updating...",
+  "loading": "Loading customers...",
+  "createButton": "Create Customer",
+  "relationType": "Relation Type",
+  "customerName": "Customer Name",
+  "addressInfo": "Address Information",
+  "contactInfo": "Contact Information",
+  "street": "Street",
+  "postalCode": "Postal Code",
+  "city": "City",
+  "phone": "Phone",
+  "email": "Email",
+  "kvkNumber": "KVK Number",
+  "btwNumber": "VAT Number",
+  "searchPlaceholder": "Search customers (name, code, email, phone)...",
+  "showWholesalers": "Show together with wholesalers",
+  "cityFilter": "City Filter",
+  "selectCity": "Select City",
+  "citySearchPlaceholder": "Search city...",
+  "noCityFound": "No city found",
+  "emptyTitle": "No Customers Found",
+  "emptyDescription": "No customers match your search criteria.",
+  "codeLabel": "Code: {{code}}",
+  "notesPlaceholder": "Add notes about the customer...",
+  "addToVisitPlan": "Add Customer to Visit Plan",
+  "paginationSummary": "Page {{page}} / {{totalPages}} (Total: {{total}})",
+  "table": {
+    "name": "Name",
+    "code": "Code"
+  },
+  "status": {
+    "visited": "Visited",
+    "planned": "Planned",
+    "new": "New"
+  },
+  "messages": {
+    "created": "Customer created successfully!",
+    "createError": "An error occurred while creating the customer",
+    "syncSuccess": "Customers synced successfully",
+    "syncError": "Synchronization failed",
+    "syncUnexpectedError": "An error occurred during synchronization"
+  }
+}

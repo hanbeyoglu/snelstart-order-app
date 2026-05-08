@@ -1,0 +1,32 @@
+{
+  "app": { "name": "DHY", "brand": "DHY Food BV" },
+  "languages": { "label": "Taal", "current": "Huidige taal", "tr": "Türkçe", "en": "English", "nl": "Nederlands", "de": "Deutsch", "ar": "العربية" },
+  "navigation": {
+    "dashboard": "Dashboard", "products": "Alle producten", "categories": "Categorieen", "customers": "Klanten", "orders": "Bestellingen", "cart": "Winkelwagen",
+    "catalog": "CATALOGUS", "system": "SYSTEEM", "analysis": "ANALYSE", "account": "ACCOUNT", "productVisibility": "Productzichtbaarheid",
+    "categoryVisibility": "Categoriezichtbaarheid", "productImages": "Productafbeeldingen", "priceWarnings": "Prijswaarschuwingen",
+    "connectionSettings": "Verbindingsinstellingen", "users": "Gebruikers", "reports": "Rapporten", "userInfo": "Gebruikersinformatie",
+    "logout": "Uitloggen", "openMenu": "Menu openen", "closeMenu": "Menu sluiten"
+  },
+  "actions": {
+    "add": "Toevoegen", "addToCart": "Toevoegen aan winkelwagen", "back": "Terug", "cancel": "Annuleren", "clear": "Wissen", "close": "Sluiten",
+    "confirm": "Bevestigen", "create": "Aanmaken", "delete": "Verwijderen", "edit": "Bewerken", "filter": "Filteren", "refresh": "Vernieuwen",
+    "remove": "Verwijderen", "reset": "Resetten", "save": "Opslaan", "search": "Zoeken", "sync": "Synchroniseren", "update": "Bijwerken",
+    "upload": "Uploaden", "view": "Bekijken", "yesDelete": "Ja, verwijderen", "continue": "Doorgaan"
+  },
+  "states": {
+    "active": "Actief", "inactive": "Passief", "all": "Alles", "loading": "Laden...", "saving": "Opslaan...", "syncing": "Synchroniseren...",
+    "deleting": "Verwijderen...", "empty": "Geen records gevonden", "error": "Fout", "success": "Gelukt", "warning": "Waarschuwing",
+    "unknown": "Onbekend", "notAvailable": "N.v.t."
+  },
+  "pagination": { "page": "Pagina", "pageSize": "Per pagina", "previous": "Vorige", "next": "Volgende", "of": "van", "showing": "{{from}}-{{to}} van {{total}} weergegeven" },
+  "forms": {
+    "required": "Verplicht", "name": "Naam", "firstName": "Voornaam", "lastName": "Achternaam", "username": "Gebruikersnaam", "email": "E-mail",
+    "password": "Wachtwoord", "confirmPassword": "Bevestig wachtwoord", "role": "Rol", "phone": "Telefoon", "address": "Adres", "street": "Straat",
+    "postalCode": "Postcode", "city": "Stad", "country": "Land", "notes": "Notities", "search": "Zoeken", "status": "Status"
+  },
+  "format": { "currency": "EUR", "unit": "stuks" },
+  "time": { "expired": "Verlopen", "daysHours": "{{days}} dagen {{hours}} uur", "hoursMinutes": "{{hours}} uur {{minutes}} minuten", "minutes": "{{minutes}} minuten", "remaining": "Resterende tijd:" },
+  "token": { "connectionStatus": "Verbindingsstatus", "valid": "Verbinding actief", "invalid": "Verbinding inactief" },
+  "notFound": { "title": "Pagina niet gevonden", "description": "De pagina die u zoekt bestaat niet.", "home": "Terug naar home" }
+}

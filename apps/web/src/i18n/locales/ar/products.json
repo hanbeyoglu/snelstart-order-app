@@ -1,0 +1,56 @@
+{
+  "title": "المنتجات",
+  "allTitle": "كل المنتجات",
+  "detail": "تفاصيل المنتج",
+  "searchPlaceholder": "ابحث عن المنتجات (الاسم، الباركود)...",
+  "categorySearchPlaceholder": "ابحث عن فئة...",
+  "selectCategories": "اختر الفئات",
+  "inStockOnly": "المتوفر فقط",
+  "inCart": "في السلة: {{count}} قطعة",
+  "decreaseQuantity": "تقليل كمية {{name}}",
+  "increaseQuantity": "زيادة كمية {{name}}",
+  "cartQuantity": "كمية {{name}} في السلة",
+  "stockLimitTitle": "حد المخزون",
+  "increaseTitle": "زيادة الكمية",
+  "hidePurchasePrice": "إخفاء سعر الشراء",
+  "showPurchasePrice": "إظهار سعر الشراء",
+  "pageSummary": "الصفحة {{page}} / {{totalPages}} (الإجمالي: {{total}})",
+  "sort": {
+    "label": "الترتيب",
+    "nameAsc": "الاسم (أ-ي)",
+    "nameDesc": "الاسم (ي-أ)",
+    "priceAsc": "السعر (من الأقل إلى الأعلى)",
+    "priceDesc": "السعر (من الأعلى إلى الأقل)",
+    "stockDesc": "المخزون (من الأعلى إلى الأقل)"
+  },
+  "fields": {
+    "id": "ID",
+    "code": "كود المنتج",
+    "category": "الفئة",
+    "barcode": "الباركود",
+    "stock": "المخزون",
+    "unit": "الوحدة",
+    "unitFallback": "قطعة",
+    "quantity": "الكمية",
+    "salePrice": "سعر البيع",
+    "purchasePrice": "سعر الشراء",
+    "basePrice": "السعر الأساسي",
+    "vat": "ضريبة القيمة المضافة",
+    "date": "التاريخ",
+    "discount": "الخصم",
+    "customer": "العميل"
+  },
+  "messages": {
+    "syncSuccess": "تمت مزامنة المنتجات والفئات بنجاح",
+    "syncFailed": "فشلت المزامنة",
+    "syncError": "حدث خطأ أثناء المزامنة",
+    "notFound": "لم يتم العثور على المنتج",
+    "outOfStock": "هذا المنتج غير متوفر",
+    "stockLimit": "لا يمكن تجاوز المخزون. الحد الأقصى: {{count}} قطعة",
+    "addedToCart": "تمت إضافة {{name}} إلى السلة",
+    "quantityUpdated": "تم تحديث كمية {{name}} ({{quantity}} قطعة)"
+    ,"belowBasePrice": "تعذرت الإضافة إلى السلة. يمكن أن يكون السعر أقل من سعر المنتج ({{basePrice}}) بنسبة 5% كحد أقصى. الحد الأدنى للسعر: {{minPrice}}",
+    "belowPurchasePrice": "تعذرت الإضافة إلى السلة. لا يمكن أن يكون السعر أقل من 5% فوق سعر الشراء{{purchasePrice}}. الحد الأدنى للسعر: {{minPrice}}",
+    "addedToCartWithQuantity": "تمت إضافة {{name}} إلى السلة ({{quantity}} قطعة)"
+  }
+}

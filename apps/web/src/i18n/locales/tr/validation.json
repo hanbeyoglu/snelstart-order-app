@@ -1,0 +1,15 @@
+{
+  "requiredFields": "Lütfen tüm zorunlu alanları doldurun",
+  "usernameRequired": "Lütfen kullanıcı adını girin",
+  "usernamePasswordRequired": "Lütfen kullanıcı adı ve şifre alanlarını doldurun",
+  "passwordMin": "Şifre en az {{count}} karakter olmalıdır",
+  "passwordMismatch": "Şifreler eşleşmiyor",
+  "fileRequired": "Lütfen bir dosya seçin",
+  "relationTypeRequired": "En az bir ilişki türü seçmelisiniz",
+  "customerNameRequired": "Müşteri adı zorunludur",
+  "streetRequired": "Sokak adresi zorunludur",
+  "postalCodeRequired": "Posta kodu zorunludur",
+  "cityRequired": "Şehir zorunludur",
+  "emailInvalid": "Geçerli bir e-posta adresi giriniz",
+  "phoneInvalid": "Geçerli bir telefon numarası giriniz"
+}

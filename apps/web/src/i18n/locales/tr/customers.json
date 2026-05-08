@@ -1,0 +1,50 @@
+{
+  "title": "Müşteriler",
+  "subtitle": "Müşterilerinizi yönetin ve yeni müşteri ekleyin",
+  "create": "Yeni Müşteri Ekle",
+  "createTitle": "Yeni Müşteri Oluştur",
+  "editTitle": "Müşteri Düzenle",
+  "creating": "Oluşturuluyor...",
+  "updating": "Güncelleniyor...",
+  "loading": "Müşteriler yükleniyor...",
+  "createButton": "Müşteri Oluştur",
+  "relationType": "İlişki Türü",
+  "customerName": "Müşteri Adı",
+  "addressInfo": "Adres Bilgileri",
+  "contactInfo": "İletişim Bilgileri",
+  "street": "Sokak",
+  "postalCode": "Posta Kodu",
+  "city": "Şehir",
+  "phone": "Telefon",
+  "email": "E-posta",
+  "kvkNumber": "KVK Numara",
+  "btwNumber": "BTW Numara",
+  "searchPlaceholder": "Müşteri ara (isim, kod, e-posta, telefon)...",
+  "showWholesalers": "Toptancılar ile beraber göster",
+  "cityFilter": "Şehir Filtresi",
+  "selectCity": "Şehir Seç",
+  "citySearchPlaceholder": "Şehir ara...",
+  "noCityFound": "Şehir bulunamadı",
+  "emptyTitle": "Müşteri Bulunamadı",
+  "emptyDescription": "Aradığınız kriterlere uygun müşteri bulunamadı.",
+  "codeLabel": "Kod: {{code}}",
+  "notesPlaceholder": "Müşteri hakkında notlar ekleyin...",
+  "addToVisitPlan": "Müşteri Gitme Planına Ekle",
+  "paginationSummary": "Sayfa {{page}} / {{totalPages}} (Toplam: {{total}})",
+  "table": {
+    "name": "İsim",
+    "code": "Kod"
+  },
+  "status": {
+    "visited": "Gidildi",
+    "planned": "Planlandı",
+    "new": "Yeni"
+  },
+  "messages": {
+    "created": "Müşteri başarıyla oluşturuldu!",
+    "createError": "Müşteri oluşturulurken bir hata oluştu",
+    "syncSuccess": "Müşteriler başarıyla senkronize edildi",
+    "syncError": "Senkronizasyon başarısız",
+    "syncUnexpectedError": "Senkronizasyon sırasında bir hata oluştu"
+  }
+}

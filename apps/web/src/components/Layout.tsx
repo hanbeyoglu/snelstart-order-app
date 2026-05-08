@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import api from '../services/api';
 import dhyLogo from '../assets/image/DHY-logo.jpg';
 
@@ -19,6 +22,8 @@ type MenuSection = {
 };
 
 export default function Layout() {
+  const { t } = useAppTranslation('common');
+  const { formatDateTime } = useLocaleFormat();
   const { user, logout } = useAuthStore();
   const { items } = useCartStore();
   const navigate = useNavigate();
@@ -99,18 +104,18 @@ export default function Layout() {
     const now = new Date();
     const diff = tokenExpiresAt.getTime() - now.getTime();
     
-    if (diff <= 0) return 'Süresi dolmuş';
+    if (diff <= 0) return t('time.expired');
     
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
     
     if (days > 0) {
-      return `${days} gün ${hours % 24} saat`;
+      return t('time.daysHours', { days, hours: hours % 24 });
     } else if (hours > 0) {
-      return `${hours} saat ${minutes % 60} dakika`;
+      return t('time.hoursMinutes', { hours, minutes: minutes % 60 });
     } else {
-      return `${minutes} dakika`;
+      return t('time.minutes', { minutes });
     }
   };
 
@@ -161,11 +166,11 @@ export default function Layout() {
   };
 
   const navLinks = [
-    { to: '/', label: 'Dashboard', icon: '📊' },
-    { to: '/products', label: 'Tüm Ürünler', icon: '🛍️' },
-    { to: '/categories', label: 'Kategoriler', icon: '📁' },
-    { to: '/customers', label: 'Müşteriler', icon: '👥' },
-    { to: '/orders', label: 'Siparişler', icon: '📋' },
+    { to: '/', label: t('navigation.dashboard'), icon: '📊' },
+    { to: '/products', label: t('navigation.products'), icon: '🛍️' },
+    { to: '/categories', label: t('navigation.categories'), icon: '📁' },
+    { to: '/customers', label: t('navigation.customers'), icon: '👥' },
+    { to: '/orders', label: t('navigation.orders'), icon: '📋' },
   ];
 
   const isAdmin = user?.role === 'admin';
@@ -173,32 +178,32 @@ export default function Layout() {
 
   const catalogLinks: MenuLink[] = isAdmin
     ? [
-        { to: '/settings/product-visibility', label: 'Ürün Görünürlüğü', icon: '👁️' },
-        { to: '/settings/category-visibility', label: 'Kategori Görünürlüğü', icon: '📁' },
-        { to: '/admin/images', label: 'Ürün Resimleri', icon: '🖼️' },
-        { to: '/admin/price-warnings', label: 'Fiyat Uyarıları', icon: '⚠️' },
+        { to: '/settings/product-visibility', label: t('navigation.productVisibility'), icon: '👁️' },
+        { to: '/settings/category-visibility', label: t('navigation.categoryVisibility'), icon: '📁' },
+        { to: '/admin/images', label: t('navigation.productImages'), icon: '🖼️' },
+        { to: '/admin/price-warnings', label: t('navigation.priceWarnings'), icon: '⚠️' },
       ]
     : [];
 
   // Bağlantı ayarları hem admin hem de sales_rep için görünür
   const systemLinks: MenuLink[] = user
     ? [
-        { to: '/admin/settings', label: 'Bağlantı Ayarları', icon: '🔗' },
-        ...(isAdmin ? [{ to: '/users', label: 'Kullanıcılar', icon: '👥' }] : []),
+        { to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' },
+        ...(isAdmin ? [{ to: '/users', label: t('navigation.users'), icon: '👥' }] : []),
       ]
     : [];
 
   const analysisLinks: MenuLink[] = isAdminCabir
-    ? [{ to: '/reports', label: 'Raporlar', icon: '📊' }]
+    ? [{ to: '/reports', label: t('navigation.reports'), icon: '📊' }]
     : [];
 
-  const accountLinks: MenuLink[] = [{ to: '/user', label: 'Kullanıcı Bilgileri', icon: '👤' }];
+  const accountLinks: MenuLink[] = [{ to: '/user', label: t('navigation.userInfo'), icon: '👤' }];
 
   const menuSections: MenuSection[] = [
-    { title: 'KATALOG', links: catalogLinks },
-    { title: 'SİSTEM', links: systemLinks },
-    { title: 'ANALİZ', links: analysisLinks },
-    { title: 'HESAP', links: accountLinks },
+    { title: t('navigation.catalog'), links: catalogLinks },
+    { title: t('navigation.system'), links: systemLinks },
+    { title: t('navigation.analysis'), links: analysisLinks },
+    { title: t('navigation.account'), links: accountLinks },
   ].filter((section) => section.links.length > 0);
 
   const renderDropdownLink = (link: MenuLink, index: number) => {
@@ -533,7 +538,9 @@ export default function Layout() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.2rem' }}>⏱️</span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Bağlantı Durumu</span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>
+                          {t('token.connectionStatus')}
+                        </span>
                       </div>
                       <div
                         style={{
@@ -544,7 +551,7 @@ export default function Layout() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Kalan Süre:</span>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>{t('time.remaining')}</span>
                           <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#10b981' }}>
                             {remainingTime}
                           </span>
@@ -558,13 +565,7 @@ export default function Layout() {
                               marginTop: '0.25rem',
                             }}
                           >
-                            {tokenExpiresAt.toLocaleString('tr-TR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatDateTime(tokenExpiresAt)}
                           </div>
                         )}
                       </div>
@@ -596,10 +597,11 @@ export default function Layout() {
               display: 'none',
               gap: '0.25rem',
               alignItems: 'center',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               flex: 1,
               justifyContent: 'center',
               margin: '0 1rem',
+              minWidth: 0,
             }}
           >
             {navLinks.map((link) => {
@@ -689,7 +691,7 @@ export default function Layout() {
                   whileTap={{ scale: 0.96 }}
                 >
                   <span style={{ fontSize: '1.1em' }}>🛒</span>
-                  <span>Sepet</span>
+                  <span>{t('navigation.cart')}</span>
                 </motion.button>
                 {cartItemCount > 0 && (
                   <motion.span
@@ -852,7 +854,7 @@ export default function Layout() {
                             >
                               {user?.firstName || user?.lastName
                                 ? [user?.firstName, user?.lastName].filter(Boolean).join(' ')
-                                : user?.email || user?.username || 'Kullanıcı'}
+                                : user?.email || user?.username || t('navigation.userInfo')}
                             </p>
                             {user?.role && (
                               <p
@@ -863,7 +865,7 @@ export default function Layout() {
                                   textTransform: 'capitalize',
                                 }}
                               >
-                                {user.role === 'admin' ? '👑 Admin' : '👤 Kullanıcı'}
+                                {user.role === 'admin' ? `👑 ${t('auth:roles.admin')}` : `👤 ${t('auth:roles.salesRep')}`}
                               </p>
                             )}
                           </div>
@@ -941,12 +943,13 @@ export default function Layout() {
                         whileTap={{ scale: 0.96 }}
                       >
                         <span style={{ fontSize: '1.1em' }}>🚪</span>
-                        <span>Çıkış Yap</span>
+                        <span>{t('navigation.logout')}</span>
                       </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
+              <LanguageSwitcher />
             </div>
           </nav>
 
@@ -954,6 +957,7 @@ export default function Layout() {
           <motion.button
             className="mobile-menu-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? t('navigation.closeMenu') : t('navigation.openMenu')}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -999,6 +1003,10 @@ export default function Layout() {
               }}
             />
           </motion.button>
+
+          <div className="mobile-language-switcher">
+            <LanguageSwitcher mobile />
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -1130,7 +1138,7 @@ export default function Layout() {
                         >
                           {user?.firstName || user?.lastName
                             ? [user?.firstName, user?.lastName].filter(Boolean).join(' ')
-                            : user?.email || user?.username || 'Kullanıcı'}
+                            : user?.email || user?.username || t('navigation.userInfo')}
                         </p>
                         {user?.role && (
                           <p
@@ -1141,7 +1149,7 @@ export default function Layout() {
                               textTransform: 'capitalize',
                             }}
                           >
-                            {user.role === 'admin' ? '👑 Admin' : '👤 Kullanıcı'}
+                            {user.role === 'admin' ? `👑 ${t('auth:roles.admin')}` : `👤 ${t('auth:roles.salesRep')}`}
                           </p>
                         )}
                       </div>
@@ -1208,7 +1216,7 @@ export default function Layout() {
                         whileTap={{ scale: 0.95 }}
                       >
                         <span style={{ fontSize: '1.2em' }}>🛒</span>
-                        <span>Sepet</span>
+                        <span>{t('navigation.cart')}</span>
                       </motion.button>
                       {cartItemCount > 0 && (
                         <motion.span
@@ -1272,7 +1280,7 @@ export default function Layout() {
                       whileTap={{ scale: 0.95 }}
                     >
                       <span style={{ fontSize: '1.1em' }}>🚪</span>
-                      <span>Çıkış Yap</span>
+                      <span>{t('navigation.logout')}</span>
                     </motion.button>
                   </div>
                 </motion.div>

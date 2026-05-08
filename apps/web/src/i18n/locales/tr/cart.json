@@ -1,0 +1,25 @@
+{
+  "title": "Sepet",
+  "emptyTitle": "Sepetiniz boş",
+  "emptyDescription": "Sipariş oluşturmak için ürün ekleyin.",
+  "selectCustomer": "Müşteri seç",
+  "customerSearchPlaceholder": "Müşteri ara veya seç...",
+  "selectedCustomer": "Seçilen Müşteri",
+  "subtotal": "Ara Toplam:",
+  "total": "Toplam:",
+  "createOrder": "Sipariş Oluştur",
+  "creatingOrder": "Sipariş oluşturuluyor...",
+  "clearCart": "Sepeti Temizle",
+  "removeProduct": "Ürünü Sepetten Çıkar",
+  "restoreOriginalPrice": "Orijinal fiyata dön",
+  "confirmRemoveTitle": "Ürün sepetten çıkarılsın mı?",
+  "confirmRemoveDescription": "Bu ürün sepetinizden kaldırılacak.",
+  "messages": {
+    "selectCustomer": "Lütfen bir müşteri seçin",
+    "orderCreated": "Sipariş başarıyla oluşturuldu!",
+    "orderCreateError": "Sipariş oluşturulurken bir hata oluştu",
+    "cartCleared": "Sepet temizlendi",
+    "priceRestored": "{{name}} orijinal fiyatına döndürüldü",
+    "removed": "{{name}} sepetten çıkarıldı"
+  }
+}

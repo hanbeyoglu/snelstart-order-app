@@ -1,0 +1,22 @@
+{
+  "title": "Kullanıcılar",
+  "create": "Yeni Kullanıcı Ekle",
+  "edit": "Düzenle",
+  "createdAt": "Oluşturulma",
+  "emptyTitle": "Henüz kullanıcı yok",
+  "emptyDescription": "İlk kullanıcıyı ekleyerek başlayın",
+  "unknown": "Bilinmeyen Kullanıcı",
+  "deleteTitle": "Kullanıcıyı Sil",
+  "deleteDescription": "{{name}} adlı kullanıcıyı silmek üzeresiniz. Bu işlem geri alınamaz.",
+  "roles": {
+    "admin": "Admin",
+    "salesRep": "Çalışan"
+  },
+  "messages": {
+    "deleted": "Kullanıcı başarıyla silindi",
+    "deleteError": "Kullanıcı silinirken bir hata oluştu",
+    "created": "Kullanıcı başarıyla oluşturuldu",
+    "updated": "Kullanıcı başarıyla güncellendi",
+    "notFound": "Kullanıcı bulunamadı"
+  }
+}

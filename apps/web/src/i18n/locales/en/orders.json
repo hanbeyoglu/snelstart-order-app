@@ -1,0 +1,35 @@
+{
+  "title": "Orders",
+  "loading": "Loading orders...",
+  "emptyTitle": "No orders yet",
+  "emptyDescription": "Your orders will appear here",
+  "statusFilter": "Status filter",
+  "fields": {
+    "orderId": "Order ID",
+    "snelstartOrderId": "SnelStart Order ID",
+    "snelstartId": "SnelStart ID",
+    "customer": "Customer",
+    "customerId": "Customer ID",
+    "date": "Date",
+    "status": "Status",
+    "itemCount": "Item Count",
+    "total": "Total",
+    "createdAt": "Created At",
+    "productName": "Product Name"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "synced": "Synced",
+    "failed": "Failed"
+  },
+  "messages": {
+    "noCustomer": "No customer",
+    "unknownProduct": "Unknown Product",
+    "deleted": "Order deleted successfully",
+    "updated": "Order updated successfully",
+    "deleteError": "An error occurred while deleting the order",
+    "updateError": "An error occurred while updating the order",
+    "editSoon": "Order editing will be added soon"
+  }
+}

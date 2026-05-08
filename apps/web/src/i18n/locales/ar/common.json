@@ -1,0 +1,32 @@
+{
+  "app": { "name": "DHY", "brand": "DHY Food BV" },
+  "languages": { "label": "اللغة", "current": "اللغة الحالية", "tr": "Türkçe", "en": "English", "nl": "Nederlands", "de": "Deutsch", "ar": "العربية" },
+  "navigation": {
+    "dashboard": "لوحة التحكم", "products": "كل المنتجات", "categories": "الفئات", "customers": "العملاء", "orders": "الطلبات", "cart": "السلة",
+    "catalog": "الكتالوج", "system": "النظام", "analysis": "التحليل", "account": "الحساب", "productVisibility": "ظهور المنتجات",
+    "categoryVisibility": "ظهور الفئات", "productImages": "صور المنتجات", "priceWarnings": "تنبيهات الأسعار",
+    "connectionSettings": "إعدادات الاتصال", "users": "المستخدمون", "reports": "التقارير", "userInfo": "معلومات المستخدم",
+    "logout": "تسجيل الخروج", "openMenu": "فتح القائمة", "closeMenu": "إغلاق القائمة"
+  },
+  "actions": {
+    "add": "إضافة", "addToCart": "إضافة إلى السلة", "back": "رجوع", "cancel": "إلغاء", "clear": "مسح", "close": "إغلاق",
+    "confirm": "تأكيد", "create": "إنشاء", "delete": "حذف", "edit": "تعديل", "filter": "تصفية", "refresh": "تحديث",
+    "remove": "إزالة", "reset": "إعادة ضبط", "save": "حفظ", "search": "بحث", "sync": "مزامنة", "update": "تحديث",
+    "upload": "رفع", "view": "عرض", "yesDelete": "نعم، احذف", "continue": "متابعة"
+  },
+  "states": {
+    "active": "نشط", "inactive": "غير نشط", "all": "الكل", "loading": "جار التحميل...", "saving": "جار الحفظ...", "syncing": "جار المزامنة...",
+    "deleting": "جار الحذف...", "empty": "لا توجد سجلات", "error": "خطأ", "success": "تم بنجاح", "warning": "تحذير",
+    "unknown": "غير معروف", "notAvailable": "غير متاح"
+  },
+  "pagination": { "page": "صفحة", "pageSize": "لكل صفحة", "previous": "السابق", "next": "التالي", "of": "من", "showing": "عرض {{from}}-{{to}} من {{total}}" },
+  "forms": {
+    "required": "مطلوب", "name": "الاسم", "firstName": "الاسم الأول", "lastName": "اسم العائلة", "username": "اسم المستخدم", "email": "البريد الإلكتروني",
+    "password": "كلمة المرور", "confirmPassword": "تأكيد كلمة المرور", "role": "الدور", "phone": "الهاتف", "address": "العنوان", "street": "الشارع",
+    "postalCode": "الرمز البريدي", "city": "المدينة", "country": "البلد", "notes": "ملاحظات", "search": "بحث", "status": "الحالة"
+  },
+  "format": { "currency": "EUR", "unit": "قطعة" },
+  "time": { "expired": "منتهي الصلاحية", "daysHours": "{{days}} يوم {{hours}} ساعة", "hoursMinutes": "{{hours}} ساعة {{minutes}} دقيقة", "minutes": "{{minutes}} دقيقة", "remaining": "الوقت المتبقي:" },
+  "token": { "connectionStatus": "حالة الاتصال", "valid": "الاتصال نشط", "invalid": "الاتصال غير نشط" },
+  "notFound": { "title": "الصفحة غير موجودة", "description": "الصفحة التي تبحث عنها غير موجودة.", "home": "العودة إلى الرئيسية" }
+}

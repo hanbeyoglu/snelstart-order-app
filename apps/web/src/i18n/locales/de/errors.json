@@ -1,0 +1,8 @@
+{
+  "generic": "Ein Fehler ist aufgetreten.",
+  "network": "Keine Verbindung zum Backend moglich. Bitte prufen Sie, ob der API-Server lauft.",
+  "invalidBackendResponse": "Ungultige Antwort vom Backend erhalten",
+  "presignedUrl": "Beim Abrufen der presigned URL ist ein Fehler aufgetreten",
+  "r2NotConfigured": "Cloudflare R2 ist nicht konfiguriert. Bitte Backend-Umgebungsvariablen prufen.",
+  "visibilityUpdate": "Sichtbarkeit konnte nicht aktualisiert werden"
+}

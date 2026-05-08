@@ -3,8 +3,12 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../services/api';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function OrdersPage() {
+  const { t } = useAppTranslation(['common', 'orders']);
+  const { formatCurrency, locale } = useLocaleFormat();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('');
 
@@ -80,7 +84,7 @@ export default function OrdersPage() {
             transition={{ duration: 1.5, repeat: Infinity }}
             style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}
           >
-            Siparişler yükleniyor...
+            {t('orders:loading')}
           </motion.p>
         </div>
       </div>
@@ -94,21 +98,21 @@ export default function OrdersPage() {
           color: 'var(--success)',
           bg: 'rgba(16, 185, 129, 0.1)',
           icon: '✅',
-          text: 'Senkronize',
+          text: t('orders:status.synced'),
         };
       case 'PENDING_SYNC':
         return {
           color: 'var(--warning)',
           bg: 'rgba(245, 158, 11, 0.1)',
           icon: '⏳',
-          text: 'Beklemede',
+          text: t('orders:status.pending'),
         };
       case 'FAILED':
         return {
           color: 'var(--danger)',
           bg: 'rgba(239, 68, 68, 0.1)',
           icon: '❌',
-          text: 'Başarısız',
+          text: t('orders:status.failed'),
         };
       default:
         return {
@@ -138,11 +142,11 @@ export default function OrdersPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          Siparişler
+          {t('orders:title')}
         </h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <label style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-            Durum Filtresi:
+            {t('orders:statusFilter')}:
           </label>
           <select
             value={statusFilter}
@@ -157,11 +161,11 @@ export default function OrdersPage() {
               background: 'white',
             }}
           >
-            <option value="">Tümü</option>
-            <option value="DRAFT">📝 Taslak</option>
-            <option value="PENDING_SYNC">⏳ Beklemede</option>
-            <option value="SYNCED">✅ Senkronize</option>
-            <option value="FAILED">❌ Başarısız</option>
+            <option value="">{t('states.all')}</option>
+            <option value="DRAFT">📝 {t('orders:status.draft')}</option>
+            <option value="PENDING_SYNC">⏳ {t('orders:status.pending')}</option>
+            <option value="SYNCED">✅ {t('orders:status.synced')}</option>
+            <option value="FAILED">❌ {t('orders:status.failed')}</option>
           </select>
         </div>
       </motion.div>
@@ -185,10 +189,10 @@ export default function OrdersPage() {
             📦
           </motion.div>
           <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.75rem)', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            Henüz sipariş yok
+            {t('orders:emptyTitle')}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>
-            Siparişleriniz burada görünecek
+            {t('orders:emptyDescription')}
           </p>
         </motion.div>
       ) : (
@@ -217,7 +221,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Sipariş ID
+                  {t('orders:fields.orderId')}
                 </th>
                 <th
                   style={{
@@ -229,7 +233,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Müşteri
+                  {t('orders:fields.customer')}
                 </th>
                 <th
                   style={{
@@ -241,7 +245,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Tarih
+                  {t('orders:fields.date')}
                 </th>
                 <th
                   style={{
@@ -253,7 +257,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Durum
+                  {t('orders:fields.status')}
                 </th>
                 <th
                   style={{
@@ -265,7 +269,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Ürün Sayısı
+                  {t('orders:fields.itemCount')}
                 </th>
                 <th
                   style={{
@@ -277,7 +281,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Toplam
+                  {t('orders:fields.total')}
                 </th>
                 <th
                   style={{
@@ -289,7 +293,7 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  SnelStart ID
+                  {t('orders:fields.snelstartId')}
                 </th>
               </tr>
             </thead>
@@ -368,7 +372,7 @@ export default function OrdersPage() {
                         </div>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                          {order.customerId ? 'Yükleniyor...' : 'Müşteri yok'}
+                          {order.customerId ? t('states.loading') : t('orders:messages.noCustomer')}
                         </span>
                       )}
                     </td>
@@ -380,9 +384,9 @@ export default function OrdersPage() {
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span>{orderDate.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span>{orderDate.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         <span style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', opacity: 0.7 }}>
-                          {orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                          {orderDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </td>
@@ -431,7 +435,7 @@ export default function OrdersPage() {
                         WebkitTextFillColor: 'transparent',
                       }}
                     >
-                      €{totalAmount.toFixed(2)}
+                      {formatCurrency(totalAmount)}
                     </td>
                     <td
                       style={{

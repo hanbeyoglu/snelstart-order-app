@@ -1,0 +1,22 @@
+{
+  "saved": "Settings saved",
+  "title": "SnelStart Connection Settings",
+  "connectionStatus": "Connection Status",
+  "connectionSuccess": "Connection successful! Token received.",
+  "connectionFailed": "Connection failed: {{error}}",
+  "connectionTestFailed": "Connection could not be tested",
+  "tokenRefreshed": "Token refreshed successfully",
+  "tokenRefreshFailed": "Token could not be refreshed",
+  "tokenRefreshFailedWithError": "Token could not be refreshed: {{error}}",
+  "tokenActive": "Token Active",
+  "tokenPassive": "Token Passive",
+  "status": "Status",
+  "tokenValidity": "Token Validity",
+  "lastTest": "Last Test",
+  "lastTestResult": "Last Test Result",
+  "error": "Error",
+  "connecting": "Connecting...",
+  "refreshing": "Refreshing...",
+  "testConnect": "Test Connection / Connect",
+  "refreshToken": "Refresh Token"
+}

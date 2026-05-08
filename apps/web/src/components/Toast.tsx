@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { isRtlLanguage } from '../i18n/constants';
 
 export interface Toast {
   id: string;
@@ -14,6 +16,7 @@ interface ToastProps {
 }
 
 function ToastItem({ toast, onClose }: ToastProps) {
+  const { t } = useTranslation('common');
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose(toast.id);
@@ -115,23 +118,27 @@ function ToastItem({ toast, onClose }: ToastProps) {
           padding: 0,
           flexShrink: 0,
         }}
-        aria-label="Kapat"
+        aria-label={t('actions.close')}
       />
     </motion.div>
   );
 }
 
 export default function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: (id: string) => void }) {
+  const { i18n } = useTranslation();
+  const isRtl = isRtlLanguage(i18n.resolvedLanguage || i18n.language);
+
   return (
     <div
       style={{
         position: 'fixed',
         top: '1rem',
-        right: '1rem',
+        right: isRtl ? 'auto' : '1rem',
+        left: isRtl ? '1rem' : 'auto',
         zIndex: 10000,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-end',
+        alignItems: isRtl ? 'flex-start' : 'flex-end',
         pointerEvents: 'none',
         gap: '0.5rem',
       }}
@@ -146,4 +153,3 @@ export default function ToastContainer({ toasts, onClose }: { toasts: Toast[]; o
     </div>
   );
 }
-

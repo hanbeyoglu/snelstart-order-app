@@ -1,0 +1,56 @@
+{
+  "title": "Producten",
+  "allTitle": "Alle producten",
+  "detail": "Productdetail",
+  "searchPlaceholder": "Producten zoeken (naam, barcode)...",
+  "categorySearchPlaceholder": "Categorie zoeken...",
+  "selectCategories": "Categorieen selecteren",
+  "inStockOnly": "Alleen op voorraad",
+  "inCart": "In winkelwagen: {{count}} stuks",
+  "decreaseQuantity": "Aantal van {{name}} verlagen",
+  "increaseQuantity": "Aantal van {{name}} verhogen",
+  "cartQuantity": "Aantal van {{name}} in winkelwagen",
+  "stockLimitTitle": "Voorraadlimiet",
+  "increaseTitle": "Aantal verhogen",
+  "hidePurchasePrice": "Inkoopprijs verbergen",
+  "showPurchasePrice": "Inkoopprijs tonen",
+  "pageSummary": "Pagina {{page}} / {{totalPages}} (Totaal: {{total}})",
+  "sort": {
+    "label": "Sorteren",
+    "nameAsc": "Naam (A-Z)",
+    "nameDesc": "Naam (Z-A)",
+    "priceAsc": "Prijs (laag naar hoog)",
+    "priceDesc": "Prijs (hoog naar laag)",
+    "stockDesc": "Voorraad (hoog naar laag)"
+  },
+  "fields": {
+    "id": "ID",
+    "code": "Productcode",
+    "category": "Categorie",
+    "barcode": "Barcode",
+    "stock": "Voorraad",
+    "unit": "Eenheid",
+    "unitFallback": "stuks",
+    "quantity": "Aantal",
+    "salePrice": "Verkoopprijs",
+    "purchasePrice": "Inkoopprijs",
+    "basePrice": "Basisprijs",
+    "vat": "Btw",
+    "date": "Datum",
+    "discount": "Korting",
+    "customer": "Klant"
+  },
+  "messages": {
+    "syncSuccess": "Producten en categorieen succesvol gesynchroniseerd",
+    "syncFailed": "Synchronisatie mislukt",
+    "syncError": "Er is een fout opgetreden tijdens synchronisatie",
+    "notFound": "Product niet gevonden",
+    "outOfStock": "Dit product is niet op voorraad",
+    "stockLimit": "Voorraadlimiet overschreden. Maximum: {{count}} stuks",
+    "addedToCart": "{{name}} toegevoegd aan winkelwagen",
+    "quantityUpdated": "Aantal van {{name}} bijgewerkt ({{quantity}} stuks)"
+    ,"belowBasePrice": "Kan niet aan winkelwagen worden toegevoegd. De prijs mag maximaal 5% onder de productprijs ({{basePrice}}) liggen. Minimumprijs: {{minPrice}}",
+    "belowPurchasePrice": "Kan niet aan winkelwagen worden toegevoegd. De prijs mag niet lager zijn dan 5% boven de inkoopprijs{{purchasePrice}}. Minimumprijs: {{minPrice}}",
+    "addedToCartWithQuantity": "{{name}} toegevoegd aan winkelwagen ({{quantity}} stuks)"
+  }
+}

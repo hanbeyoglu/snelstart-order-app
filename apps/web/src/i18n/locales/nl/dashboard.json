@@ -1,0 +1,34 @@
+{
+  "title": "Dashboard",
+  "loading": "Dashboard laden...",
+  "summary": "{{period}} overzicht en statistieken",
+  "periods": {
+    "daily": "Dagelijks",
+    "weekly": "Wekelijks",
+    "monthly": "Maandelijks"
+  },
+  "stats": {
+    "totalOrders": "Totaal bestellingen",
+    "totalRevenue": "Totale omzet",
+    "visitedCustomers": "Bezochte klanten",
+    "plannedCustomers": "Geplande klanten"
+  },
+  "sections": {
+    "visitedCustomers": "Bezochte klanten",
+    "plannedCustomers": "Klanten gepland voor bezoek",
+    "ordersByCustomer": "Bestellingen per klant",
+    "topProducts": "Meest bestelde producten"
+  },
+  "empty": {
+    "visitedCustomers": "In deze periode zijn geen klanten bezocht",
+    "plannedCustomers": "Geen geplande klanten",
+    "orders": "Geen bestellingen in deze periode",
+    "topProducts": "Geen producten besteld in deze periode"
+  },
+  "labels": {
+    "code": "Code",
+    "orders_one": "{{count}} bestelling",
+    "orders_other": "{{count}} bestellingen",
+    "pieces": "{{count}} stuks"
+  }
+}

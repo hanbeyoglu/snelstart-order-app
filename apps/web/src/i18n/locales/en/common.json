@@ -1,0 +1,126 @@
+{
+  "app": {
+    "name": "DHY",
+    "brand": "DHY Food BV"
+  },
+  "languages": {
+    "label": "Language",
+    "current": "Current language",
+    "tr": "Türkçe",
+    "en": "English",
+    "nl": "Nederlands",
+    "de": "Deutsch",
+    "ar": "العربية"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "products": "All Products",
+    "categories": "Categories",
+    "customers": "Customers",
+    "orders": "Orders",
+    "cart": "Cart",
+    "catalog": "CATALOG",
+    "system": "SYSTEM",
+    "analysis": "ANALYSIS",
+    "account": "ACCOUNT",
+    "productVisibility": "Product Visibility",
+    "categoryVisibility": "Category Visibility",
+    "productImages": "Product Images",
+    "priceWarnings": "Price Warnings",
+    "connectionSettings": "Connection Settings",
+    "users": "Users",
+    "reports": "Reports",
+    "userInfo": "User Information",
+    "logout": "Log Out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "actions": {
+    "add": "Add",
+    "addToCart": "Add to Cart",
+    "back": "Back",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "close": "Close",
+    "confirm": "Confirm",
+    "create": "Create",
+    "delete": "Delete",
+    "edit": "Edit",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "remove": "Remove",
+    "reset": "Reset",
+    "save": "Save",
+    "search": "Search",
+    "sync": "Sync",
+    "update": "Update",
+    "upload": "Upload",
+    "view": "View",
+    "yesDelete": "Yes, Delete",
+    "continue": "Continue"
+  },
+  "states": {
+    "active": "Active",
+    "inactive": "Passive",
+    "all": "All",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "syncing": "Syncing...",
+    "deleting": "Deleting...",
+    "empty": "No records found",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "unknown": "Unknown",
+    "notAvailable": "N/A"
+  },
+  "pagination": {
+    "page": "Page",
+    "pageSize": "Per page",
+    "previous": "Previous",
+    "next": "Next",
+    "of": "of",
+    "showing": "Showing {{from}}-{{to}} of {{total}}"
+  },
+  "forms": {
+    "required": "Required",
+    "name": "Name",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "role": "Role",
+    "phone": "Phone",
+    "address": "Address",
+    "street": "Street",
+    "postalCode": "Postal code",
+    "city": "City",
+    "country": "Country",
+    "notes": "Notes",
+    "search": "Search",
+    "status": "Status"
+  },
+  "format": {
+    "currency": "EUR",
+    "unit": "pcs"
+  },
+  "time": {
+    "expired": "Expired",
+    "daysHours": "{{days}} days {{hours}} hours",
+    "hoursMinutes": "{{hours}} hours {{minutes}} minutes",
+    "minutes": "{{minutes}} minutes",
+    "remaining": "Time left:"
+  },
+  "token": {
+    "connectionStatus": "Connection Status",
+    "valid": "Connection active",
+    "invalid": "Connection inactive"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "home": "Back to Home"
+  }
+}

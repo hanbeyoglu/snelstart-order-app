@@ -1,0 +1,22 @@
+{
+  "saved": "تم حفظ الإعدادات",
+  "title": "إعدادات اتصال SnelStart",
+  "connectionStatus": "حالة الاتصال",
+  "connectionSuccess": "تم الاتصال بنجاح! تم استلام الرمز.",
+  "connectionFailed": "فشل الاتصال: {{error}}",
+  "connectionTestFailed": "تعذر اختبار الاتصال",
+  "tokenRefreshed": "تم تحديث الرمز بنجاح",
+  "tokenRefreshFailed": "تعذر تحديث الرمز",
+  "tokenRefreshFailedWithError": "تعذر تحديث الرمز: {{error}}",
+  "tokenActive": "الرمز نشط",
+  "tokenPassive": "الرمز غير نشط",
+  "status": "الحالة",
+  "tokenValidity": "صلاحية الرمز",
+  "lastTest": "آخر اختبار",
+  "lastTestResult": "نتيجة آخر اختبار",
+  "error": "خطأ",
+  "connecting": "جار الاتصال...",
+  "refreshing": "جار التحديث...",
+  "testConnect": "اختبار الاتصال / الاتصال",
+  "refreshToken": "تحديث الرمز"
+}

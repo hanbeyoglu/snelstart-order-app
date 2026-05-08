@@ -1,0 +1,22 @@
+{
+  "saved": "Instellingen opgeslagen",
+  "title": "SnelStart verbindingsinstellingen",
+  "connectionStatus": "Verbindingsstatus",
+  "connectionSuccess": "Verbinding succesvol! Token ontvangen.",
+  "connectionFailed": "Verbinding mislukt: {{error}}",
+  "connectionTestFailed": "Verbinding kon niet worden getest",
+  "tokenRefreshed": "Token succesvol vernieuwd",
+  "tokenRefreshFailed": "Token kon niet worden vernieuwd",
+  "tokenRefreshFailedWithError": "Token kon niet worden vernieuwd: {{error}}",
+  "tokenActive": "Token actief",
+  "tokenPassive": "Token passief",
+  "status": "Status",
+  "tokenValidity": "Token geldigheid",
+  "lastTest": "Laatste test",
+  "lastTestResult": "Laatste testresultaat",
+  "error": "Fout",
+  "connecting": "Verbinden...",
+  "refreshing": "Vernieuwen...",
+  "testConnect": "Verbinding testen / verbinden",
+  "refreshToken": "Token vernieuwen"
+}

@@ -1,0 +1,22 @@
+{
+  "title": "Gebruikers",
+  "create": "Nieuwe gebruiker toevoegen",
+  "edit": "Bewerken",
+  "createdAt": "Aangemaakt",
+  "emptyTitle": "Nog geen gebruikers",
+  "emptyDescription": "Begin door de eerste gebruiker toe te voegen",
+  "unknown": "Onbekende gebruiker",
+  "deleteTitle": "Gebruiker verwijderen",
+  "deleteDescription": "U staat op het punt {{name}} te verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
+  "roles": {
+    "admin": "Admin",
+    "salesRep": "Medewerker"
+  },
+  "messages": {
+    "deleted": "Gebruiker succesvol verwijderd",
+    "deleteError": "Er is een fout opgetreden bij het verwijderen van de gebruiker",
+    "created": "Gebruiker succesvol aangemaakt",
+    "updated": "Gebruiker succesvol bijgewerkt",
+    "notFound": "Gebruiker niet gevonden"
+  }
+}

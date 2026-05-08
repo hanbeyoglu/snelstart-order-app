@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../services/api';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
 export default function DashboardPage() {
+  const { t } = useAppTranslation(['dashboard']);
   const [period, setPeriod] = useState<Period>('daily');
   const navigate = useNavigate();
 
@@ -19,9 +21,9 @@ export default function DashboardPage() {
   });
 
   const periodLabels = {
-    daily: 'Günlük',
-    weekly: 'Haftalık',
-    monthly: 'Aylık',
+    daily: t('dashboard:periods.daily'),
+    weekly: t('dashboard:periods.weekly'),
+    monthly: t('dashboard:periods.monthly'),
   };
 
   if (isLoading) {
@@ -44,7 +46,7 @@ export default function DashboardPage() {
             transition={{ duration: 1.5, repeat: Infinity }}
             style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}
           >
-            Dashboard yükleniyor...
+            {t('dashboard:loading')}
           </motion.p>
         </div>
       </div>
@@ -71,10 +73,10 @@ export default function DashboardPage() {
               letterSpacing: '-0.02em',
             }}
           >
-            Dashboard
+            {t('dashboard:title')}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.9rem, 2vw, 1.1rem)' }}>
-            {periodLabels[period]} özet ve istatistikler
+            {t('dashboard:summary', { period: periodLabels[period] })}
           </p>
         </div>
 
@@ -120,7 +122,7 @@ export default function DashboardPage() {
           <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
             {stats?.totalOrders || 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Toplam Sipariş</p>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{t('dashboard:stats.totalOrders')}</p>
         </motion.div>
 
         <motion.div
@@ -150,7 +152,7 @@ export default function DashboardPage() {
           >
             €{stats?.totalRevenue?.toFixed(2) || '0.00'}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Toplam Gelir</p>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{t('dashboard:stats.totalRevenue')}</p>
         </motion.div>
 
         <motion.div
@@ -171,7 +173,7 @@ export default function DashboardPage() {
           <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
             {stats?.visitedCustomers?.length || 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Gidilen Müşteri</p>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{t('dashboard:stats.visitedCustomers')}</p>
         </motion.div>
 
         <motion.div
@@ -192,7 +194,7 @@ export default function DashboardPage() {
           <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
             {stats?.plannedCustomers?.length || 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Planlanan Müşteri</p>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{t('dashboard:stats.plannedCustomers')}</p>
         </motion.div>
       </div>
 
@@ -215,7 +217,7 @@ export default function DashboardPage() {
             }}
           >
             <span>✅</span>
-            <span>Gidilen Müşteriler</span>
+            <span>{t('dashboard:sections.visitedCustomers')}</span>
           </h2>
           {stats?.visitedCustomers && stats.visitedCustomers.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '500px', overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
@@ -268,7 +270,7 @@ export default function DashboardPage() {
                       {customer.naam}
                     </p>
                     {customer.relatiecode && (
-                      <p style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>Kod: {customer.relatiecode}</p>
+                      <p style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{t('dashboard:labels.code')}: {customer.relatiecode}</p>
                     )}
                   </div>
                 </motion.div>
@@ -276,7 +278,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-              Bu dönemde gidilen müşteri yok
+              {t('dashboard:empty.visitedCustomers')}
             </p>
           )}
         </motion.div>
@@ -299,7 +301,7 @@ export default function DashboardPage() {
             }}
           >
             <span>📅</span>
-            <span>Gidilmesi Planlanan Müşteriler</span>
+            <span>{t('dashboard:sections.plannedCustomers')}</span>
           </h2>
           {stats?.plannedCustomers && stats.plannedCustomers.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '500px', overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
@@ -352,7 +354,7 @@ export default function DashboardPage() {
                       {customer.naam}
                     </p>
                     {customer.relatiecode && (
-                      <p style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>Kod: {customer.relatiecode}</p>
+                      <p style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{t('dashboard:labels.code')}: {customer.relatiecode}</p>
                     )}
                   </div>
                 </motion.div>
@@ -360,7 +362,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-              Planlanan müşteri yok
+              {t('dashboard:empty.plannedCustomers')}
             </p>
           )}
         </motion.div>
@@ -385,7 +387,7 @@ export default function DashboardPage() {
             }}
           >
             <span>📊</span>
-            <span>Müşteri Bazında Siparişler</span>
+            <span>{t('dashboard:sections.ordersByCustomer')}</span>
           </h2>
         {stats?.ordersByCustomer && stats.ordersByCustomer.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -428,7 +430,7 @@ export default function DashboardPage() {
                       {item.customerName}
                     </p>
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                      {item.count} {item.count === 1 ? 'sipariş' : 'sipariş'}
+                      {t('dashboard:labels.orders', { count: item.count })}
                     </p>
                   </div>
                 </div>
@@ -450,7 +452,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-            Bu dönemde sipariş yok
+            {t('dashboard:empty.orders')}
           </p>
         )}
       </motion.div>
@@ -474,7 +476,7 @@ export default function DashboardPage() {
             }}
           >
             <span>🏆</span>
-            <span>En Çok Sipariş Edilen Ürünler</span>
+            <span>{t('dashboard:sections.topProducts')}</span>
           </h2>
         {stats?.topProducts && stats.topProducts.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -523,7 +525,7 @@ export default function DashboardPage() {
                       {product.productName}
                     </p>
                     <p style={{ fontSize: 'clamp(0.85rem, 2vw, 0.9rem)', color: 'var(--text-secondary)' }}>
-                      {product.count} {product.count === 1 ? 'sipariş' : 'sipariş'}
+                      {t('dashboard:labels.orders', { count: product.count })}
                     </p>
                   </div>
                 </div>
@@ -537,7 +539,7 @@ export default function DashboardPage() {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    {product.totalQuantity} adet
+                    {t('dashboard:labels.pieces', { count: product.totalQuantity })}
                   </p>
                 </div>
               </motion.div>
@@ -545,11 +547,10 @@ export default function DashboardPage() {
           </div>
         ) : (
           <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-            Bu dönemde sipariş edilen ürün yok
+            {t('dashboard:empty.topProducts')}
           </p>
         )}
       </motion.div>
     </div>
   );
 }
-
