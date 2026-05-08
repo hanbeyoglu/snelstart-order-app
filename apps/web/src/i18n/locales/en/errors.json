@@ -1,0 +1,8 @@
+{
+  "generic": "An error occurred.",
+  "network": "Could not connect to the backend. Please make sure the API server is running.",
+  "invalidBackendResponse": "Invalid response received from backend",
+  "presignedUrl": "An error occurred while getting the presigned URL",
+  "r2NotConfigured": "Cloudflare R2 is not configured. Please check backend environment variables.",
+  "visibilityUpdate": "Visibility could not be updated"
+}

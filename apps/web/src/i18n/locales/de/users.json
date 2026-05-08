@@ -1,0 +1,22 @@
+{
+  "title": "Benutzer",
+  "create": "Neuen Benutzer hinzufügen",
+  "edit": "Bearbeiten",
+  "createdAt": "Erstellt",
+  "emptyTitle": "Noch keine Benutzer",
+  "emptyDescription": "Beginnen Sie mit dem Hinzufügen des ersten Benutzers",
+  "unknown": "Unbekannter Benutzer",
+  "deleteTitle": "Benutzer löschen",
+  "deleteDescription": "Sie sind dabei, {{name}} zu löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "roles": {
+    "admin": "Admin",
+    "salesRep": "Mitarbeiter"
+  },
+  "messages": {
+    "deleted": "Benutzer erfolgreich gelöscht",
+    "deleteError": "Beim Löschen des Benutzers ist ein Fehler aufgetreten",
+    "created": "Benutzer erfolgreich erstellt",
+    "updated": "Benutzer erfolgreich aktualisiert",
+    "notFound": "Benutzer nicht gefunden"
+  }
+}

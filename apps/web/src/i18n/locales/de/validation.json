@@ -1,0 +1,15 @@
+{
+  "requiredFields": "Bitte fullen Sie alle Pflichtfelder aus",
+  "usernameRequired": "Bitte geben Sie einen Benutzernamen ein",
+  "usernamePasswordRequired": "Bitte Benutzername und Passwort ausfullen",
+  "passwordMin": "Das Passwort muss mindestens {{count}} Zeichen lang sein",
+  "passwordMismatch": "Passworter stimmen nicht uberein",
+  "fileRequired": "Bitte wahlen Sie eine Datei aus",
+  "relationTypeRequired": "Bitte wählen Sie mindestens einen Beziehungstyp aus",
+  "customerNameRequired": "Kundenname ist erforderlich",
+  "streetRequired": "Straßenadresse ist erforderlich",
+  "postalCodeRequired": "Postleitzahl ist erforderlich",
+  "cityRequired": "Stadt ist erforderlich",
+  "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+  "phoneInvalid": "Bitte geben Sie eine gültige Telefonnummer ein"
+}

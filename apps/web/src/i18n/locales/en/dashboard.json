@@ -1,0 +1,34 @@
+{
+  "title": "Dashboard",
+  "loading": "Loading dashboard...",
+  "summary": "{{period}} summary and statistics",
+  "periods": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly"
+  },
+  "stats": {
+    "totalOrders": "Total Orders",
+    "totalRevenue": "Total Revenue",
+    "visitedCustomers": "Visited Customers",
+    "plannedCustomers": "Planned Customers"
+  },
+  "sections": {
+    "visitedCustomers": "Visited Customers",
+    "plannedCustomers": "Customers Planned for Visit",
+    "ordersByCustomer": "Orders by Customer",
+    "topProducts": "Most Ordered Products"
+  },
+  "empty": {
+    "visitedCustomers": "No customers were visited in this period",
+    "plannedCustomers": "No planned customers",
+    "orders": "No orders in this period",
+    "topProducts": "No products ordered in this period"
+  },
+  "labels": {
+    "code": "Code",
+    "orders_one": "{{count}} order",
+    "orders_other": "{{count}} orders",
+    "pieces": "{{count}} pcs"
+  }
+}

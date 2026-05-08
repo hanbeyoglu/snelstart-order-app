@@ -1,0 +1,22 @@
+{
+  "saved": "Ayarlar kaydedildi",
+  "title": "SnelStart Bağlantı Ayarları",
+  "connectionStatus": "Bağlantı Durumu",
+  "connectionSuccess": "Bağlantı başarılı! Token alındı.",
+  "connectionFailed": "Bağlantı başarısız: {{error}}",
+  "connectionTestFailed": "Bağlantı test edilemedi",
+  "tokenRefreshed": "Token başarıyla yenilendi",
+  "tokenRefreshFailed": "Token yenilenemedi",
+  "tokenRefreshFailedWithError": "Token yenilenemedi: {{error}}",
+  "tokenActive": "Token Aktif",
+  "tokenPassive": "Token Pasif",
+  "status": "Durum",
+  "tokenValidity": "Token Geçerlilik",
+  "lastTest": "Son Test",
+  "lastTestResult": "Son Test Sonucu",
+  "error": "Hata",
+  "connecting": "Bağlanıyor...",
+  "refreshing": "Yenileniyor...",
+  "testConnect": "Bağlantıyı Test Et / Bağlan",
+  "refreshToken": "Token'ı Yenile"
+}

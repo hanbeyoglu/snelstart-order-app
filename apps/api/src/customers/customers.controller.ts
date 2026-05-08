@@ -11,19 +11,27 @@ export class CustomersController {
   constructor(private customersService: CustomersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get customers (optionally filtered by search and cities) with pagination' })
+  @ApiOperation({
+    summary: 'Get customers (optionally filtered by search and cities) with pagination',
+  })
   async getCustomers(
     @Query('search') search?: string,
     @Query('cities') cities?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('includeAll') includeAll?: string,
+    @Query('includeAll') includeAll?: string
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const citiesArray = cities ? cities.split(',').filter((c) => c.trim()) : [];
     const includeAllBool = includeAll === 'true';
-    return this.customersService.getCustomers(search, citiesArray, pageNum, limitNum, includeAllBool);
+    return this.customersService.getCustomers(
+      search,
+      citiesArray,
+      pageNum,
+      limitNum,
+      includeAllBool
+    );
   }
 
   @Get('cities')
@@ -54,7 +62,7 @@ export class CustomersController {
   @ApiOperation({ summary: 'Update customer visit status' })
   async updateVisitStatus(
     @Param('id') id: string,
-    @Body() body: { status: 'VISITED' | 'PLANNED'; notes?: string },
+    @Body() body: { status: 'VISITED' | 'PLANNED'; notes?: string }
   ) {
     return this.customersService.updateCustomerVisitStatus(id, body.status, body.notes);
   }
@@ -82,10 +90,10 @@ export class CustomersController {
   async syncCustomers() {
     try {
       await this.customersService.syncCustomers();
-      
+
       return {
         success: true,
-        message: 'Müşteriler başarıyla senkronize edildi',
+        message: 'Customers synced successfully',
       };
     } catch (error: any) {
       return {
@@ -95,4 +103,3 @@ export class CustomersController {
     }
   }
 }
-

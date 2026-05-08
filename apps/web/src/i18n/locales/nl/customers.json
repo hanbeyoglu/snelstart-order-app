@@ -1,0 +1,50 @@
+{
+  "title": "Klanten",
+  "subtitle": "Beheer uw klanten en voeg nieuwe klanten toe",
+  "create": "Nieuwe klant toevoegen",
+  "createTitle": "Nieuwe klant aanmaken",
+  "editTitle": "Klant bewerken",
+  "creating": "Aanmaken...",
+  "updating": "Bijwerken...",
+  "loading": "Klanten laden...",
+  "createButton": "Klant aanmaken",
+  "relationType": "Relatietype",
+  "customerName": "Klantnaam",
+  "addressInfo": "Adresgegevens",
+  "contactInfo": "Contactgegevens",
+  "street": "Straat",
+  "postalCode": "Postcode",
+  "city": "Stad",
+  "phone": "Telefoon",
+  "email": "E-mail",
+  "kvkNumber": "KVK-nummer",
+  "btwNumber": "Btw-nummer",
+  "searchPlaceholder": "Klanten zoeken (naam, code, e-mail, telefoon)...",
+  "showWholesalers": "Ook groothandels tonen",
+  "cityFilter": "Stadsfilter",
+  "selectCity": "Stad selecteren",
+  "citySearchPlaceholder": "Stad zoeken...",
+  "noCityFound": "Geen stad gevonden",
+  "emptyTitle": "Geen klanten gevonden",
+  "emptyDescription": "Er zijn geen klanten gevonden die aan uw criteria voldoen.",
+  "codeLabel": "Code: {{code}}",
+  "notesPlaceholder": "Voeg notities over de klant toe...",
+  "addToVisitPlan": "Klant aan bezoekplan toevoegen",
+  "paginationSummary": "Pagina {{page}} / {{totalPages}} (Totaal: {{total}})",
+  "table": {
+    "name": "Naam",
+    "code": "Code"
+  },
+  "status": {
+    "visited": "Bezocht",
+    "planned": "Gepland",
+    "new": "Nieuw"
+  },
+  "messages": {
+    "created": "Klant succesvol aangemaakt!",
+    "createError": "Er is een fout opgetreden bij het aanmaken van de klant",
+    "syncSuccess": "Klanten succesvol gesynchroniseerd",
+    "syncError": "Synchronisatie mislukt",
+    "syncUnexpectedError": "Er is een fout opgetreden tijdens de synchronisatie"
+  }
+}

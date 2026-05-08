@@ -1,8 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import api from '../services/api';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function AdminPricingPage() {
+  const { t } = useAppTranslation(['common', 'legacy', 'products', 'settings']);
+  const { formatDate } = useLocaleFormat();
   const [showForm, setShowForm] = useState(false);
   const queryClient = useQueryClient();
 
@@ -26,16 +30,16 @@ export default function AdminPricingPage() {
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>Fiyat Override Kuralları</h2>
+        <h2>{t('legacy:pricing.title')}</h2>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? 'İptal' : 'Yeni Kural'}
+          {showForm ? t('actions.cancel') : t('legacy:pricing.newRule')}
         </button>
       </div>
 
       {showForm && (
         <div className="card" style={{ marginBottom: '1rem' }}>
-          <h3>Yeni Fiyat Kuralı</h3>
-          <p style={{ color: '#666' }}>Form implementasyonu için API endpoint'lerini kullanın</p>
+          <h3>{t('legacy:pricing.newPriceRule')}</h3>
+          <p style={{ color: '#666' }}>{t('legacy:pricing.formHelp')}</p>
         </div>
       )}
 
@@ -44,25 +48,25 @@ export default function AdminPricingPage() {
           <div key={rule._id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <h3>Tip: {rule.type}</h3>
-                {rule.productId && <p>Ürün ID: {rule.productId}</p>}
-                {rule.categoryId && <p>Kategori ID: {rule.categoryId}</p>}
-                {rule.customerId && <p>Müşteri ID: {rule.customerId}</p>}
-                {rule.fixedPrice !== undefined && <p>Sabit Fiyat: €{rule.fixedPrice}</p>}
-                {rule.discountPercent !== undefined && <p>İndirim: %{rule.discountPercent}</p>}
-                <p>Öncelik: {rule.priority}</p>
+                <h3>Type: {rule.type}</h3>
+                {rule.productId && <p>{t('legacy:pricing.productId')} {rule.productId}</p>}
+                {rule.categoryId && <p>{t('legacy:pricing.categoryId')} {rule.categoryId}</p>}
+                {rule.customerId && <p>{t('products:fields.customer')} ID: {rule.customerId}</p>}
+                {rule.fixedPrice !== undefined && <p>{t('legacy:pricing.fixedPrice')} €{rule.fixedPrice}</p>}
+                {rule.discountPercent !== undefined && <p>{t('products:fields.discount')}: %{rule.discountPercent}</p>}
+                <p>Priority: {rule.priority}</p>
                 <p>
-                  Geçerlilik: {new Date(rule.validFrom).toLocaleDateString('tr-TR')} -{' '}
-                  {rule.validTo ? new Date(rule.validTo).toLocaleDateString('tr-TR') : 'Sınırsız'}
+                  Validity: {formatDate(rule.validFrom)} -{' '}
+                  {rule.validTo ? formatDate(rule.validTo) : 'Unlimited'}
                 </p>
-                <p>Durum: {rule.isActive ? 'Aktif' : 'Pasif'}</p>
+                <p>{t('settings:status')}: {rule.isActive ? t('states.active') : t('states.inactive')}</p>
               </div>
               <button
                 onClick={() => deleteMutation.mutate(rule._id)}
                 className="btn-danger"
                 disabled={deleteMutation.isPending}
               >
-                Sil
+                {t('actions.delete')}
               </button>
             </div>
           </div>
@@ -71,4 +75,3 @@ export default function AdminPricingPage() {
     </div>
   );
 }
-

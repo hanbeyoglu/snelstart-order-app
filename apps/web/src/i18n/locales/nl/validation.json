@@ -1,0 +1,15 @@
+{
+  "requiredFields": "Vul alle verplichte velden in",
+  "usernameRequired": "Voer een gebruikersnaam in",
+  "usernamePasswordRequired": "Vul gebruikersnaam en wachtwoord in",
+  "passwordMin": "Wachtwoord moet minimaal {{count}} tekens bevatten",
+  "passwordMismatch": "Wachtwoorden komen niet overeen",
+  "fileRequired": "Selecteer een bestand",
+  "relationTypeRequired": "Selecteer minimaal één relatietype",
+  "customerNameRequired": "Klantnaam is verplicht",
+  "streetRequired": "Straatadres is verplicht",
+  "postalCodeRequired": "Postcode is verplicht",
+  "cityRequired": "Stad is verplicht",
+  "emailInvalid": "Voer een geldig e-mailadres in",
+  "phoneInvalid": "Voer een geldig telefoonnummer in"
+}

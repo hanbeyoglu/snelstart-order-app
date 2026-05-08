@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 interface User {
   _id: string;
@@ -16,6 +18,8 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { t } = useAppTranslation(['common', 'users']);
+  const { formatDate } = useLocaleFormat();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
@@ -36,14 +40,14 @@ export default function UsersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      showToast('Kullanıcı başarıyla silindi', 'success');
+      showToast(t('users:messages.deleted'), 'success');
       setUserToDelete(null);
     },
     onError: (error: any) => {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Kullanıcı silinirken bir hata oluştu';
+        t('users:messages.deleteError');
       showToast(message, 'error');
     },
   });
@@ -91,7 +95,7 @@ export default function UsersPage() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Kullanıcılar
+          {t('users:title')}
         </motion.h2>
         <motion.button
           initial={{ opacity: 0, x: 20 }}
@@ -101,7 +105,7 @@ export default function UsersPage() {
           style={{ minHeight: '44px' }}
           whileTap={{ scale: 0.98 }}
         >
-          ➕ Yeni Kullanıcı Ekle
+          ➕ {t('users:create')}
         </motion.button>
       </div>
 
@@ -153,7 +157,7 @@ export default function UsersPage() {
                       color: 'var(--text-primary)',
                     }}
                   >
-                    {user.username || user.email || 'Bilinmeyen Kullanıcı'}
+                    {user.username || user.email || t('users:unknown')}
                   </h3>
                   {user.email && (
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
@@ -174,11 +178,11 @@ export default function UsersPage() {
                         color: user.role === 'admin' ? '#f59e0b' : 'var(--primary)',
                       }}
                     >
-                      {user.role === 'admin' ? '👑 Admin' : '👤 Çalışan'}
+                      {user.role === 'admin' ? `👑 ${t('users:roles.admin')}` : `👤 ${t('users:roles.salesRep')}`}
                     </div>
                     {user.createdAt && (
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        Oluşturulma: {new Date(user.createdAt).toLocaleDateString('tr-TR')}
+                        {t('users:createdAt')}: {formatDate(user.createdAt)}
                       </span>
                     )}
                   </div>
@@ -191,7 +195,7 @@ export default function UsersPage() {
                   style={{ minHeight: '44px', padding: '0.5rem 1rem' }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  ✏️ Düzenle
+                  ✏️ {t('users:edit')}
                 </motion.button>
                 {currentUser?.id !== user._id && (
                   <motion.button
@@ -200,7 +204,7 @@ export default function UsersPage() {
                     style={{ minHeight: '44px', padding: '0.5rem 1rem' }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    🗑️ Sil
+                    🗑️ {t('actions.delete')}
                   </motion.button>
                 )}
               </div>
@@ -216,17 +220,17 @@ export default function UsersPage() {
         >
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👥</div>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 600 }}>
-            Henüz kullanıcı yok
+            {t('users:emptyTitle')}
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            İlk kullanıcıyı ekleyerek başlayın
+            {t('users:emptyDescription')}
           </p>
           <motion.button
             onClick={() => navigate('/users/new')}
             className="btn-primary"
             whileTap={{ scale: 0.95 }}
           >
-            ➕ Yeni Kullanıcı Ekle
+            ➕ {t('users:create')}
           </motion.button>
         </motion.div>
       )}
@@ -272,11 +276,10 @@ export default function UsersPage() {
                   color: 'var(--danger)',
                 }}
               >
-                Kullanıcıyı Sil
+                {t('users:deleteTitle')}
               </h3>
               <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                <strong>{userToDelete.username}</strong>
-                {userToDelete.email && ` (${userToDelete.email})`} adlı kullanıcıyı silmek üzeresiniz. Bu işlem geri alınamaz.
+                {t('users:deleteDescription', { name: `${userToDelete.username}${userToDelete.email ? ` (${userToDelete.email})` : ''}` })}
               </p>
 
               <div
@@ -294,7 +297,7 @@ export default function UsersPage() {
                   disabled={deleteMutation.isPending}
                   style={{ minHeight: '40px', paddingInline: '1rem' }}
                 >
-                  Vazgeç
+                  {t('actions.cancel')}
                 </button>
                 <button
                   type="button"
@@ -306,7 +309,7 @@ export default function UsersPage() {
                   disabled={deleteMutation.isPending}
                   style={{ minHeight: '40px', paddingInline: '1rem' }}
                 >
-                  {deleteMutation.isPending ? 'Siliniyor...' : 'Evet, Sil'}
+                  {deleteMutation.isPending ? t('states.deleting') : t('actions.yesDelete')}
                 </button>
               </div>
             </motion.div>

@@ -1,0 +1,35 @@
+{
+  "title": "الطلبات",
+  "loading": "جار تحميل الطلبات...",
+  "emptyTitle": "لا توجد طلبات بعد",
+  "emptyDescription": "ستظهر طلباتك هنا",
+  "statusFilter": "تصفية الحالة",
+  "fields": {
+    "orderId": "معرف الطلب",
+    "snelstartOrderId": "معرف طلب SnelStart",
+    "snelstartId": "معرف SnelStart",
+    "customer": "العميل",
+    "customerId": "معرف العميل",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "itemCount": "عدد المنتجات",
+    "total": "الإجمالي",
+    "createdAt": "تاريخ الإنشاء",
+    "productName": "اسم المنتج"
+  },
+  "status": {
+    "draft": "مسودة",
+    "pending": "قيد الانتظار",
+    "synced": "تمت المزامنة",
+    "failed": "فشل"
+  },
+  "messages": {
+    "noCustomer": "لا يوجد عميل",
+    "unknownProduct": "منتج غير معروف",
+    "deleted": "تم حذف الطلب بنجاح",
+    "updated": "تم تحديث الطلب بنجاح",
+    "deleteError": "حدث خطأ أثناء حذف الطلب",
+    "updateError": "حدث خطأ أثناء تحديث الطلب",
+    "editSoon": "ستتم إضافة تعديل الطلب قريبا"
+  }
+}

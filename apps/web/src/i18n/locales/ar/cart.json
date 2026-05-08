@@ -1,0 +1,25 @@
+{
+  "title": "السلة",
+  "emptyTitle": "سلتك فارغة",
+  "emptyDescription": "أضف منتجات لإنشاء طلب.",
+  "selectCustomer": "اختر عميلا",
+  "customerSearchPlaceholder": "ابحث عن عميل أو اختره...",
+  "selectedCustomer": "العميل المحدد",
+  "subtotal": "المجموع الفرعي:",
+  "total": "الإجمالي:",
+  "createOrder": "إنشاء طلب",
+  "creatingOrder": "جار إنشاء الطلب...",
+  "clearCart": "مسح السلة",
+  "removeProduct": "إزالة المنتج من السلة",
+  "restoreOriginalPrice": "استعادة السعر الأصلي",
+  "confirmRemoveTitle": "إزالة المنتج من السلة؟",
+  "confirmRemoveDescription": "سيتم إزالة هذا المنتج من سلتك.",
+  "messages": {
+    "selectCustomer": "يرجى اختيار عميل",
+    "orderCreated": "تم إنشاء الطلب بنجاح!",
+    "orderCreateError": "حدث خطأ أثناء إنشاء الطلب",
+    "cartCleared": "تم مسح السلة",
+    "priceRestored": "تمت استعادة السعر الأصلي لـ {{name}}",
+    "removed": "تمت إزالة {{name}} من السلة"
+  }
+}

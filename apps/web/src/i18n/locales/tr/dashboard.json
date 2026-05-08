@@ -1,0 +1,34 @@
+{
+  "title": "Gösterge Paneli",
+  "loading": "Gösterge paneli yükleniyor...",
+  "summary": "{{period}} özet ve istatistikler",
+  "periods": {
+    "daily": "Günlük",
+    "weekly": "Haftalık",
+    "monthly": "Aylık"
+  },
+  "stats": {
+    "totalOrders": "Toplam Sipariş",
+    "totalRevenue": "Toplam Gelir",
+    "visitedCustomers": "Gidilen Müşteri",
+    "plannedCustomers": "Planlanan Müşteri"
+  },
+  "sections": {
+    "visitedCustomers": "Gidilen Müşteriler",
+    "plannedCustomers": "Gidilmesi Planlanan Müşteriler",
+    "ordersByCustomer": "Müşteri Bazında Siparişler",
+    "topProducts": "En Çok Sipariş Edilen Ürünler"
+  },
+  "empty": {
+    "visitedCustomers": "Bu dönemde gidilen müşteri yok",
+    "plannedCustomers": "Planlanan müşteri yok",
+    "orders": "Bu dönemde sipariş yok",
+    "topProducts": "Bu dönemde sipariş edilen ürün yok"
+  },
+  "labels": {
+    "code": "Kod",
+    "orders_one": "{{count}} sipariş",
+    "orders_other": "{{count}} sipariş",
+    "pieces": "{{count}} adet"
+  }
+}

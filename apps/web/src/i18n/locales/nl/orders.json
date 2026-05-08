@@ -1,0 +1,35 @@
+{
+  "title": "Bestellingen",
+  "loading": "Bestellingen laden...",
+  "emptyTitle": "Nog geen bestellingen",
+  "emptyDescription": "Uw bestellingen verschijnen hier",
+  "statusFilter": "Statusfilter",
+  "fields": {
+    "orderId": "Bestel-ID",
+    "snelstartOrderId": "SnelStart bestel-ID",
+    "snelstartId": "SnelStart ID",
+    "customer": "Klant",
+    "customerId": "Klant-ID",
+    "date": "Datum",
+    "status": "Status",
+    "itemCount": "Aantal producten",
+    "total": "Totaal",
+    "createdAt": "Aangemaakt op",
+    "productName": "Productnaam"
+  },
+  "status": {
+    "draft": "Concept",
+    "pending": "In afwachting",
+    "synced": "Gesynchroniseerd",
+    "failed": "Mislukt"
+  },
+  "messages": {
+    "noCustomer": "Geen klant",
+    "unknownProduct": "Onbekend product",
+    "deleted": "Bestelling succesvol verwijderd",
+    "updated": "Bestelling succesvol bijgewerkt",
+    "deleteError": "Er is een fout opgetreden bij het verwijderen van de bestelling",
+    "updateError": "Er is een fout opgetreden bij het bijwerken van de bestelling",
+    "editSoon": "Bestelling bewerken wordt binnenkort toegevoegd"
+  }
+}

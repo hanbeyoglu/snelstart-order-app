@@ -1,0 +1,8 @@
+{
+  "generic": "Bir hata oluştu.",
+  "network": "Backend'e bağlanılamadı. Lütfen API sunucusunun çalıştığından emin olun.",
+  "invalidBackendResponse": "Backend'den geçersiz yanıt alındı",
+  "presignedUrl": "Presigned URL alınırken bir hata oluştu",
+  "r2NotConfigured": "Cloudflare R2 yapılandırılmamış. Lütfen backend ortam değişkenlerini kontrol edin.",
+  "visibilityUpdate": "Görünürlük güncellenemedi"
+}

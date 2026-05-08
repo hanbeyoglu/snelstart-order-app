@@ -1,0 +1,34 @@
+{
+  "title": "Dashboard",
+  "loading": "Dashboard wird geladen...",
+  "summary": "{{period}} Übersicht und Statistiken",
+  "periods": {
+    "daily": "Täglich",
+    "weekly": "Wöchentlich",
+    "monthly": "Monatlich"
+  },
+  "stats": {
+    "totalOrders": "Bestellungen gesamt",
+    "totalRevenue": "Gesamtumsatz",
+    "visitedCustomers": "Besuchte Kunden",
+    "plannedCustomers": "Geplante Kunden"
+  },
+  "sections": {
+    "visitedCustomers": "Besuchte Kunden",
+    "plannedCustomers": "Für Besuch geplante Kunden",
+    "ordersByCustomer": "Bestellungen nach Kunde",
+    "topProducts": "Meistbestellte Produkte"
+  },
+  "empty": {
+    "visitedCustomers": "In diesem Zeitraum wurden keine Kunden besucht",
+    "plannedCustomers": "Keine geplanten Kunden",
+    "orders": "Keine Bestellungen in diesem Zeitraum",
+    "topProducts": "Keine Produkte in diesem Zeitraum bestellt"
+  },
+  "labels": {
+    "code": "Code",
+    "orders_one": "{{count}} Bestellung",
+    "orders_other": "{{count}} Bestellungen",
+    "pieces": "{{count}} Stk."
+  }
+}

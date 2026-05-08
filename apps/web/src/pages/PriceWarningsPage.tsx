@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 interface PriceWarningProduct {
   id: string;
@@ -18,16 +20,11 @@ interface PriceWarningProduct {
   coverImageUrl?: string | null;
 }
 
-function formatCurrency(val: number) {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(val);
-}
-
 const PAGE_SIZES = [25, 50, 100];
 
 export default function PriceWarningsPage() {
+  const { t } = useAppTranslation(['common', 'legacy', 'errors', 'settings']);
+  const { formatCurrency } = useLocaleFormat();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -70,14 +67,14 @@ export default function PriceWarningsPage() {
               borderRadius: '50%',
             }}
           />
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>Yükleniyor...</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>{t('states.loading')}</p>
         </div>
       </div>
     );
   }
 
   if (isError) {
-    const errMsg = (error as any)?.response?.data?.message || (error as Error)?.message || 'Bir hata oluştu.';
+    const errMsg = (error as any)?.response?.data?.message || (error as Error)?.message || t('errors:generic');
     return (
       <div className="container">
         <motion.div
@@ -85,7 +82,7 @@ export default function PriceWarningsPage() {
           style={{ padding: '2rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)' }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-          <h2 style={{ color: 'var(--danger)' }}>Hata</h2>
+          <h2 style={{ color: 'var(--danger)' }}>{t('states.error')}</h2>
           <p style={{ color: 'var(--text-secondary)' }}>{errMsg}</p>
         </motion.div>
       </div>
@@ -109,14 +106,14 @@ export default function PriceWarningsPage() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Fiyat Uyarıları
+          {t('legacy:warnings.title')}
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-          Satış fiyatı alış fiyatından düşük veya kar marjı %5 altında olan ürünler
+          {t('legacy:warnings.description', { defaultValue: 'Products with sale price below purchase price or margin below 5%' })}
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-          <label style={{ fontWeight: 600 }}>Sayfa başına:</label>
+          <label style={{ fontWeight: 600 }}>{t('pagination.pageSize')}:</label>
           <select
             value={pageSize}
             onChange={(e) => setPageSize(Number(e.target.value))}
@@ -137,20 +134,20 @@ export default function PriceWarningsPage() {
           style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-          <h3>Uyarı yok</h3>
-          <p>Tüm ürünlerde satış fiyatı alış fiyatının üzerinde ve kar marjı en az %5.</p>
+          <h3>{t('legacy:warnings.none')}</h3>
+          <p>{t('legacy:warnings.noneDescription')}</p>
         </motion.div>
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ overflowX: 'auto', padding: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
             <thead>
               <tr style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%)', borderBottom: '2px solid var(--border-color)' }}>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>Ürün</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Satış</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Alış</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Min. Fiyat</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Marj %</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 700 }}>Durum</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>{t('legacy:warnings.product')}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>{t('legacy:warnings.sale')}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>{t('legacy:warnings.purchase')}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>{t('legacy:warnings.minPrice')}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>{t('legacy:warnings.margin')}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 700 }}>{t('settings:status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -197,7 +194,7 @@ export default function PriceWarningsPage() {
                         color: p.warningType === 'zarar' ? 'var(--danger)' : 'var(--warning)',
                       }}
                     >
-                      {p.warningType === 'zarar' ? 'Zarar' : 'Düşük Marj'}
+                      {p.warningType === 'zarar' ? t('legacy:warnings.loss', { defaultValue: 'Loss' }) : t('legacy:warnings.lowMargin', { defaultValue: 'Low Margin' })}
                     </span>
                   </td>
                 </tr>
@@ -218,7 +215,7 @@ export default function PriceWarningsPage() {
               }}
             >
               <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {startItem}-{endItem} / {total} ürün
+                {startItem}-{endItem} / {total} {t('legacy:warnings.product').toLocaleLowerCase()}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <button
@@ -231,7 +228,7 @@ export default function PriceWarningsPage() {
                   disabled={page <= 1}
                   style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}
                 >«</button>
-                <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>Sayfa {page} / {totalPages}</span>
+                <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>{t('pagination.page')} {page} / {totalPages}</span>
                 <button
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages}

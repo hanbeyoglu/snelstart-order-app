@@ -144,7 +144,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
 
   removeItemsByCategory: (categoryId) =>
     set((state) => {
-      const nextItems = state.items.filter((i) => i.categoryId !== categoryId);
+      const nextItems = state.items.filter((i) => (i as CartItem & { categoryId?: string }).categoryId !== categoryId);
       if (state.currentUserId) {
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }
