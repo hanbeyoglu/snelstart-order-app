@@ -55,10 +55,22 @@ services:
     networks:
       - snelstart-network
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: snelstart-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    networks:
+      - snelstart-network
+
 volumes:
   mongodb_data:
   caddy_data:
   caddy_config:
+  uptime_kuma_data:
 
 networks:
   snelstart-network:

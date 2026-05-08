@@ -6,6 +6,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ConnectionSettingsService } from './connection-settings.service';
@@ -16,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { snelStartConnectionTestSchema } from '@snelstart-order-app/shared';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
+import { AuditService } from '../audit/audit.service';
 
 @ApiTags('Connection Settings')
 @Controller('connection-settings')
@@ -26,6 +28,7 @@ export class ConnectionSettingsController {
     private connectionSettingsService: ConnectionSettingsService,
     private snelStartService: SnelStartService,
     private companyInfoService: CompanyInfoService,
+    private auditService: AuditService,
   ) {}
 
   @Get()
@@ -57,12 +60,20 @@ export class ConnectionSettingsController {
       subscriptionKey: string;
       integrationKey: string;
     },
+    @Request() req: any,
   ) {
     const validated = parseOrBadRequest(snelStartConnectionTestSchema, body);
     await this.connectionSettingsService.saveSettings(
       validated.subscriptionKey,
       validated.integrationKey,
     );
+    await this.auditService.log({
+      action: 'SNELSTART_SETTINGS_SAVED',
+      entityType: 'ConnectionSettings',
+      entityId: 'active',
+      userId: req.user.userId,
+      changes: validated,
+    });
     return { success: true };
   }
 
@@ -76,6 +87,7 @@ export class ConnectionSettingsController {
       subscriptionKey: string;
       integrationKey: string;
     },
+    @Request() req: any,
   ) {
     const validated = parseOrBadRequest(snelStartConnectionTestSchema, body);
     try {
@@ -84,6 +96,13 @@ export class ConnectionSettingsController {
         validated.integrationKey,
       );
       await this.connectionSettingsService.updateTestStatus(success);
+      await this.auditService.log({
+        action: 'SNELSTART_CONNECTION_TESTED',
+        entityType: 'ConnectionSettings',
+        entityId: 'active',
+        userId: req.user.userId,
+        metadata: { success },
+      });
       
       // If connection test is successful, fetch company info automatically
       if (success) {
@@ -99,6 +118,13 @@ export class ConnectionSettingsController {
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
       await this.connectionSettingsService.updateTestStatus(false, errorMessage);
+      await this.auditService.log({
+        action: 'SNELSTART_CONNECTION_TEST_FAILED',
+        entityType: 'ConnectionSettings',
+        entityId: 'active',
+        userId: req.user.userId,
+        metadata: { success: false },
+      });
       return { success: false, error: 'Connection test failed' };
     }
   }
@@ -107,7 +133,7 @@ export class ConnectionSettingsController {
   @HttpCode(HttpStatus.OK)
   @Roles('admin')
   @ApiOperation({ summary: 'Refresh SnelStart access token (admin only)' })
-  async refreshToken() {
+  async refreshToken(@Request() req: any) {
     const settings = await this.connectionSettingsService.getActiveSettings();
     if (!settings) {
       return { success: false, error: 'Connection settings not found' };
@@ -134,6 +160,13 @@ export class ConnectionSettingsController {
         // Token kaydedildikten sonra güncel durumu döndür
         const isTokenValid = await this.connectionSettingsService.isTokenValid();
         const updatedSettings = await this.connectionSettingsService.getSettings();
+        await this.auditService.log({
+          action: 'SNELSTART_TOKEN_REFRESHED',
+          entityType: 'ConnectionSettings',
+          entityId: 'active',
+          userId: req.user.userId,
+          metadata: { tokenExpiresAt: updatedSettings?.tokenExpiresAt },
+        });
         return { 
           success: true,
           isTokenValid,

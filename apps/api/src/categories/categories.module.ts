@@ -7,12 +7,14 @@ import { CacheModule } from '../cache/cache.module';
 import { ProductsModule } from '../products/products.module';
 import { Category, CategorySchema } from './schemas/category.schema';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     SnelStartModule,
     CacheModule,
     forwardRef(() => ProductsModule),
+    AuditModule,
     MongooseModule.forFeature([
       { name: Category.name, schema: CategorySchema },
       { name: Product.name, schema: ProductSchema },
@@ -23,4 +25,3 @@ import { Product, ProductSchema } from '../products/schemas/product.schema';
   exports: [CategoriesService],
 })
 export class CategoriesModule {}
-

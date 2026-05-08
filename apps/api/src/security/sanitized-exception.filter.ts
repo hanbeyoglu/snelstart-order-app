@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 import { Response } from 'express';
 
 function safeMessage(statusCode: number, originalMessage: unknown): string {
@@ -18,6 +19,7 @@ function safeMessage(statusCode: number, originalMessage: unknown): string {
 
 @Catch()
 export class SanitizedExceptionFilter implements ExceptionFilter {
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

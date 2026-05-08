@@ -8,6 +8,7 @@ import { CacheModule } from '../cache/cache.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { ImagesModule } from '../images/images.module';
 import { Product, ProductSchema } from './schemas/product.schema';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { Product, ProductSchema } from './schemas/product.schema';
     CacheModule,
     forwardRef(() => CategoriesModule),
     forwardRef(() => ImagesModule),
+    AuditModule,
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
   ],
   controllers: [ProductsController],
@@ -23,4 +25,3 @@ import { Product, ProductSchema } from './schemas/product.schema';
   exports: [ProductsService],
 })
 export class ProductsModule {}
-

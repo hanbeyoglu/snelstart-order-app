@@ -5,6 +5,7 @@ dotenv.config({
   path: path.resolve(__dirname, '../../../.env'),
 });
 
+import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';

@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PricingService } from './pricing.service';
@@ -35,23 +36,23 @@ export class PricingController {
   @Post('rules')
   @Roles('admin')
   @ApiOperation({ summary: 'Create price override rule' })
-  async createRule(@Body() body: any) {
+  async createRule(@Body() body: any, @Request() req: any) {
     const validated = parseOrBadRequest(priceOverrideRuleSchema, body);
-    return this.pricingService.createRule(validated);
+    return this.pricingService.createRule(validated, req.user.userId);
   }
 
   @Put('rules/:id')
   @Roles('admin')
   @ApiOperation({ summary: 'Update price override rule' })
-  async updateRule(@Param('id') id: string, @Body() body: any) {
+  async updateRule(@Param('id') id: string, @Body() body: any, @Request() req: any) {
     const validated = parseOrBadRequest(priceOverrideRuleSchema.partial(), body);
-    return this.pricingService.updateRule(id, validated);
+    return this.pricingService.updateRule(id, validated, req.user.userId);
   }
 
   @Delete('rules/:id')
   @Roles('admin')
   @ApiOperation({ summary: 'Delete price override rule' })
-  async deleteRule(@Param('id') id: string) {
-    return this.pricingService.deleteRule(id);
+  async deleteRule(@Param('id') id: string, @Request() req: any) {
+    return this.pricingService.deleteRule(id, req.user.userId);
   }
 }

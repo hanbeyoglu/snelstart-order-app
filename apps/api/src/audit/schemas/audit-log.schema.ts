@@ -23,5 +23,8 @@ export class AuditLog extends Document {
 }
 
 export const AuditLogSchema = SchemaFactory.createForClass(AuditLog);
+AuditLogSchema.index({ createdAt: -1 });
+AuditLogSchema.index({ action: 1, createdAt: -1 });
+AuditLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
+AuditLogSchema.index({ userId: 1, createdAt: -1 });
 export type AuditLogDocument = AuditLog & Document;
-

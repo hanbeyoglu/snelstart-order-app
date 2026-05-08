@@ -10,6 +10,7 @@ import {
   UseGuards,
   Inject,
   forwardRef,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
@@ -18,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ProductsService } from '../products/products.service';
 import { VisibilityDto } from '../common/dto/common.dto';
+import { AuditService } from '../audit/audit.service';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -28,6 +30,7 @@ export class CategoriesController {
     private categoriesService: CategoriesService,
     @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
+    private auditService: AuditService,
   ) {}
 
   @Get()
@@ -65,11 +68,19 @@ export class CategoriesController {
   async updateCategoryVisibility(
     @Param('id') id: string,
     @Body() body: VisibilityDto,
+    @Request() req: any,
   ) {
     const updated = await this.categoriesService.updateCategoryVisibility(id, body.isActive === true);
     if (!updated) {
       throw new NotFoundException('Category not found');
     }
+    await this.auditService.log({
+      action: 'CATEGORY_VISIBILITY_UPDATED',
+      entityType: 'Category',
+      entityId: id,
+      userId: req.user.userId,
+      changes: { isActive: body.isActive === true },
+    });
     return updated;
   }
 
@@ -82,7 +93,7 @@ export class CategoriesController {
   @Post('sync')
   @Roles('admin')
   @ApiOperation({ summary: 'Sync categories and products from SnelStart API' })
-  async syncCategories() {
+  async syncCategories(@Request() req: any) {
     try {
       // Sync categories first
       await this.categoriesService.syncCategories();
@@ -90,6 +101,13 @@ export class CategoriesController {
       // Then sync products
       await this.productsService.syncProducts();
       
+      await this.auditService.log({
+        action: 'CATEGORIES_SYNCED',
+        entityType: 'Category',
+        entityId: 'bulk',
+        userId: req.user.userId,
+      });
+
       return {
         success: true,
         message: 'Kategoriler ve ürünler başarıyla senkronize edildi',

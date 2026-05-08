@@ -24,6 +24,8 @@
     "@nestjs/passport": "^10.0.2",
     "@nestjs/platform-express": "^10.2.10",
     "@nestjs/swagger": "^7.1.13",
+    "@sentry/nestjs": "^10.52.0",
+    "@sentry/profiling-node": "^10.52.0",
     "@snelstart-order-app/shared": "workspace:*",
     "axios": "^1.6.2",
     "bcrypt": "^6.0.0",

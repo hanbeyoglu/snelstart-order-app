@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bullmq';
+import { SentryModule } from '@sentry/nestjs/setup';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -23,6 +24,7 @@ import { CompanyInfoModule } from './company-info/company-info.module';
 import { R2Module } from './r2/r2.module';
 import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ReportsModule } from './reports/reports.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    SentryModule.forRoot(),
 
     // 🍃 MongoDB
     MongooseModule.forRootAsync({
@@ -95,6 +99,7 @@ import { ReportsModule } from './reports/reports.module';
     R2Module,
     UsersModule,
     ReportsModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
   providers: [AppService],

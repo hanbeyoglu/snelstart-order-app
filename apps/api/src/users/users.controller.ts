@@ -5,13 +5,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateUserDto, UpdateCurrentUserDto, UpdateUserDto } from './dto/user.dto';
+import { AuditService } from '../audit/audit.service';
 
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private auditService: AuditService,
+  ) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user info (available to all authenticated users)' })
@@ -26,7 +30,15 @@ export class UsersController {
     @Body() body: UpdateCurrentUserDto,
   ) {
     // Kullanıcı kendi bilgilerini güncelleyebilir, ancak rol değiştiremez
-    return this.usersService.updateUser(req.user.userId, body, false);
+    const updated = await this.usersService.updateUser(req.user.userId, body, false);
+    await this.auditService.log({
+      action: 'USER_PROFILE_UPDATED',
+      entityType: 'User',
+      entityId: req.user.userId,
+      userId: req.user.userId,
+      changes: body,
+    });
+    return updated;
   }
 
   @Get()
@@ -46,8 +58,16 @@ export class UsersController {
   @Post()
   @Roles('admin')
   @ApiOperation({ summary: 'Create new user' })
-  async createUser(@Body() body: CreateUserDto) {
-    return this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName);
+  async createUser(@Body() body: CreateUserDto, @Request() req: any) {
+    const created = await this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName);
+    await this.auditService.log({
+      action: 'USER_CREATED',
+      entityType: 'User',
+      entityId: String((created as any)._id || (created as any).id),
+      userId: req.user.userId,
+      changes: body,
+    });
+    return created;
   }
 
   @Put(':id')
@@ -56,15 +76,31 @@ export class UsersController {
   async updateUser(
     @Param('id') id: string,
     @Body() body: UpdateUserDto,
+    @Request() req: any,
   ) {
     // Admin tüm alanları değiştirebilir (rol dahil)
-    return this.usersService.updateUser(id, body, true);
+    const updated = await this.usersService.updateUser(id, body, true);
+    await this.auditService.log({
+      action: 'USER_UPDATED',
+      entityType: 'User',
+      entityId: id,
+      userId: req.user.userId,
+      changes: body,
+    });
+    return updated;
   }
 
   @Delete(':id')
   @Roles('admin')
   @ApiOperation({ summary: 'Delete user' })
-  async deleteUser(@Param('id') id: string) {
-    return this.usersService.deleteUser(id);
+  async deleteUser(@Param('id') id: string, @Request() req: any) {
+    const deleted = await this.usersService.deleteUser(id);
+    await this.auditService.log({
+      action: 'USER_DELETED',
+      entityType: 'User',
+      entityId: id,
+      userId: req.user.userId,
+    });
+    return deleted;
   }
 }

@@ -1,0 +1,35 @@
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuditService } from './audit.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+@ApiTags('Audit')
+@Controller('audit')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
+export class AuditController {
+  constructor(private auditService: AuditService) {}
+
+  @Get()
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get audit logs (admin only)' })
+  async getAuditLogs(
+    @Query('action') action?: string,
+    @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
+    @Query('userId') userId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.auditService.getLogs({
+      action,
+      entityType,
+      entityId,
+      userId,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+}

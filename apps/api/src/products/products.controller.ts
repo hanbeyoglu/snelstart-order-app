@@ -10,6 +10,7 @@ import {
   UseGuards,
   Inject,
   forwardRef,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
@@ -18,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CategoriesService } from '../categories/categories.service';
 import { VisibilityDto } from '../common/dto/common.dto';
+import { AuditService } from '../audit/audit.service';
 
 @ApiTags('Products')
 @Controller('products')
@@ -28,6 +30,7 @@ export class ProductsController {
     private productsService: ProductsService,
     @Inject(forwardRef(() => CategoriesService))
     private categoriesService: CategoriesService,
+    private auditService: AuditService,
   ) {}
 
   @Get()
@@ -93,11 +96,19 @@ export class ProductsController {
   async updateProductVisibility(
     @Param('id') id: string,
     @Body() body: VisibilityDto,
+    @Request() req: any,
   ) {
     const updated = await this.productsService.updateProductVisibility(id, body.isActive === true);
     if (!updated) {
       throw new NotFoundException('Product not found');
     }
+    await this.auditService.log({
+      action: 'PRODUCT_VISIBILITY_UPDATED',
+      entityType: 'Product',
+      entityId: id,
+      userId: req.user.userId,
+      changes: { isActive: body.isActive === true },
+    });
     return updated;
   }
 
@@ -113,7 +124,7 @@ export class ProductsController {
   @Post('sync')
   @Roles('admin')
   @ApiOperation({ summary: 'Full sync: Sync all products and categories from SnelStart API using dynamic pagination' })
-  async syncProductsAndCategories() {
+  async syncProductsAndCategories(@Request() req: any) {
     try {
       // Sync categories first
       await this.categoriesService.syncCategories();
@@ -121,6 +132,14 @@ export class ProductsController {
       // Then sync products (full sync with dynamic pagination)
       const result = await this.productsService.syncProducts();
       
+      await this.auditService.log({
+        action: 'PRODUCTS_FULL_SYNCED',
+        entityType: 'Product',
+        entityId: 'bulk',
+        userId: req.user.userId,
+        metadata: result,
+      });
+
       return {
         success: true,
         message: 'Ürünler ve kategoriler başarıyla senkronize edildi',
@@ -137,7 +156,7 @@ export class ProductsController {
   @Post('sync/delta')
   @Roles('admin')
   @ApiOperation({ summary: 'Delta sync: Sync only products modified since last sync' })
-  async syncProductsDelta(@Query('since') since?: string) {
+  async syncProductsDelta(@Query('since') since?: string, @Request() req?: any) {
     try {
       let lastSyncTimestamp: Date;
       
@@ -151,10 +170,17 @@ export class ProductsController {
       
       if (!lastSyncTimestamp || isNaN(lastSyncTimestamp.getTime())) {
         // If no last sync found, do full sync instead
-        return this.syncProductsAndCategories();
+        return this.syncProductsAndCategories(req);
       }
       
       const result = await this.productsService.syncProductsDelta(lastSyncTimestamp);
+      await this.auditService.log({
+        action: 'PRODUCTS_DELTA_SYNCED',
+        entityType: 'Product',
+        entityId: 'bulk',
+        userId: req?.user?.userId,
+        metadata: { since: lastSyncTimestamp.toISOString(), ...result },
+      });
       
       return {
         success: true,

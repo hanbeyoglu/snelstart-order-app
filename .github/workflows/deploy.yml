@@ -34,8 +34,17 @@ jobs:
       - name: Build API
         run: pnpm --filter ./apps/api build
 
+      - name: Test API
+        run: pnpm --filter ./apps/api test
+
       - name: Build Web
         run: pnpm --filter ./apps/web build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright E2E
+        run: pnpm test:e2e
 
       - name: Build Worker
         run: pnpm --filter ./apps/worker build

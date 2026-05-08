@@ -9,6 +9,7 @@ import {
 import { EncryptionService } from './encryption.service';
 import { SnelStartModule } from '../snelstart/snelstart.module';
 import { CompanyInfoModule } from '../company-info/company-info.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -17,10 +18,10 @@ import { CompanyInfoModule } from '../company-info/company-info.module';
     ]),
     forwardRef(() => SnelStartModule),
     CompanyInfoModule,
+    AuditModule,
   ],
   providers: [ConnectionSettingsService, EncryptionService],
   controllers: [ConnectionSettingsController],
   exports: [ConnectionSettingsService, EncryptionService],
 })
 export class ConnectionSettingsModule {}
-
