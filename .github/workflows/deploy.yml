@@ -40,9 +40,8 @@ jobs:
       - name: Build Worker
         run: pnpm --filter ./apps/worker build
 
-
   deploy:
-    needs: build-and-test   # 🔥 Bu kritik
+    needs: build-and-test # 🔥 Bu kritik
     runs-on: ubuntu-latest
 
     steps:
@@ -57,19 +56,25 @@ jobs:
       - name: Deploy via SSH
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+
             cd ~/apps/snelstart-order-app
 
-            echo "Pulling latest code..."
-            git pull origin main
+            echo "Fetching latest code..."
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "Rebuilding web container..."
             docker compose build --pull --no-cache web
 
             echo "Rebuilding backend containers..."
-            docker compose build api worker
+            docker compose build --pull api worker
 
             echo "Restarting services..."
             docker compose up -d
+
+            echo "Container status..."
+            docker compose ps
 
             echo "Cleaning unused images..."
             docker image prune -f
