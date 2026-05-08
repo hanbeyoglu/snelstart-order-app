@@ -12,12 +12,11 @@ COPY package.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
 
-RUN pnpm install --frozen-lockfile --prod=false --filter @snelstart-order-app/web...
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY . .
 
 RUN pnpm --filter ./packages/shared build
-RUN pnpm --filter ./apps/web exec node -e "require.resolve('vite-plugin-pwa')"
 RUN pnpm --filter ./apps/web build
 
 
