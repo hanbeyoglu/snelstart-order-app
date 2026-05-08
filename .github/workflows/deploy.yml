@@ -62,8 +62,11 @@ jobs:
             echo "Pulling latest code..."
             git pull origin main
 
-            echo "Rebuilding containers..."
-            docker compose build
+            echo "Rebuilding web container..."
+            docker compose build --pull --no-cache web
+
+            echo "Rebuilding backend containers..."
+            docker compose build api worker
 
             echo "Restarting services..."
             docker compose up -d

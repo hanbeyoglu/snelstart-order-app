@@ -1,9 +1,9 @@
 # ========================
 # BUILD STAGE
 # ========================
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 # Workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
@@ -25,7 +25,7 @@ RUN pnpm --filter ./apps/api build
 # ========================
 # RUNTIME STAGE
 # ========================
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 
 # 🔥 En sağlam yöntem: her şeyi olduğu gibi al

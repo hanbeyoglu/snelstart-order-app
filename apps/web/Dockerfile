@@ -1,9 +1,9 @@
 # ---------- BUILD STAGE ----------
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
