@@ -31,10 +31,7 @@ export class ConnectionSettingsController {
     private auditService: AuditService,
   ) {}
 
-  @Get()
-  @Roles('admin', 'sales_rep')
-  @ApiOperation({ summary: 'Get SnelStart connection settings status (available to all authenticated users)' })
-  async getSettings() {
+  private async getConnectionStatus() {
     const settings = await this.connectionSettingsService.getSettings();
     if (!settings) {
       return { exists: false, isTokenValid: false };
@@ -49,6 +46,20 @@ export class ConnectionSettingsController {
       isTokenValid,
       tokenExpiresAt: settings.tokenExpiresAt,
     };
+  }
+
+  @Get()
+  @Roles('admin', 'sales_rep')
+  @ApiOperation({ summary: 'Get SnelStart connection settings status (available to all authenticated users)' })
+  async getSettings() {
+    return this.getConnectionStatus();
+  }
+
+  @Get('status')
+  @Roles('admin', 'sales_rep')
+  @ApiOperation({ summary: 'Get readonly SnelStart connection status' })
+  async getStatus() {
+    return this.getConnectionStatus();
   }
 
   @Post()
@@ -148,7 +159,7 @@ export class ConnectionSettingsController {
           tokenResponse.access_token,
           tokenResponse.expires_in,
         );
-        
+
         // After token is saved, fetch company info automatically
         try {
           await this.companyInfoService.getCompanyInfo();

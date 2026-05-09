@@ -22,7 +22,6 @@ export default function UserPage() {
   const { user, setUser } = useAuthStore();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
@@ -35,7 +34,7 @@ export default function UserPage() {
   const { data: connectionStatus } = useQuery({
     queryKey: ['connection-settings'],
     queryFn: async () => {
-      const response = await api.get('/connection-settings');
+      const response = await api.get('/connection-settings/status');
       return response.data;
     },
   });
@@ -46,31 +45,9 @@ export default function UserPage() {
       const response = await api.get('/connection-settings/company-info');
       return response.data;
     },
-    enabled: connectionStatus?.isTokenValid === true,
+    enabled: user?.role === 'super_admin' && connectionStatus?.isTokenValid === true,
     retry: false,
   });
-
-  const refreshTokenMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post('/connection-settings/refresh-token');
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connection-settings'] });
-      queryClient.invalidateQueries({ queryKey: ['company-info'] });
-      showToast('Token başarıyla yenilendi', 'success');
-      setIsRefreshing(false);
-    },
-    onError: (error: any) => {
-      showToast(error?.response?.data?.error || 'Token yenilenemedi', 'error');
-      setIsRefreshing(false);
-    },
-  });
-
-  const handleRefreshToken = async () => {
-    setIsRefreshing(true);
-    refreshTokenMutation.mutate();
-  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string }) => {
@@ -530,7 +507,7 @@ export default function UserPage() {
       </motion.div>
 
       {/* Company Info Card */}
-      {isTokenValid && (
+      {user?.role === 'super_admin' && isTokenValid && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
