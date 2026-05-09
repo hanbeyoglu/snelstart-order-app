@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -28,7 +28,6 @@ export default function Layout() {
   const { items } = useCartStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tokenTooltipOpen, setTokenTooltipOpen] = useState(false);
@@ -38,7 +37,7 @@ export default function Layout() {
     queryKey: ['connection-settings'],
     queryFn: async () => {
       try {
-        const response = await api.get('/connection-settings');
+        const response = await api.get('/connection-settings/status');
         return response.data;
       } catch (error) {
         return { isTokenValid: false };
@@ -47,51 +46,6 @@ export default function Layout() {
     enabled: !!user, // Sadece kullanıcı giriş yaptıysa
     refetchInterval: 30000, // 30 saniyede bir kontrol et
   });
-
-  // Token otomatik yenileme (sadece kullanıcı login olduğunda ve aktifken)
-  useEffect(() => {
-    // Tüm authenticated kullanıcılar için çalış (admin ve sales_rep)
-    if (!user) return;
-
-    const checkAndRefreshToken = async () => {
-      // Sayfa aktif değilse token yenileme
-      if (document.visibilityState === 'hidden') return;
-
-      // Token durumunu kontrol et
-      if (!connectionStatus?.tokenExpiresAt) return;
-
-      const tokenExpiresAt = new Date(connectionStatus.tokenExpiresAt);
-      const now = new Date();
-      const timeUntilExpiry = tokenExpiresAt.getTime() - now.getTime();
-      const fiveMinutes = 5 * 60 * 1000; // 5 dakika
-
-      // Token süresi dolmuş veya 5 dakika içinde dolacaksa otomatik yenile
-      if (timeUntilExpiry <= fiveMinutes) {
-        try {
-          const response = await api.post('/connection-settings/refresh-token');
-          if (response.data.success) {
-            queryClient.invalidateQueries({ queryKey: ['connection-settings'] });
-            queryClient.invalidateQueries({ queryKey: ['company-info'] });
-            console.log('Token otomatik olarak yenilendi');
-          }
-        } catch (error) {
-          console.error('Token otomatik yenileme hatası:', error);
-        }
-      }
-    };
-
-    // İlk kontrol
-    checkAndRefreshToken();
-
-    // Her 30 saniyede bir kontrol et (sadece sayfa aktifken)
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        checkAndRefreshToken();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [user, connectionStatus?.tokenExpiresAt, connectionStatus?.isTokenValid, queryClient]);
 
   const isTokenValid = connectionStatus?.isTokenValid === true;
   const tokenExpiresAt = connectionStatus?.tokenExpiresAt
