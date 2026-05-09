@@ -12,6 +12,24 @@ import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { validatePrice } from '../utils/priceValidation';
 
+function getValidContentQuantity(product: any): number | null {
+  const contentQuantity = Number(product?.contentQuantity);
+  return Number.isFinite(contentQuantity) && contentQuantity > 0 ? contentQuantity : null;
+}
+
+function getBackendCalculatedUnitPrice(product: any): number | null {
+  const rawBackendUnitPrice = product?.calculatedUnitPrice;
+  const backendUnitPrice = Number(rawBackendUnitPrice);
+  if (rawBackendUnitPrice !== null && rawBackendUnitPrice !== undefined && Number.isFinite(backendUnitPrice) && backendUnitPrice >= 0) {
+    return backendUnitPrice;
+  }
+  return null;
+}
+
+function isCaseUnit(product: any): boolean {
+  return String(product?.eenheid || '').trim().toUpperCase() === 'COL';
+}
+
 export default function ProductsPage() {
   const { t } = useAppTranslation(['common', 'products']);
   const { formatCurrency } = useLocaleFormat();
@@ -652,6 +670,10 @@ export default function ProductsPage() {
           const outOfStock = isOutOfStock(product);
           const stockLimit = getStockLimit(product);
           const isAtStockLimit = Number.isFinite(stockLimit) && cartQuantity >= stockLimit;
+          const caseUnit = isCaseUnit(product);
+          const contentQuantity = getValidContentQuantity(product);
+          const calculatedUnitPrice = getBackendCalculatedUnitPrice(product);
+          const displayPrice = product.finalPrice ?? product.basePrice ?? 0;
 
           return (
           <motion.div
@@ -814,21 +836,38 @@ export default function ProductsPage() {
                     margin: 0,
                   }}
                 >
-                  €{product.basePrice?.toFixed(2)}
+                  {formatCurrency(product.basePrice)}
                 </p>
               )}
               <p
                 style={{
-                  fontSize: '1.1rem',
+                  fontSize: '0.95rem',
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
                   margin: 0,
+                  color: 'var(--text-primary)',
                 }}
               >
-                €{product.finalPrice?.toFixed(2) || product.basePrice?.toFixed(2) || '0.00'}
+                {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}: {formatCurrency(displayPrice)}
               </p>
+              {caseUnit && contentQuantity && calculatedUnitPrice !== null && (
+                <div
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    margin: '0.35rem 0 0',
+                    display: 'grid',
+                    gap: '0.15rem',
+                  }}
+                >
+                  <span>
+                    {t('products:fields.unitsPerCase')}: {contentQuantity} {t('products:fields.unitFallback')}
+                  </span>
+                  <span>
+                    {t('products:fields.unitPrice')}: {formatCurrency(calculatedUnitPrice)} / {t('products:fields.unitFallback')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Cart controls - Compact */}

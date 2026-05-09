@@ -92,6 +92,7 @@ export class ProductsService {
               const artikelgroepId = product.artikelgroepId || undefined;
               const isParentArticle = product.isHoofdartikel === true;
               const subArticles = this.mapSubArticles(product);
+              const contentQuantity = this.parseContentQuantity(product);
 
               const updateData: any = {
                 snelstartId: product.id, // Primary unique identifier
@@ -105,6 +106,7 @@ export class ProductsService {
                 artikelomzetgroepOmschrijving: artikelomzetgroepOmschrijving,
                 voorraad: product.voorraad,
                 verkoopprijs: product.verkoopprijs,
+                contentQuantity,
                 inkoopprijs: product.inkoopprijs,
                 btwPercentage: product.btwPercentage,
                 eenheid: product.eenheid,
@@ -289,6 +291,7 @@ export class ProductsService {
               const artikelgroepId = product.artikelgroepId || undefined;
               const isParentArticle = product.isHoofdartikel === true;
               const subArticles = this.mapSubArticles(product);
+              const contentQuantity = this.parseContentQuantity(product);
 
               const updateData: any = {
                 snelstartId: product.id, // Primary unique identifier
@@ -302,6 +305,7 @@ export class ProductsService {
                 artikelomzetgroepOmschrijving: artikelomzetgroepOmschrijving,
                 voorraad: product.voorraad,
                 verkoopprijs: product.verkoopprijs,
+                contentQuantity,
                 inkoopprijs: product.inkoopprijs,
                 btwPercentage: product.btwPercentage,
                 eenheid: product.eenheid,
@@ -478,6 +482,43 @@ export class ProductsService {
       : [];
   }
 
+  private parseContentQuantity(product: any): number | null {
+    const contentField = Array.isArray(product.extraVelden)
+      ? product.extraVelden.find((field: any) => field?.naam === 'Inhoud_eenheid')
+      : null;
+
+    const parsed = Number(contentField?.waarde);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  private calculateUnitPrice(price?: number | null, contentQuantity?: number | null): number | null {
+    const numericPrice = Number(price);
+    const numericContentQuantity = Number(contentQuantity);
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      !Number.isFinite(numericContentQuantity) ||
+      numericContentQuantity <= 0
+    ) {
+      return null;
+    }
+
+    const unitPrice = numericPrice / numericContentQuantity;
+    return Number.isFinite(unitPrice) ? unitPrice : null;
+  }
+
+  private getPackagePricingFields(price?: number | null, contentQuantity?: number | null) {
+    const validContentQuantity =
+      Number.isFinite(Number(contentQuantity)) && Number(contentQuantity) > 0
+        ? Number(contentQuantity)
+        : null;
+
+    return {
+      contentQuantity: validContentQuantity,
+      calculatedUnitPrice: this.calculateUnitPrice(price, validContentQuantity),
+    };
+  }
+
   private async resolveSubArticles(subArticles?: ProductSubArticle[]) {
     const items = subArticles || [];
     if (items.length === 0) {
@@ -598,7 +639,7 @@ export class ProductsService {
     inStockOnly: boolean = false,
   ) {
     const groupIdsKey = groupIds?.length ? groupIds.slice().sort().join(',') : 'all';
-    const cacheKey = `products:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
+    const cacheKey = `products:v3:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
 
     // First check Redis cache
     const cached = await this.cacheService.get(cacheKey);
@@ -700,6 +741,7 @@ export class ProductsService {
               artikelomzetgroepOmschrijving: product.artikelomzetgroepOmschrijving,
               voorraad: product.voorraad,
               verkoopprijs: product.verkoopprijs,
+              ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
               inkoopprijs: product.inkoopprijs,
               btwPercentage: product.btwPercentage,
               eenheid: product.eenheid,
@@ -857,6 +899,7 @@ export class ProductsService {
           voorraad: product.voorraad,
           basePrice,
           finalPrice,
+          ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
           btwPercentage: product.btwPercentage,
           eenheid: product.eenheid,
           barcode: product.barcode,
@@ -1003,6 +1046,7 @@ export class ProductsService {
     const artikelgroepId = product.artikelgroepId || undefined;
     const isParentArticle = product.isHoofdartikel === true;
     const subArticles = this.mapSubArticles(product);
+    const contentQuantity = this.parseContentQuantity(product) ?? dbProduct?.contentQuantity ?? null;
 
     // Save to database
     await this.productModel.findOneAndUpdate(
@@ -1018,6 +1062,7 @@ export class ProductsService {
         artikelomzetgroepOmschrijving: categoryName || artikelomzetgroepOmschrijving,
         voorraad: product.voorraad,
         verkoopprijs: product.verkoopprijs,
+        contentQuantity,
         inkoopprijs: product.inkoopprijs,
         btwPercentage: product.btwPercentage,
         eenheid: product.eenheid,
@@ -1028,6 +1073,8 @@ export class ProductsService {
       },
       { upsert: true, new: true },
     );
+    await this.cacheService.invalidateProductCache(product.id);
+
     const basePrice = product.verkoopprijs || 0;
     let finalPrice = basePrice;
 
@@ -1044,6 +1091,7 @@ export class ProductsService {
       ...product,
       basePrice,
       finalPrice,
+      ...this.getPackagePricingFields(finalPrice, contentQuantity),
       // Ensure artikelcode is included (use artikelcode or artikelnummer)
       artikelcode: product.artikelcode || product.artikelnummer,
       // Include category name

@@ -43,6 +43,9 @@ export class Product extends Document {
   @Prop()
   verkoopprijs?: number; // Base price
 
+  @Prop({ default: null })
+  contentQuantity?: number | null; // Units inside a package/case
+
   @Prop()
   inkoopprijs?: number; // Purchase price
 
