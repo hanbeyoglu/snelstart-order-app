@@ -44,25 +44,32 @@ function saveCartForUser(userId: string, items: CartItem[], customerId: string |
   }
 }
 
+function positiveNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function createChildCartItem(parent: CartItem, subArticle: NonNullable<CartItem['subArticles']>[number]): CartItem {
   const child = subArticle.childProduct;
-  const quantity = parent.quantity * subArticle.quantityPerParent;
+  const quantityPerParent = positiveNumber(subArticle.quantityPerParent, 1);
+  const quantity = positiveNumber(parent.quantity, 1) * quantityPerParent;
+  const unitPrice = positiveNumber(child?.verkoopprijs, 0);
 
   return {
     productId: `${parent.productId}::child::${subArticle.childSnelstartId}`,
     productName: child?.omschrijving || '',
     sku: child?.artikelcode || subArticle.childArtikelcode || subArticle.childSnelstartId,
     quantity,
-    unitPrice: child?.verkoopprijs || 0,
-    basePrice: child?.verkoopprijs || 0,
-    totalPrice: (child?.verkoopprijs || 0) * quantity,
+    unitPrice,
+    basePrice: unitPrice,
+    totalPrice: unitPrice * quantity,
     vatPercentage: 0,
     isChildItem: true,
     lineType: 'recipe_child',
     parentProductId: parent.productId,
     childSnelstartId: subArticle.childSnelstartId,
     childArtikelcode: subArticle.childArtikelcode,
-    quantityPerParent: subArticle.quantityPerParent,
+    quantityPerParent,
     childUri: subArticle.childUri,
     isMissingChild: !child,
     ...(child?.inkoopprijs !== undefined && child.inkoopprijs !== null && { inkoopprijs: child.inkoopprijs }),
