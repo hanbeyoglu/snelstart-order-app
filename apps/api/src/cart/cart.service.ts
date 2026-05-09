@@ -10,6 +10,11 @@ export class CartService {
     private pricingService: PricingService,
   ) {}
 
+  private positiveNumber(value: unknown, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
   async calculateCart(items: Array<{ productId: string; quantity: number }>, customerId?: string): Promise<{
     items: CartItem[];
     subtotal: number;
@@ -20,16 +25,17 @@ export class CartService {
     for (const item of items.filter((cartItem: any) => cartItem.isChildItem !== true)) {
       const product: any = await this.productsService.getProductById(item.productId, customerId);
       const basePrice = product.basePrice || 0;
-      const finalPrice = customerId ? product.finalPrice : basePrice;
+      const finalPrice = customerId ? Number(product.finalPrice ?? basePrice) : basePrice;
       const vatPercentage = product.btwPercentage || 0;
-      const totalPrice = finalPrice * item.quantity;
+      const parentQuantity = this.positiveNumber(item.quantity, 1);
+      const totalPrice = finalPrice * parentQuantity;
 
       cartItems.push({
         productId: product.id,
         productName: product.omschrijving,
         sku: product.artikelnummer,
         categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
-        quantity: item.quantity,
+        quantity: parentQuantity,
         unitPrice: finalPrice,
         basePrice,
         totalPrice,
@@ -39,8 +45,9 @@ export class CartService {
 
       for (const subArticle of product.subArticles || []) {
         const child = subArticle.childProduct;
-        const childQuantity = item.quantity * Number(subArticle.quantityPerParent || 0);
-        const childUnitPrice = Number(child?.verkoopprijs || 0);
+        const quantityPerParent = this.positiveNumber(subArticle.quantityPerParent, 1);
+        const childQuantity = parentQuantity * quantityPerParent;
+        const childUnitPrice = this.positiveNumber(child?.verkoopprijs, 0);
 
         cartItems.push({
           productId: `${product.id}::child::${subArticle.childSnelstartId}`,
@@ -56,7 +63,7 @@ export class CartService {
           parentProductId: product.id,
           childSnelstartId: subArticle.childSnelstartId,
           childArtikelcode: subArticle.childArtikelcode,
-          quantityPerParent: subArticle.quantityPerParent,
+          quantityPerParent,
           childUri: subArticle.childUri,
           isMissingChild: !child,
           ...(child?.inkoopprijs !== undefined && child.inkoopprijs !== null && { inkoopprijs: child.inkoopprijs }),

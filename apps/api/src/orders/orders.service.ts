@@ -33,6 +33,11 @@ export class OrdersService {
     return basePrice * 0.95;
   }
 
+  private positiveNumber(value: unknown, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
   private async validateOrderPrices(items: any[], user?: any) {
     const productIds = items
       .filter((item) => item.isChildItem !== true)
@@ -224,10 +229,10 @@ export class OrdersService {
           product.artikelomzetgroepId ||
           product.artikelgroepId ||
           product.artikelOmzetgroep?.id,
-        quantity: item.quantity,
+        quantity: this.positiveNumber(item.quantity, 1),
         unitPrice,
         basePrice,
-        totalPrice: unitPrice * item.quantity,
+        totalPrice: unitPrice * this.positiveNumber(item.quantity, 1),
         vatPercentage,
         lineType: 'product',
         ...(priceChanged
@@ -241,15 +246,18 @@ export class OrdersService {
       });
 
       for (const subArticle of product.subArticles || []) {
-        const child = subArticle.childProduct
+        const dbChild = subArticle.childProduct
           ? await this.productModel
               .findOne({ snelstartId: subArticle.childSnelstartId })
               .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs eenheid voorraad')
               .lean()
               .exec()
           : null;
-        const childQuantity = item.quantity * Number(subArticle.quantityPerParent || 0);
-        const childUnitPrice = Number(child?.verkoopprijs || 0);
+        const child = dbChild || subArticle.childProduct || null;
+        const quantityPerParent = this.positiveNumber(subArticle.quantityPerParent, 1);
+        const parentQuantity = this.positiveNumber(item.quantity, 1);
+        const childQuantity = parentQuantity * quantityPerParent;
+        const childUnitPrice = this.positiveNumber(child?.verkoopprijs, 0);
 
         trustedItems.push({
           productId: subArticle.childSnelstartId,
@@ -265,7 +273,7 @@ export class OrdersService {
           parentProductId: product.id || item.productId,
           childSnelstartId: subArticle.childSnelstartId,
           childArtikelcode: subArticle.childArtikelcode,
-          quantityPerParent: subArticle.quantityPerParent,
+          quantityPerParent,
           ...(child?.inkoopprijs !== undefined && child.inkoopprijs !== null && { inkoopprijs: child.inkoopprijs }),
           ...(child?.eenheid && { eenheid: child.eenheid }),
           ...(child?.voorraad !== undefined && child.voorraad !== null && { voorraad: child.voorraad }),
