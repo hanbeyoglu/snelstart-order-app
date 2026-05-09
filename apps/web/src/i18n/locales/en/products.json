@@ -14,6 +14,9 @@
   "increaseTitle": "Increase quantity",
   "hidePurchasePrice": "Hide purchase price",
   "showPurchasePrice": "Show purchase price",
+  "recipeProducts": "Recipe Products",
+  "missingChildProduct": "Child product not found",
+  "articleCode": "Article code",
   "pageSummary": "Page {{page}} / {{totalPages}} (Total: {{total}})",
   "sort": {
     "label": "Sort",

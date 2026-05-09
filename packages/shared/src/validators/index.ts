@@ -71,6 +71,9 @@ export const cartItemSchema = z.object({
   adminOverride: z.boolean().optional(),
   adminPriceOverrideConfirmed: z.boolean().optional(),
   adminOverrideReason: z.string().optional(),
+  isChildItem: z.boolean().optional(),
+  lineType: z.enum(['product', 'recipe_child']).optional(),
+  parentProductId: z.string().optional(),
 });
 
 export const createOrderSchema = z.object({

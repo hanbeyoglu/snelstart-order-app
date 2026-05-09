@@ -38,6 +38,36 @@ export interface SnelStartProduct {
   eenheid?: string; // Unit
   barcode?: string;
   prijsafspraak?: SnelStartPrijsafspraak;
+  isHoofdartikel?: boolean;
+  subartikelen?: SnelStartSubArtikel[];
+}
+
+export interface SnelStartSubArtikel {
+  id: string;
+  artikelcode?: string;
+  aantal?: number;
+  uri?: string;
+}
+
+export interface ProductSubArticle {
+  childSnelstartId: string;
+  childArtikelcode: string;
+  quantityPerParent: number;
+  childUri?: string;
+}
+
+export interface ResolvedProductSubArticle extends ProductSubArticle {
+  childProduct?: {
+    id: string;
+    omschrijving: string;
+    artikelnummer?: string;
+    artikelcode?: string;
+    voorraad?: number;
+    verkoopprijs?: number;
+    inkoopprijs?: number;
+    eenheid?: string;
+    coverImageUrl?: string | null;
+  } | null;
 }
 
 export interface SnelStartProductGroup {
@@ -166,6 +196,16 @@ export interface CartItem {
   eenheid?: string; // Ürün birimi (kg, st, m, vb.)
   coverImageUrl?: string; // Ürün kapak resmi URL'i
   voorraad?: number; // Stok limiti (quantity input normalizasyonu için)
+  isParentArticle?: boolean;
+  subArticles?: ResolvedProductSubArticle[];
+  isChildItem?: boolean;
+  lineType?: 'product' | 'recipe_child';
+  parentProductId?: string;
+  childSnelstartId?: string;
+  childArtikelcode?: string;
+  quantityPerParent?: number;
+  childUri?: string;
+  isMissingChild?: boolean;
 }
 
 export interface User {

@@ -7,6 +7,7 @@ interface QuantityInputProps {
   ariaLabel?: string;
   className?: string;
   style?: CSSProperties;
+  disabled?: boolean;
 }
 
 export default function QuantityInput({
@@ -16,6 +17,7 @@ export default function QuantityInput({
   ariaLabel = 'Miktar',
   className,
   style,
+  disabled = false,
 }: QuantityInputProps) {
   const [draftValue, setDraftValue] = useState(String(value));
 
@@ -61,6 +63,7 @@ export default function QuantityInput({
       aria-label={ariaLabel}
       className={className}
       style={style}
+      disabled={disabled}
     />
   );
 }

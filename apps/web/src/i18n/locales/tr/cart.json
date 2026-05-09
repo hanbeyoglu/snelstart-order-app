@@ -12,6 +12,10 @@
   "clearCart": "Sepeti Temizle",
   "removeProduct": "Ürünü Sepetten Çıkar",
   "restoreOriginalPrice": "Orijinal fiyata dön",
+  "automaticProductPrefix": "↳ Otomatik ürün:",
+  "linkedToParent": "Parent'a bağlı",
+  "lineTotal": "Tutar:",
+  "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Ürün sepetten çıkarılsın mı?",
   "confirmRemoveDescription": "Bu ürün sepetinizden kaldırılacak.",
   "adminPriceOverride": {

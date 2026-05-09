@@ -231,6 +231,8 @@ export default function ProductsPage() {
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
       ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
+      isParentArticle: product.isParentArticle === true,
+      ...(product.subArticles?.length && { subArticles: product.subArticles }),
     });
     showToast(t('products:messages.addedToCart', { name: product.omschrijving }), 'success');
   };

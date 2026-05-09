@@ -14,6 +14,12 @@ export interface CartItem {
   adminOverride?: boolean;
   adminPriceOverrideConfirmed?: boolean;
   adminOverrideReason?: string;
+  isChildItem?: boolean;
+  lineType?: 'product' | 'recipe_child';
+  parentProductId?: string;
+  childSnelstartId?: string;
+  childArtikelcode?: string;
+  quantityPerParent?: number;
 }
 
 @Schema({ timestamps: true })

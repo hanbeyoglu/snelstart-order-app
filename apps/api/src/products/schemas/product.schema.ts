@@ -1,6 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export interface ProductSubArticle {
+  childSnelstartId: string;
+  childArtikelcode: string;
+  quantityPerParent: number;
+  childUri?: string;
+}
+
 @Schema({ timestamps: true })
 export class Product extends Document {
   @Prop({ required: true, unique: true })
@@ -51,6 +58,22 @@ export class Product extends Document {
   @Prop()
   imageUrl?: string; // Cover image URL from R2
 
+  @Prop({ default: false })
+  isParentArticle?: boolean;
+
+  @Prop({
+    type: [
+      {
+        childSnelstartId: { type: String, required: true },
+        childArtikelcode: { type: String },
+        quantityPerParent: { type: Number, required: true },
+        childUri: { type: String },
+      },
+    ],
+    default: [],
+  })
+  subArticles?: ProductSubArticle[];
+
   @Prop({ default: Date.now })
   lastSyncedAt: Date;
 
@@ -74,6 +97,7 @@ ProductSchema.index({ artikelgroepId: 1 }); // Category filtering
 ProductSchema.index({ artikelomzetgroepId: 1 }); // Category filtering
 ProductSchema.index({ isActive: 1 }); // Active products filter
 ProductSchema.index({ isActive: 1, omschrijving: 1 }); // Visibility admin pagination/filtering
+ProductSchema.index({ isParentArticle: 1 }); // Parent/recept products
 ProductSchema.index({ lastSyncedAt: -1 }); // Sync tracking
 ProductSchema.index({ modifiedOn: -1 }); // Delta sync tracking
 

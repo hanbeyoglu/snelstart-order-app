@@ -155,7 +155,7 @@ export default function Layout() {
     }
   }, [userMenuOpen]);
 
-  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemCount = items.reduce((sum, item) => item.isChildItem ? sum : sum + item.quantity, 0);
 
   // Aktif sayfayı kontrol et
   const isActiveLink = (path: string) => {

@@ -12,6 +12,10 @@
   "clearCart": "Winkelwagen legen",
   "removeProduct": "Product uit winkelwagen verwijderen",
   "restoreOriginalPrice": "Oorspronkelijke prijs herstellen",
+  "automaticProductPrefix": "↳ Automatisch product:",
+  "linkedToParent": "Gekoppeld aan hoofdproduct",
+  "lineTotal": "Regeltotaal:",
+  "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Product uit winkelwagen verwijderen?",
   "confirmRemoveDescription": "Dit product wordt uit uw winkelwagen verwijderd.",
   "adminPriceOverride": {

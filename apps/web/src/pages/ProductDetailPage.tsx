@@ -91,18 +91,12 @@ export default function ProductDetailPage() {
       }
     }
     
-    if (cartItem) {
-      updateQuantity(product.id, quantity);
-      showToast(t('products:messages.quantityUpdated', { name: product.omschrijving, quantity }), 'success');
-      return;
-    }
-    
-    addItem({
+    const cartPayload = {
       productId: product.id,
       productName: product.omschrijving,
       sku: product.artikelnummer,
       categoryId: product.artikelomzetgroepId || product.artikelgroepId || product.artikelOmzetgroep?.id,
-      quantity,
+      quantity: cartItem ? 0 : quantity,
       unitPrice: finalPrice,
       basePrice: basePrice, // Base price
       totalPrice: finalPrice * quantity,
@@ -119,7 +113,18 @@ export default function ProductDetailPage() {
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
       ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
-    });
+      isParentArticle: product.isParentArticle === true,
+      ...(product.subArticles?.length && { subArticles: product.subArticles }),
+    };
+
+    addItem(cartPayload);
+
+    if (cartItem) {
+      updateQuantity(product.id, quantity);
+      showToast(t('products:messages.quantityUpdated', { name: product.omschrijving, quantity }), 'success');
+      return;
+    }
+
     showToast(t('products:messages.addedToCartWithQuantity', { name: product.omschrijving, quantity }), 'success');
   };
 
@@ -286,6 +291,51 @@ export default function ProductDetailPage() {
               <strong>{t('products:fields.unit')}:</strong> {product.eenheid || t('products:fields.unitFallback')}
             </p>
           </div>
+
+          {product.subArticles?.length > 0 && (
+            <div
+              style={{
+                padding: 'clamp(0.875rem, 3vw, 1rem)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
+                background: 'rgba(16, 185, 129, 0.06)',
+              }}
+            >
+              <h3 style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                {t('products:recipeProducts')}
+              </h3>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {product.subArticles.map((subArticle: any) => (
+                  <div
+                    key={subArticle.childSnelstartId}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto',
+                      gap: '0.75rem',
+                      alignItems: 'center',
+                      padding: '0.625rem',
+                      borderRadius: '8px',
+                      background: '#fff',
+                      border: '1px solid rgba(16, 185, 129, 0.18)',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                        {subArticle.childProduct?.omschrijving || t('products:missingChildProduct')}
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                        {t('products:articleCode')}: {subArticle.childProduct?.artikelcode || subArticle.childArtikelcode || t('states.notAvailable')}
+                      </div>
+                    </div>
+                    <div style={{ fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
+                      x{subArticle.quantityPerParent}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* {product.prijsafspraak && (
             <div

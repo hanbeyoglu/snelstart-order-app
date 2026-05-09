@@ -10,6 +10,12 @@ export interface CartItem {
   totalPrice: number;
   vatPercentage: number;
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
+  isChildItem?: boolean;
+  lineType?: 'product' | 'recipe_child';
+  parentProductId?: string;
+  childSnelstartId?: string;
+  childArtikelcode?: string;
+  quantityPerParent?: number;
 }
 
 export interface LocalOrder extends Document {
@@ -48,4 +54,3 @@ export const LocalOrderSchema = new Schema<LocalOrder>(
 );
 
 export type LocalOrderModel = Model<LocalOrder>;
-

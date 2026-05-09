@@ -6,7 +6,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { CacheService } from '../cache/cache.service';
 import { CategoriesService } from '../categories/categories.service';
 import { ImagesService } from '../images/images.service';
-import { Product, ProductDocument } from './schemas/product.schema';
+import { Product, ProductDocument, ProductSubArticle } from './schemas/product.schema';
 
 @Injectable()
 export class ProductsService {
@@ -90,6 +90,8 @@ export class ProductsService {
               // Fallback mapping: artikelnummer -> artikelcode if missing, artikelgroepId -> null if missing
               const artikelnummer = product.artikelnummer || product.artikelcode || undefined;
               const artikelgroepId = product.artikelgroepId || undefined;
+              const isParentArticle = product.isHoofdartikel === true;
+              const subArticles = this.mapSubArticles(product);
 
               const updateData: any = {
                 snelstartId: product.id, // Primary unique identifier
@@ -107,6 +109,8 @@ export class ProductsService {
                 btwPercentage: product.btwPercentage,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
+                isParentArticle,
+                subArticles,
                 modifiedOn: product.modifiedOn ? new Date(product.modifiedOn) : new Date(),
                 lastSyncedAt: new Date(),
               };
@@ -283,6 +287,8 @@ export class ProductsService {
               // Fallback mapping: artikelnummer -> artikelcode if missing, artikelgroepId -> null if missing
               const artikelnummer = product.artikelnummer || product.artikelcode || undefined;
               const artikelgroepId = product.artikelgroepId || undefined;
+              const isParentArticle = product.isHoofdartikel === true;
+              const subArticles = this.mapSubArticles(product);
 
               const updateData: any = {
                 snelstartId: product.id, // Primary unique identifier
@@ -300,6 +306,8 @@ export class ProductsService {
                 btwPercentage: product.btwPercentage,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
+                isParentArticle,
+                subArticles,
                 modifiedOn: product.modifiedOn ? new Date(product.modifiedOn) : new Date(),
                 lastSyncedAt: new Date(),
               };
@@ -451,6 +459,61 @@ export class ProductsService {
     }
 
     query.$and.push({ artikelomzetgroepId: { $in: activeCategoryIds } });
+  }
+
+  private mapSubArticles(product: any): ProductSubArticle[] {
+    if (product.isHoofdartikel !== true) {
+      return [];
+    }
+
+    return Array.isArray(product.subartikelen)
+      ? product.subartikelen
+          .filter((subArticle: any) => !!subArticle?.id)
+          .map((subArticle: any) => ({
+            childSnelstartId: subArticle.id,
+            childArtikelcode: subArticle.artikelcode || '',
+            quantityPerParent: Number(subArticle.aantal || 0),
+            childUri: subArticle.uri,
+          }))
+      : [];
+  }
+
+  private async resolveSubArticles(subArticles?: ProductSubArticle[]) {
+    const items = subArticles || [];
+    if (items.length === 0) {
+      return [];
+    }
+
+    return Promise.all(
+      items.map(async (subArticle) => {
+        const childProduct = await this.productModel
+          .findOne({ snelstartId: subArticle.childSnelstartId })
+          .select('snelstartId omschrijving artikelnummer artikelcode voorraad verkoopprijs inkoopprijs eenheid imageUrl')
+          .lean()
+          .exec();
+
+        return {
+          ...subArticle,
+          childProduct: childProduct
+            ? {
+                id: childProduct.snelstartId,
+                omschrijving: childProduct.omschrijving,
+                artikelnummer: childProduct.artikelnummer,
+                artikelcode: childProduct.artikelcode,
+                voorraad: childProduct.voorraad,
+                verkoopprijs: childProduct.verkoopprijs,
+                inkoopprijs: childProduct.inkoopprijs,
+                eenheid: childProduct.eenheid,
+                coverImageUrl: childProduct.imageUrl || null,
+              }
+            : null,
+        };
+      }),
+    );
+  }
+
+  private async enrichSubArticles(product: any) {
+    return this.resolveSubArticles(product.subArticles || []);
   }
 
   async getProductVisibility(
@@ -644,6 +707,8 @@ export class ProductsService {
               basePrice,
               finalPrice,
               coverImageUrl,
+              isParentArticle: product.isParentArticle === true,
+              subArticles: await this.enrichSubArticles(product),
             };
           })
         );
@@ -796,6 +861,8 @@ export class ProductsService {
           eenheid: product.eenheid,
           barcode: product.barcode,
           coverImageUrl,
+          isParentArticle: product.isParentArticle === true,
+          subArticles: await this.enrichSubArticles(product),
         };
       }),
     );
@@ -934,6 +1001,8 @@ export class ProductsService {
     // Fallback mapping: artikelnummer -> artikelcode if missing, artikelgroepId -> null if missing
     const artikelnummer = product.artikelnummer || product.artikelcode || undefined;
     const artikelgroepId = product.artikelgroepId || undefined;
+    const isParentArticle = product.isHoofdartikel === true;
+    const subArticles = this.mapSubArticles(product);
 
     // Save to database
     await this.productModel.findOneAndUpdate(
@@ -949,9 +1018,12 @@ export class ProductsService {
         artikelomzetgroepOmschrijving: categoryName || artikelomzetgroepOmschrijving,
         voorraad: product.voorraad,
         verkoopprijs: product.verkoopprijs,
+        inkoopprijs: product.inkoopprijs,
         btwPercentage: product.btwPercentage,
         eenheid: product.eenheid,
         barcode: product.barcode,
+        isParentArticle,
+        subArticles,
         lastSyncedAt: new Date(),
       },
       { upsert: true, new: true },
@@ -983,6 +1055,8 @@ export class ProductsService {
       prijsafspraak: product.prijsafspraak,
       // Include cover image URL (from Product schema or ImagesService)
       coverImageUrl,
+      isParentArticle,
+      subArticles: await this.resolveSubArticles(subArticles),
     };
 
     await this.cacheService.set(cacheKey, enriched, 300);

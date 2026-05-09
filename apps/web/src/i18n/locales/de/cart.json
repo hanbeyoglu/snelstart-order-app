@@ -12,6 +12,10 @@
   "clearCart": "Warenkorb leeren",
   "removeProduct": "Produkt aus Warenkorb entfernen",
   "restoreOriginalPrice": "Originalpreis wiederherstellen",
+  "automaticProductPrefix": "↳ Automatisches Produkt:",
+  "linkedToParent": "Mit Hauptprodukt verknupft",
+  "lineTotal": "Zeilensumme:",
+  "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Produkt aus Warenkorb entfernen?",
   "confirmRemoveDescription": "Dieses Produkt wird aus Ihrem Warenkorb entfernt.",
   "adminPriceOverride": {

@@ -79,6 +79,7 @@ export default function CartPage() {
   // Fiyat hatası olan ürün var mı?
   const hasPriceErrors = useMemo(() => {
     return items.some((item) => {
+      if (item.isChildItem) return false;
       const display = localUnitPrices[item.productId] ?? (item.customUnitPrice ?? item.unitPrice).toFixed(2);
       const raw = display.replace(',', '.').trim();
       if (raw === '') return true;
@@ -132,12 +133,14 @@ export default function CartPage() {
     queryKey: ['cart-calculation', items, selectedCustomerId],
     queryFn: async () => {
       const response = await api.post('/cart/calculate', {
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        items: items
+          .filter((item) => !item.isChildItem)
+          .map((item) => ({ productId: item.productId, quantity: item.quantity })),
         customerId: selectedCustomerId || undefined,
       });
       return response.data;
     },
-    enabled: items.length > 0,
+    enabled: items.some((item) => !item.isChildItem),
   });
 
   // Toplamları hesapla - her zaman items'dan hesapla
@@ -157,7 +160,7 @@ export default function CartPage() {
       }
 
       // Eğer customUnitPrice varsa, onu kullan; yoksa cartCalculation'dan gelen fiyatı kullan
-      const orderItems = items.map((item) => {
+      const orderItems = items.filter((item) => !item.isChildItem).map((item) => {
         const unitPrice = item.customUnitPrice ?? item.unitPrice;
         const totalPrice = unitPrice * item.quantity;
         return {
@@ -173,6 +176,8 @@ export default function CartPage() {
           adminOverride: item.adminOverride,
           adminPriceOverrideConfirmed: item.adminPriceOverrideConfirmed,
           adminOverrideReason: item.adminOverrideReason,
+          lineType: item.lineType,
+          parentProductId: item.parentProductId,
         };
       });
 
@@ -430,6 +435,7 @@ export default function CartPage() {
 
       <AnimatePresence>
         {items.map((item, index) => {
+          const isChildItem = item.isChildItem === true;
           const displayPrice = localUnitPrices[item.productId] ?? (item.customUnitPrice ?? item.unitPrice).toFixed(2);
           const rawPrice = displayPrice.replace(',', '.').trim();
           const numericPrice = rawPrice === '' ? NaN : parseFloat(rawPrice);
@@ -441,9 +447,10 @@ export default function CartPage() {
                 purchasePrice: item.inkoopprijs,
               });
           const hasPriceErrorForItem =
-            rawPrice === '' ||
-            Number.isNaN(numericPrice) ||
-            (!!validation && !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed));
+            !isChildItem &&
+            (rawPrice === '' ||
+              Number.isNaN(numericPrice) ||
+              (!!validation && !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed)));
 
           return (
           <motion.div
@@ -455,6 +462,7 @@ export default function CartPage() {
             className="card"
             style={{
               marginBottom: '0.75rem',
+              marginLeft: isChildItem ? 'clamp(1rem, 5vw, 2rem)' : 0,
               padding: '0.75rem',
               display: 'grid',
               gridTemplateColumns: (item as any).coverImageUrl ? '60px 1fr auto' : '1fr auto',
@@ -468,6 +476,8 @@ export default function CartPage() {
                 : undefined,
               background: hasPriceErrorForItem
                 ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.9), rgba(254, 242, 242, 0.9))'
+                : isChildItem
+                  ? 'rgba(16, 185, 129, 0.06)'
                 : undefined,
             }}
           >
@@ -503,10 +513,34 @@ export default function CartPage() {
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h4 style={{ marginBottom: '0.25rem', fontSize: 'clamp(0.9rem, 3vw, 1rem)', fontWeight: 600, lineHeight: '1.3' }}>
-                {item.productName}
+                {isChildItem ? `${t('cart:automaticProductPrefix')} ` : ''}{item.isMissingChild ? t('products:missingChildProduct') : item.productName}
               </h4>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.5rem' }}>
                 {/* <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.75rem, 2.5vw, 0.8rem)' }}>SKU: {item.sku}</p> */}
+                {isChildItem && (
+                  <p style={{
+                    color: 'var(--success)',
+                    fontSize: 'clamp(0.75rem, 2.5vw, 0.8rem)',
+                    fontWeight: 700,
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                  }}>
+                    {t('cart:linkedToParent')}
+                  </p>
+                )}
+                {item.isMissingChild && (
+                  <p style={{
+                    color: 'var(--danger)',
+                    fontSize: 'clamp(0.75rem, 2.5vw, 0.8rem)',
+                    fontWeight: 600,
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                  }}>
+                    {t('cart:articleCode')}: {item.childArtikelcode || item.sku}
+                  </p>
+                )}
                 {item.eenheid && (
                   <p style={{ 
                     color: 'var(--primary)', 
@@ -537,7 +571,9 @@ export default function CartPage() {
                       step="0.01"
                       inputMode="decimal"
                       value={displayPrice}
+                      disabled={isChildItem}
                       onChange={async (e) => {
+                        if (isChildItem) return;
                         const displayValue = e.target.value;
                         const raw = displayValue.replace(',', '.');
                         // Önce local state'i güncelle ki input gerçekten boş kalabilsin
@@ -604,6 +640,7 @@ export default function CartPage() {
                         fontSize: '0.85rem',
                         fontWeight: 600,
                         minHeight: '36px',
+                        opacity: isChildItem ? 0.65 : 1,
                       }}
                     />
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>€</span>
@@ -619,9 +656,12 @@ export default function CartPage() {
                     <QuantityInput
                       className="quantity-input"
                       value={item.quantity}
-                      onCommit={(newQuantity) => updateQuantity(item.productId, newQuantity)}
+                      onCommit={(newQuantity) => {
+                        if (!isChildItem) updateQuantity(item.productId, newQuantity);
+                      }}
                       max={item.voorraad}
                       ariaLabel={`${item.productName} ${t('products:fields.quantity')}`}
+                      disabled={isChildItem}
                       style={{ 
                         width: '60px',
                         padding: '0.5rem',
@@ -631,12 +671,30 @@ export default function CartPage() {
                         fontSize: '0.85rem',
                         fontWeight: 600,
                         minHeight: '36px',
+                        opacity: isChildItem ? 0.65 : 1,
                       }}
                     />
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{t('format.unit')}</span>
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 500 }}>
+                    {t('cart:lineTotal')}
+                  </label>
+                  <div
+                    style={{
+                      minHeight: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      color: isChildItem ? 'var(--success)' : 'var(--text-primary)',
+                    }}
+                  >
+                    {formatCurrency((item.customUnitPrice ?? item.unitPrice) * item.quantity)}
+                  </div>
+                </div>
               </div>
               {hasPriceErrorForItem && (
                 <div style={{ marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 500 }}>
@@ -700,22 +758,24 @@ export default function CartPage() {
                   🔄
                 </motion.button>
               )}
-              <motion.button
-                onClick={() => {
-                  setItemToRemove({ productId: item.productId, productName: item.productName });
-                }}
-                className="btn-danger"
-                style={{ 
-                  padding: '0.5rem',
-                  minHeight: '36px',
-                  minWidth: '36px',
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                title={t('cart:removeProduct')}
-              >
-                🗑️
-              </motion.button>
+              {!isChildItem && (
+                <motion.button
+                  onClick={() => {
+                    setItemToRemove({ productId: item.productId, productName: item.productName });
+                  }}
+                  className="btn-danger"
+                  style={{ 
+                    padding: '0.5rem',
+                    minHeight: '36px',
+                    minWidth: '36px',
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  title={t('cart:removeProduct')}
+                >
+                  🗑️
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )})}

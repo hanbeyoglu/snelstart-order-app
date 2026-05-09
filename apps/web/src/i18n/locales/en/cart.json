@@ -12,6 +12,10 @@
   "clearCart": "Clear Cart",
   "removeProduct": "Remove Product from Cart",
   "restoreOriginalPrice": "Restore original price",
+  "automaticProductPrefix": "↳ Automatic product:",
+  "linkedToParent": "Linked to parent",
+  "lineTotal": "Line total:",
+  "articleCode": "Article code",
   "confirmRemoveTitle": "Remove product from cart?",
   "confirmRemoveDescription": "This product will be removed from your cart.",
   "adminPriceOverride": {

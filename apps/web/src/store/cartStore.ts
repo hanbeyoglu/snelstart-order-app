@@ -16,16 +16,16 @@ function loadCartForUser(userId: string): { items: CartItem[]; customerId: strin
         const items = state?.items ?? [];
         const customerId = state?.customerId ?? null;
         if (items.length > 0 || customerId) {
-          saveCartForUser(userId, items, customerId);
+          saveCartForUser(userId, syncChildItems(items), customerId);
           localStorage.removeItem(LEGACY_CART_KEY);
-          return { items, customerId };
+          return { items: syncChildItems(items), customerId };
         }
       }
       return { items: [], customerId: null };
     }
     const parsed = JSON.parse(raw);
     return {
-      items: parsed.items ?? [],
+      items: syncChildItems(parsed.items ?? []),
       customerId: parsed.customerId ?? null,
     };
   } catch {
@@ -42,6 +42,72 @@ function saveCartForUser(userId: string, items: CartItem[], customerId: string |
   } catch (e) {
     console.error('[CartStore] Failed to save cart:', e);
   }
+}
+
+function createChildCartItem(parent: CartItem, subArticle: NonNullable<CartItem['subArticles']>[number]): CartItem {
+  const child = subArticle.childProduct;
+  const quantity = parent.quantity * subArticle.quantityPerParent;
+
+  return {
+    productId: `${parent.productId}::child::${subArticle.childSnelstartId}`,
+    productName: child?.omschrijving || '',
+    sku: child?.artikelcode || subArticle.childArtikelcode || subArticle.childSnelstartId,
+    quantity,
+    unitPrice: child?.verkoopprijs || 0,
+    basePrice: child?.verkoopprijs || 0,
+    totalPrice: (child?.verkoopprijs || 0) * quantity,
+    vatPercentage: 0,
+    isChildItem: true,
+    lineType: 'recipe_child',
+    parentProductId: parent.productId,
+    childSnelstartId: subArticle.childSnelstartId,
+    childArtikelcode: subArticle.childArtikelcode,
+    quantityPerParent: subArticle.quantityPerParent,
+    childUri: subArticle.childUri,
+    isMissingChild: !child,
+    ...(child?.inkoopprijs !== undefined && child.inkoopprijs !== null && { inkoopprijs: child.inkoopprijs }),
+    ...(child?.eenheid && { eenheid: child.eenheid }),
+    ...(child?.coverImageUrl && { coverImageUrl: child.coverImageUrl }),
+    ...(child?.voorraad !== undefined && child.voorraad !== null && { voorraad: child.voorraad }),
+  };
+}
+
+function syncChildItems(items: CartItem[]) {
+  const nextItems: CartItem[] = [];
+
+  for (const item of items) {
+    if (item.isChildItem) {
+      continue;
+    }
+
+    nextItems.push(item);
+
+    if (item.subArticles?.length) {
+      nextItems.push(...item.subArticles.map((subArticle) => createChildCartItem(item, subArticle)));
+    }
+  }
+
+  return nextItems;
+}
+
+function mergeParentCartItem(existing: CartItem, incoming: CartItem): CartItem {
+  return {
+    ...existing,
+    productName: incoming.productName || existing.productName,
+    sku: incoming.sku || existing.sku,
+    categoryId: incoming.categoryId ?? existing.categoryId,
+    quantity: existing.quantity + incoming.quantity,
+    unitPrice: incoming.unitPrice ?? existing.unitPrice,
+    basePrice: incoming.basePrice ?? existing.basePrice,
+    totalPrice: (existing.customUnitPrice ?? incoming.customUnitPrice ?? incoming.unitPrice ?? existing.unitPrice) * (existing.quantity + incoming.quantity),
+    vatPercentage: incoming.vatPercentage ?? existing.vatPercentage,
+    inkoopprijs: incoming.inkoopprijs ?? existing.inkoopprijs,
+    eenheid: incoming.eenheid ?? existing.eenheid,
+    coverImageUrl: incoming.coverImageUrl ?? existing.coverImageUrl,
+    voorraad: incoming.voorraad ?? existing.voorraad,
+    isParentArticle: incoming.isParentArticle ?? existing.isParentArticle,
+    subArticles: incoming.subArticles ?? existing.subArticles,
+  };
 }
 
 interface CartState {
@@ -78,13 +144,13 @@ export const useCartStore = create<CartState>()((set, get) => ({
   addItem: (item) =>
     set((state) => {
       const existing = state.items.find((i) => i.productId === item.productId);
-      const nextItems = existing
+      const nextItems = syncChildItems(existing
         ? state.items.map((i) =>
             i.productId === item.productId
-              ? { ...i, quantity: i.quantity + item.quantity }
+              ? mergeParentCartItem(i, item)
               : i,
           )
-        : [...state.items, item];
+        : [...state.items, item]);
       if (state.currentUserId) {
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }
@@ -93,20 +159,31 @@ export const useCartStore = create<CartState>()((set, get) => ({
 
   updateQuantity: (productId, quantity) =>
     set((state) => {
+      const target = state.items.find((i) => i.productId === productId);
+      if (target?.isChildItem) {
+        return state;
+      }
       const nextItems =
         quantity <= 0
-          ? state.items.filter((i) => i.productId !== productId)
+          ? state.items.filter((i) => i.productId !== productId && i.parentProductId !== productId)
           : state.items.map((i) =>
-              i.productId === productId ? { ...i, quantity } : i,
+              i.productId === productId
+                ? { ...i, quantity, totalPrice: (i.customUnitPrice ?? i.unitPrice) * quantity }
+                : i,
             );
+      const syncedItems = syncChildItems(nextItems);
       if (state.currentUserId) {
-        saveCartForUser(state.currentUserId, nextItems, state.customerId);
+        saveCartForUser(state.currentUserId, syncedItems, state.customerId);
       }
-      return { items: nextItems };
+      return { items: syncedItems };
     }),
 
   updateUnitPrice: (productId, unitPrice, options) =>
     set((state) => {
+      const target = state.items.find((i) => i.productId === productId);
+      if (target?.isChildItem) {
+        return state;
+      }
       const nextItems = state.items.map((i) =>
         i.productId === productId
           ? {
@@ -129,7 +206,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
   resetToOriginalPrice: (productId) =>
     set((state) => {
       const item = state.items.find((i) => i.productId === productId);
-      if (!item) return state;
+      if (!item || item.isChildItem) return state;
       const nextItems = state.items.map((i) =>
         i.productId === productId
           ? {
@@ -151,7 +228,11 @@ export const useCartStore = create<CartState>()((set, get) => ({
 
   removeItem: (productId) =>
     set((state) => {
-      const nextItems = state.items.filter((i) => i.productId !== productId);
+      const target = state.items.find((i) => i.productId === productId);
+      if (target?.isChildItem) {
+        return state;
+      }
+      const nextItems = state.items.filter((i) => i.productId !== productId && i.parentProductId !== productId);
       if (state.currentUserId) {
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }
@@ -160,7 +241,16 @@ export const useCartStore = create<CartState>()((set, get) => ({
 
   removeItemsByCategory: (categoryId) =>
     set((state) => {
-      const nextItems = state.items.filter((i) => (i as CartItem & { categoryId?: string }).categoryId !== categoryId);
+      const removedParentIds = new Set(
+        state.items
+          .filter((i) => !i.isChildItem && (i as CartItem & { categoryId?: string }).categoryId === categoryId)
+          .map((i) => i.productId),
+      );
+      const nextItems = state.items.filter(
+        (i) =>
+          (i.isChildItem || (i as CartItem & { categoryId?: string }).categoryId !== categoryId) &&
+          (!i.parentProductId || !removedParentIds.has(i.parentProductId)),
+      );
       if (state.currentUserId) {
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }

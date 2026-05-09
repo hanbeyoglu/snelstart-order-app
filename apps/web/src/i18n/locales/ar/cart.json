@@ -12,6 +12,10 @@
   "clearCart": "مسح السلة",
   "removeProduct": "إزالة المنتج من السلة",
   "restoreOriginalPrice": "استعادة السعر الأصلي",
+  "automaticProductPrefix": "↳ منتج تلقائي:",
+  "linkedToParent": "مرتبط بالمنتج الرئيسي",
+  "lineTotal": "إجمالي السطر:",
+  "articleCode": "رمز المقال",
   "confirmRemoveTitle": "إزالة المنتج من السلة؟",
   "confirmRemoveDescription": "سيتم إزالة هذا المنتج من سلتك.",
   "adminPriceOverride": {

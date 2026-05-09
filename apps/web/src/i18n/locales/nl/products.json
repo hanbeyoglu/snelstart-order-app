@@ -14,6 +14,9 @@
   "increaseTitle": "Aantal verhogen",
   "hidePurchasePrice": "Inkoopprijs verbergen",
   "showPurchasePrice": "Inkoopprijs tonen",
+  "recipeProducts": "Receptproducten",
+  "missingChildProduct": "Subproduct niet gevonden",
+  "articleCode": "Artikelcode",
   "pageSummary": "Pagina {{page}} / {{totalPages}} (Totaal: {{total}})",
   "sort": {
     "label": "Sorteren",

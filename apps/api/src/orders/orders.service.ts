@@ -34,7 +34,9 @@ export class OrdersService {
   }
 
   private async validateOrderPrices(items: any[], user?: any) {
-    const productIds = items.map((item) => item.productId);
+    const productIds = items
+      .filter((item) => item.isChildItem !== true)
+      .map((item) => item.productId);
     const products = await this.productModel
       .find({ snelstartId: { $in: productIds } })
       .select('snelstartId verkoopprijs inkoopprijs')
@@ -45,6 +47,9 @@ export class OrdersService {
     );
 
     for (const item of items) {
+      if (item.isChildItem === true) {
+        continue;
+      }
       const product = productById.get(item.productId);
       const unitPrice = item.unitPrice;
       const basePrice = product?.verkoopprijs ?? item.basePrice ?? unitPrice;
@@ -181,7 +186,7 @@ export class OrdersService {
   ) {
     const trustedItems = [];
 
-    for (const item of items) {
+    for (const item of items.filter((cartItem) => cartItem.isChildItem !== true)) {
       const product: any = await this.productsService.getProductById(item.productId, customerId);
       const basePrice = Number(product.basePrice || product.verkoopprijs || 0);
       const trustedUnitPrice = Number(product.finalPrice ?? basePrice);
@@ -224,6 +229,7 @@ export class OrdersService {
         basePrice,
         totalPrice: unitPrice * item.quantity,
         vatPercentage,
+        lineType: 'product',
         ...(priceChanged
           ? {
               customUnitPrice: unitPrice,
@@ -233,6 +239,38 @@ export class OrdersService {
             }
           : {}),
       });
+
+      for (const subArticle of product.subArticles || []) {
+        const child = subArticle.childProduct
+          ? await this.productModel
+              .findOne({ snelstartId: subArticle.childSnelstartId })
+              .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs eenheid voorraad')
+              .lean()
+              .exec()
+          : null;
+        const childQuantity = item.quantity * Number(subArticle.quantityPerParent || 0);
+        const childUnitPrice = Number(child?.verkoopprijs || 0);
+
+        trustedItems.push({
+          productId: subArticle.childSnelstartId,
+          productName: child?.omschrijving || 'Alt ürün bulunamadı',
+          sku: child?.artikelnummer || child?.artikelcode || subArticle.childArtikelcode || '',
+          quantity: childQuantity,
+          unitPrice: childUnitPrice,
+          basePrice: childUnitPrice,
+          totalPrice: childUnitPrice * childQuantity,
+          vatPercentage: 0,
+          isChildItem: true,
+          lineType: 'recipe_child',
+          parentProductId: product.id || item.productId,
+          childSnelstartId: subArticle.childSnelstartId,
+          childArtikelcode: subArticle.childArtikelcode,
+          quantityPerParent: subArticle.quantityPerParent,
+          ...(child?.inkoopprijs !== undefined && child.inkoopprijs !== null && { inkoopprijs: child.inkoopprijs }),
+          ...(child?.eenheid && { eenheid: child.eenheid }),
+          ...(child?.voorraad !== undefined && child.voorraad !== null && { voorraad: child.voorraad }),
+        });
+      }
     }
 
     return trustedItems;

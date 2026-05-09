@@ -14,6 +14,9 @@
   "increaseTitle": "Menge erhöhen",
   "hidePurchasePrice": "Einkaufspreis ausblenden",
   "showPurchasePrice": "Einkaufspreis anzeigen",
+  "recipeProducts": "Rezeptprodukte",
+  "missingChildProduct": "Unterprodukt nicht gefunden",
+  "articleCode": "Artikelcode",
   "pageSummary": "Seite {{page}} / {{totalPages}} (Gesamt: {{total}})",
   "sort": {
     "label": "Sortierung",
