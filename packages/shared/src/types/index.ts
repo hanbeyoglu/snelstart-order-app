@@ -38,6 +38,10 @@ export interface SnelStartProduct {
   eenheid?: string; // Unit
   barcode?: string;
   prijsafspraak?: SnelStartPrijsafspraak;
+  extraVelden?: Array<{
+    naam?: string;
+    waarde?: string | number | null;
+  }>;
   isHoofdartikel?: boolean;
   subartikelen?: SnelStartSubArtikel[];
 }

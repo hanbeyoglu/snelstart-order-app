@@ -595,6 +595,7 @@ export class SnelStartClient {
         artikelgroepOmschrijving: 'Makarnalar',
         voorraad: 100,
         verkoopprijs: 5.99,
+        extraVelden: [{ naam: 'Inhoud_eenheid', waarde: '12' }],
         btwPercentage: 21,
         eenheid: 'stuk',
         barcode: '1234567890123',

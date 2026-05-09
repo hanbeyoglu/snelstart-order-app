@@ -12,6 +12,24 @@ import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { validatePrice } from '../utils/priceValidation';
 
+function getValidContentQuantity(product: any): number | null {
+  const contentQuantity = Number(product?.contentQuantity);
+  return Number.isFinite(contentQuantity) && contentQuantity > 0 ? contentQuantity : null;
+}
+
+function getBackendCalculatedUnitPrice(product: any): number | null {
+  const rawBackendUnitPrice = product?.calculatedUnitPrice;
+  const backendUnitPrice = Number(rawBackendUnitPrice);
+  if (rawBackendUnitPrice !== null && rawBackendUnitPrice !== undefined && Number.isFinite(backendUnitPrice) && backendUnitPrice >= 0) {
+    return backendUnitPrice;
+  }
+  return null;
+}
+
+function isCaseUnit(product: any): boolean {
+  return String(product?.eenheid || '').trim().toUpperCase() === 'COL';
+}
+
 export default function ProductDetailPage() {
   const { t } = useAppTranslation(['common', 'products']);
   const { formatCurrency } = useLocaleFormat();
@@ -50,6 +68,9 @@ export default function ProductDetailPage() {
 
   const basePrice = product?.basePrice || product?.finalPrice || 0;
   const finalPrice = product?.finalPrice || basePrice;
+  const caseUnit = isCaseUnit(product);
+  const contentQuantity = getValidContentQuantity(product);
+  const calculatedUnitPrice = getBackendCalculatedUnitPrice(product);
 
   useEffect(() => {
     setQuantity(cartItem?.quantity || 1);
@@ -411,18 +432,23 @@ export default function ProductDetailPage() {
               </p>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <p
-                style={{
-                  fontSize: 'clamp(1.5rem, 6vw, 2rem)',
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  margin: 0,
-                }}
-              >
-                {formatCurrency(finalPrice)}
-              </p>
+              <div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.2rem' }}>
+                  {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}
+                </p>
+                <p
+                  style={{
+                    fontSize: 'clamp(1.5rem, 6vw, 2rem)',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    margin: 0,
+                  }}
+                >
+                  {formatCurrency(finalPrice)}
+                </p>
+              </div>
               {/* Alış fiyatı sadece admin için görünür */}
               {isAdmin && product.inkoopprijs !== undefined && product.inkoopprijs !== null && (
                 <motion.button
@@ -473,6 +499,26 @@ export default function ProductDetailPage() {
                   <span style={{ color: 'var(--success)', fontWeight: 600 }}>{formatCurrency(product.inkoopprijs)}</span>
                 </p>
               </motion.div>
+            )}
+            {caseUnit && contentQuantity && calculatedUnitPrice !== null && (
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '0.35rem',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.65)',
+                  borderRadius: '8px',
+                  marginBottom: '0.5rem',
+                  border: '1px solid rgba(99, 102, 241, 0.14)',
+                }}
+              >
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  <strong>{t('products:fields.unitsPerCase')}:</strong> {contentQuantity} {t('products:fields.unitFallback')}
+                </p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  <strong>{t('products:fields.unitPrice')}:</strong> {formatCurrency(calculatedUnitPrice)} / {t('products:fields.unitFallback')}
+                </p>
+              </div>
             )}
             <p style={{ color: 'var(--text-secondary)' }}>{t('products:fields.vat')}: %{product.btwPercentage || 0}</p>
           </div>
