@@ -41,7 +41,7 @@ export default function CustomersPage() {
   const showToast = useToastStore((state) => state.showToast);
   const { user } = useAuthStore();
   const cityFilterRef = useRef<HTMLDivElement>(null);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   // Close city filter when clicking outside
   useEffect(() => {

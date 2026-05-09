@@ -1,13 +1,14 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RequireAdminCabirGuard } from './guards/require-admin-cabir.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ReportsService } from './reports.service';
 import { ReportType } from './types/report.types';
 
 @ApiTags('Reports')
 @Controller('reports')
-@UseGuards(JwtAuthGuard, RequireAdminCabirGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ReportsController {
   constructor(private reportsService: ReportsService) {}
@@ -15,10 +16,11 @@ export class ReportsController {
   /**
    * GET /api/reports/orders
    * Query: type=orders|top-products, tenantId?, siteId?, startDate?, endDate?, skip?, top?
-   * SECURITY: Only admin_cabir can access. Others get 404.
+   * SECURITY: Only super_admin can access.
    */
   @Get('orders')
-  @ApiOperation({ summary: 'Get orders or top products report (admin_cabir only)' })
+  @Roles('super_admin')
+  @ApiOperation({ summary: 'Get orders or top products report (super_admin only)' })
   async getReport(
     @Query('type') type: ReportType = 'orders',
     @Query('tenantId') tenantId?: string,

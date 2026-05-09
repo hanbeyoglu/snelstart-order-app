@@ -52,7 +52,7 @@ export class ConnectionSettingsController {
   }
 
   @Post()
-  @Roles('admin')
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Save SnelStart connection settings' })
   async saveSettings(
     @Body()
@@ -79,7 +79,7 @@ export class ConnectionSettingsController {
 
   @Post('test')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin')
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Test SnelStart connection' })
   async testConnection(
     @Body()
@@ -131,7 +131,7 @@ export class ConnectionSettingsController {
 
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin')
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Refresh SnelStart access token (admin only)' })
   async refreshToken(@Request() req: any) {
     const settings = await this.connectionSettingsService.getActiveSettings();
@@ -180,7 +180,7 @@ export class ConnectionSettingsController {
   }
 
   @Get('company-info')
-  @Roles('admin')
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Get company information from SnelStart' })
   async getCompanyInfo() {
     try {

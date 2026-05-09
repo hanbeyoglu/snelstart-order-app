@@ -93,8 +93,8 @@ export class AuthController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Register new user' })
-  async register(@Body() body: RegisterDto) {
-    return this.authService.register(body.username, body.email, body.password, body.role);
+  async register(@Body() body: RegisterDto, @Request() req: any) {
+    return this.authService.register(body.username, body.email, body.password, body.role, req.user.role);
   }
 
   @Get('me')

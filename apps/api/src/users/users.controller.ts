@@ -44,22 +44,22 @@ export class UsersController {
   @Get()
   @Roles('admin')
   @ApiOperation({ summary: 'Get all users' })
-  async getAllUsers() {
-    return this.usersService.getAllUsers();
+  async getAllUsers(@Request() req: any) {
+    return this.usersService.getAllUsers(req.user.role);
   }
 
   @Get(':id')
   @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID' })
-  async getUserById(@Param('id') id: string) {
-    return this.usersService.getUserById(id);
+  async getUserById(@Param('id') id: string, @Request() req: any) {
+    return this.usersService.getUserById(id, req.user.role);
   }
 
   @Post()
   @Roles('admin')
   @ApiOperation({ summary: 'Create new user' })
   async createUser(@Body() body: CreateUserDto, @Request() req: any) {
-    const created = await this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName);
+    const created = await this.usersService.createUser(body.username, body.email, body.password, body.role, body.firstName, body.lastName, req.user.role);
     await this.auditService.log({
       action: 'USER_CREATED',
       entityType: 'User',
@@ -79,7 +79,7 @@ export class UsersController {
     @Request() req: any,
   ) {
     // Admin tüm alanları değiştirebilir (rol dahil)
-    const updated = await this.usersService.updateUser(id, body, true);
+    const updated = await this.usersService.updateUser(id, body, true, req.user.role);
     await this.auditService.log({
       action: 'USER_UPDATED',
       entityType: 'User',
@@ -94,7 +94,7 @@ export class UsersController {
   @Roles('admin')
   @ApiOperation({ summary: 'Delete user' })
   async deleteUser(@Param('id') id: string, @Request() req: any) {
-    const deleted = await this.usersService.deleteUser(id);
+    const deleted = await this.usersService.deleteUser(id, req.user.role);
     await this.auditService.log({
       action: 'USER_DELETED',
       entityType: 'User',

@@ -13,8 +13,8 @@ export class AuditController {
   constructor(private auditService: AuditService) {}
 
   @Get()
-  @Roles('admin')
-  @ApiOperation({ summary: 'Get audit logs (admin only)' })
+  @Roles('super_admin')
+  @ApiOperation({ summary: 'Get audit logs (super_admin only)' })
   async getAuditLogs(
     @Query('action') action?: string,
     @Query('entityType') entityType?: string,

@@ -12,7 +12,7 @@ interface User {
   _id: string;
   username: string;
   email: string;
-  role: 'admin' | 'sales_rep';
+  role: 'sales_rep' | 'admin' | 'super_admin';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -133,7 +133,9 @@ export default function UsersPage() {
                     width: '50px',
                     height: '50px',
                     borderRadius: '50%',
-                    background: user.role === 'admin'
+                    background: user.role === 'super_admin'
+                      ? 'linear-gradient(135deg, #111827 0%, #4f46e5 100%)'
+                      : user.role === 'admin'
                       ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
                       : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     display: 'flex',
@@ -172,13 +174,15 @@ export default function UsersPage() {
                         borderRadius: '12px',
                         fontSize: '0.85rem',
                         fontWeight: 600,
-                        background: user.role === 'admin'
+                        background: user.role === 'super_admin'
+                          ? 'rgba(79, 70, 229, 0.14)'
+                          : user.role === 'admin'
                           ? 'rgba(245, 158, 11, 0.1)'
                           : 'rgba(99, 102, 241, 0.1)',
-                        color: user.role === 'admin' ? '#f59e0b' : 'var(--primary)',
+                        color: user.role === 'super_admin' ? '#4f46e5' : user.role === 'admin' ? '#f59e0b' : 'var(--primary)',
                       }}
                     >
-                      {user.role === 'admin' ? `👑 ${t('users:roles.admin')}` : `👤 ${t('users:roles.salesRep')}`}
+                      {user.role === 'super_admin' ? '🔐 Super Admin' : user.role === 'admin' ? `👑 ${t('users:roles.admin')}` : `👤 ${t('users:roles.salesRep')}`}
                     </div>
                     {user.createdAt && (
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

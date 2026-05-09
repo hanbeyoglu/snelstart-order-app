@@ -35,7 +35,7 @@ export default function CartPage() {
   const [itemToRemove, setItemToRemove] = useState<{ productId: string; productName: string } | null>(null);
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const { confirmPriceOverride } = useAdminPriceOverride();
 
   // Debounce customer search

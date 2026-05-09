@@ -26,7 +26,7 @@ export default function ProductDetailPage() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const { confirmPriceOverride } = useAdminPriceOverride();
   const cartItem = cartItems.find((item) => item.productId === productId);
 

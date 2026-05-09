@@ -172,7 +172,7 @@ export interface User {
   _id?: string;
   email: string;
   passwordHash: string;
-  role: 'admin' | 'sales_rep';
+  role: 'sales_rep' | 'admin' | 'super_admin';
   createdAt: Date;
   updatedAt: Date;
 }

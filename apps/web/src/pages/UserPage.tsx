@@ -280,7 +280,7 @@ export default function UserPage() {
                 fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
                 fontWeight: 600 
               }}>
-                {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
+                {user?.role === 'super_admin' ? '🔐 Super Admin' : user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
               </p>
             </div>
           </div>
@@ -474,7 +474,7 @@ export default function UserPage() {
                   fontWeight: 600, 
                   color: 'var(--text-secondary)' 
                 }}>
-                  {user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'} (Değiştirilemez)
+                  {user?.role === 'super_admin' ? '🔐 Super Admin' : user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'} (Değiştirilemez)
                 </p>
               </div>
 

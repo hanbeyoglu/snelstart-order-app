@@ -59,7 +59,7 @@ export class OrdersService {
         throw new BadRequestException('PRICE_BELOW_MINIMUM');
       }
 
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'super_admin') {
         throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
       }
     }
@@ -196,7 +196,7 @@ export class OrdersService {
 
       let unitPrice = trustedUnitPrice;
       if (priceChanged) {
-        if (user?.role !== 'admin') {
+        if (user?.role !== 'admin' && user?.role !== 'super_admin') {
           throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
         }
         if (!hasAdminOverride) {

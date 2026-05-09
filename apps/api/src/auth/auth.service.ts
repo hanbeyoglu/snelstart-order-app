@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from './schemas/user.schema';
+import { User, UserDocument, UserRole } from './schemas/user.schema';
 import { CacheService } from '../cache/cache.service';
 
 @Injectable()
@@ -98,7 +98,11 @@ export class AuthService {
     };
   }
 
-  async register(username: string, email: string | undefined, password: string, role: 'admin' | 'sales_rep' = 'sales_rep') {
+  async register(username: string, email: string | undefined, password: string, role: UserRole = 'sales_rep', requesterRole: UserRole = 'admin') {
+    if (role === 'super_admin' && requesterRole !== 'super_admin') {
+      throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
+    }
+
     // Username kontrolü yap
     const existingUserByUsername = await this.userModel.findOne({ username }).exec();
     if (existingUserByUsername) {
@@ -135,11 +139,22 @@ export class AuthService {
     return !!user;
   }
 
-  async createAdminIfNotExists(username: string, email: string | undefined, password: string): Promise<void> {
+  async createSuperAdminIfNotExists(username: string, email: string | undefined, password: string): Promise<void> {
     const exists = await this.userExists(username) || (email ? await this.userExists(email) : false);
     if (!exists) {
-      await this.register(username, email, password, 'admin');
+      await this.register(username, email, password, 'super_admin', 'super_admin');
+      return;
+    }
+
+    const user = await this.userModel.findOne({
+      $or: [
+        { username },
+        ...(email ? [{ email }] : []),
+      ],
+    }).exec();
+    if (user && user.role !== 'super_admin') {
+      user.role = 'super_admin';
+      await user.save();
     }
   }
 }
-

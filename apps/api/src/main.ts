@@ -31,8 +31,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
-  // İlk admin kullanıcısını oluştur
-  await createInitialAdmin(app);
+  await createInitialSuperAdmin(app);
 
   // Global prefix
   app.setGlobalPrefix('api');
@@ -91,26 +90,25 @@ async function bootstrap() {
   console.log(`Swagger docs available at http://localhost:${port}/api/docs`);
 }
 
-async function createInitialAdmin(app: any) {
+async function createInitialSuperAdmin(app: any) {
   try {
     const authService = app.get(AuthService);
-    const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin_cabir';
-    const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@test.com';
-    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    const superAdminUsername = process.env.INITIAL_SUPER_ADMIN_USERNAME || process.env.INITIAL_ADMIN_USERNAME;
+    const superAdminEmail = process.env.INITIAL_SUPER_ADMIN_EMAIL || process.env.INITIAL_ADMIN_EMAIL;
+    const superAdminPassword = process.env.INITIAL_SUPER_ADMIN_PASSWORD || process.env.INITIAL_ADMIN_PASSWORD;
 
-    if (!adminPassword) {
-      console.warn('INITIAL_ADMIN_PASSWORD is not set; skipping initial admin creation');
+    if (!superAdminUsername || !superAdminPassword) {
+      console.warn('INITIAL_SUPER_ADMIN_USERNAME or INITIAL_SUPER_ADMIN_PASSWORD is not set; skipping initial super_admin creation');
       return;
     }
 
-    // Admin kullanıcısını oluştur (varsa oluşturmaz)
-    await authService.createAdminIfNotExists(adminUsername, adminEmail, adminPassword);
-    console.log('İlk admin kullanıcısı hazır:');
-    console.log(`   Kullanıcı Adı: ${adminUsername}`);
-    console.log(`   Email: ${adminEmail}`);
-    console.log(`   Rol: admin`);
+    await authService.createSuperAdminIfNotExists(superAdminUsername, superAdminEmail, superAdminPassword);
+    console.log('İlk super_admin kullanıcısı hazır:');
+    console.log(`   Kullanıcı Adı: ${superAdminUsername}`);
+    if (superAdminEmail) console.log(`   Email: ${superAdminEmail}`);
+    console.log(`   Rol: super_admin`);
   } catch (error: any) {
-    console.warn('⚠️  Admin kullanıcısı oluşturulurken hata:', error.message);
+    console.warn('Super admin kullanıcısı oluşturulurken hata:', error.message);
   }
 }
 

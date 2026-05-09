@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export type UserRole = 'sales_rep' | 'admin' | 'super_admin';
+
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true, unique: true })
@@ -18,8 +20,8 @@ export class User extends Document {
   @Prop({ required: true })
   passwordHash: string;
 
-  @Prop({ required: true, enum: ['admin', 'sales_rep'], default: 'sales_rep' })
-  role: 'admin' | 'sales_rep';
+  @Prop({ required: true, enum: ['sales_rep', 'admin', 'super_admin'], default: 'sales_rep' })
+  role: UserRole;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -37,4 +39,3 @@ UserSchema.index(
 );
 
 export type UserDocument = User & Document;
-

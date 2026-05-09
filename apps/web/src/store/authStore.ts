@@ -9,7 +9,7 @@ interface User {
   email?: string;
   firstName?: string;
   lastName?: string;
-  role: 'admin' | 'sales_rep';
+  role: 'sales_rep' | 'admin' | 'super_admin';
 }
 
 interface AuthState {
@@ -57,4 +57,3 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
-

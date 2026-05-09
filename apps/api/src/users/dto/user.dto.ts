@@ -1,4 +1,5 @@
 import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { UserRole } from '../../auth/schemas/user.schema';
 
 export class UpdateCurrentUserDto {
   @IsOptional()
@@ -34,12 +35,12 @@ export class CreateUserDto extends UpdateCurrentUserDto {
   password: string;
 
   @IsOptional()
-  @IsIn(['admin', 'sales_rep'])
-  role?: 'admin' | 'sales_rep';
+  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  role?: UserRole;
 }
 
 export class UpdateUserDto extends UpdateCurrentUserDto {
   @IsOptional()
-  @IsIn(['admin', 'sales_rep'])
-  role?: 'admin' | 'sales_rep';
+  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  role?: UserRole;
 }

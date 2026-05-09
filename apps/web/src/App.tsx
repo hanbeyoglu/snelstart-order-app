@@ -27,6 +27,7 @@ import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
 import EditUserPage from './pages/EditUserPage';
 import ReportsPage from './pages/ReportsPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
@@ -79,13 +80,26 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/user" element={<UserPage />} />
-            {/* Reports: sadece admin_cabir - route yoksa /reports 404'e düşer */}
-            {user?.username === 'admin_cabir' && (
-              <Route path="/reports" element={<ReportsPage />} />
+            {user?.role === 'super_admin' && (
+              <>
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/audit" element={<AuditLogsPage />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              </>
             )}
-            {/* Bağlantı ayarları hem admin hem de sales_rep için açık */}
-            <Route path="/admin/settings" element={<AdminSettingsPage />} />
             {user?.role === 'admin' && (
+              <>
+                <Route path="/admin/pricing" element={<AdminPricingPage />} />
+                <Route path="/admin/price-warnings" element={<PriceWarningsPage />} />
+                <Route path="/admin/images" element={<AdminImagesPage />} />
+                <Route path="/settings/product-visibility" element={<ProductVisibilityPage />} />
+                <Route path="/settings/category-visibility" element={<CategoryVisibilityPage />} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/users/new" element={<CreateUserPage />} />
+                <Route path="/users/:userId/edit" element={<EditUserPage />} />
+              </>
+            )}
+            {user?.role === 'super_admin' && (
               <>
                 <Route path="/admin/pricing" element={<AdminPricingPage />} />
                 <Route path="/admin/price-warnings" element={<PriceWarningsPage />} />

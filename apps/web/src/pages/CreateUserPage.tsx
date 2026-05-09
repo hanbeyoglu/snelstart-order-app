@@ -4,20 +4,24 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
+
+type UserRole = 'sales_rep' | 'admin' | 'super_admin';
 
 export default function CreateUserPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
+  const currentUser = useAuthStore((state) => state.user);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'sales_rep'>('sales_rep');
+  const [role, setRole] = useState<UserRole>('sales_rep');
   const [useEmail, setUseEmail] = useState(false);
 
   const createMutation = useMutation({
-    mutationFn: async (data: { username: string; email?: string; password: string; role: 'admin' | 'sales_rep' }) => {
+    mutationFn: async (data: { username: string; email?: string; password: string; role: UserRole }) => {
       const response = await api.post('/users', data);
       return response.data;
     },
@@ -73,7 +77,7 @@ export default function CreateUserPage() {
       return;
     }
 
-    const userData: { username: string; password: string; role: 'admin' | 'sales_rep'; email?: string } = { 
+    const userData: { username: string; password: string; role: UserRole; email?: string } = { 
       username: username.trim(), 
       password, 
       role 
@@ -251,13 +255,16 @@ export default function CreateUserPage() {
             <select
               id="role"
               value={role}
-              onChange={(e) => setRole(e.target.value as 'admin' | 'sales_rep')}
+              onChange={(e) => setRole(e.target.value as UserRole)}
               className="input"
               required
               style={{ width: '100%', minHeight: '44px' }}
             >
               <option value="sales_rep">👤 Çalışan</option>
               <option value="admin">👑 Admin</option>
+              {currentUser?.role === 'super_admin' && (
+                <option value="super_admin">🔐 Super Admin</option>
+              )}
             </select>
           </div>
 

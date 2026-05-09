@@ -1,4 +1,5 @@
 import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { UserRole } from '../schemas/user.schema';
 
 export class LoginDto {
   @IsString()
@@ -22,6 +23,6 @@ export class RegisterDto {
   password: string;
 
   @IsOptional()
-  @IsIn(['admin', 'sales_rep'])
-  role?: 'admin' | 'sales_rep';
+  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  role?: UserRole;
 }

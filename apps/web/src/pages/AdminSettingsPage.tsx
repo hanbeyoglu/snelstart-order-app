@@ -3,15 +3,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
-import { useAuthStore } from '../store/authStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function AdminSettingsPage() {
   const { t } = useAppTranslation(['common', 'settings', 'orders']);
   const { formatDateTime } = useLocaleFormat();
-  const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
   const [subscriptionKey, setSubscriptionKey] = useState('');
   const [integrationKey, setIntegrationKey] = useState('');
   const [testing, setTesting] = useState(false);

@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../auth/schemas/user.schema';
+import { User, UserDocument, UserRole } from '../auth/schemas/user.schema';
 
 @Injectable()
 export class UsersService {
@@ -10,24 +10,27 @@ export class UsersService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  async getAllUsers() {
-    // admin@test.com kullanıcısını listeden hariç tut
+  async getAllUsers(requesterRole: UserRole) {
+    const filter = requesterRole === 'super_admin' ? {} : { role: { $ne: 'super_admin' } };
     const users = await this.userModel
-      .find({ username: { $ne: 'admin_cabir' } })
+      .find(filter)
       .select('-passwordHash')
       .exec();
     return users;
   }
 
-  async getUserById(id: string) {
+  async getUserById(id: string, requesterRole?: UserRole) {
     const user = await this.userModel.findById(id).select('-passwordHash').exec();
     if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (requesterRole === 'admin' && user.role === 'super_admin') {
       throw new NotFoundException('User not found');
     }
     return user;
   }
 
-  async createUser(username: string, email: string | undefined, password: string, role: 'admin' | 'sales_rep' = 'sales_rep', firstName?: string, lastName?: string) {
+  async createUser(username: string, email: string | undefined, password: string, role: UserRole = 'sales_rep', firstName?: string, lastName?: string, requesterRole: UserRole = 'admin') {
     try {
       // Username validation
       const trimmedUsername = String(username).trim();
@@ -47,7 +50,10 @@ export class UsersService {
       }
 
       // Role validation
-      const validRole = role && (role === 'admin' || role === 'sales_rep') ? role : 'sales_rep';
+      const validRole: UserRole = ['sales_rep', 'admin', 'super_admin'].includes(role) ? role : 'sales_rep';
+      if (validRole === 'super_admin' && requesterRole !== 'super_admin') {
+        throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
+      }
 
       const passwordHash = await bcrypt.hash(password, 10);
       const userData: any = { username: trimmedUsername, passwordHash, role: validRole };
@@ -108,7 +114,8 @@ export class UsersService {
       // NestJS exception'ları direkt fırlat
       if (error instanceof NotFoundException || 
           error instanceof UnauthorizedException || 
-          error instanceof BadRequestException) {
+          error instanceof BadRequestException ||
+          error instanceof ForbiddenException) {
         throw error;
       }
       // Diğer hatalar için log ve generic exception
@@ -124,11 +131,18 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: string, data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: 'admin' | 'sales_rep' }, allowRoleChange: boolean = true) {
+  async updateUser(id: string, data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: UserRole }, allowRoleChange: boolean = true, requesterRole?: UserRole) {
     try {
       const user = await this.userModel.findById(id).exec();
       if (!user) {
         throw new NotFoundException('User not found');
+      }
+
+      if (requesterRole === 'admin' && user.role === 'super_admin') {
+        throw new ForbiddenException('super_admin kullanıcıları sadece super_admin yönetebilir');
+      }
+      if (data.role === 'super_admin' && requesterRole !== 'super_admin') {
+        throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
       }
 
       // Rol değişikliği sadece admin tarafından yapılabilir
@@ -202,7 +216,8 @@ export class UsersService {
       // NestJS exception'ları direkt fırlat
       if (error instanceof NotFoundException || 
           error instanceof UnauthorizedException || 
-          error instanceof BadRequestException) {
+          error instanceof BadRequestException ||
+          error instanceof ForbiddenException) {
         throw error;
       }
       // Diğer hatalar için log ve generic exception
@@ -212,7 +227,14 @@ export class UsersService {
     }
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: string, requesterRole?: UserRole) {
+    const existingUser = await this.userModel.findById(id).exec();
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+    if (requesterRole === 'admin' && existingUser.role === 'super_admin') {
+      throw new ForbiddenException('super_admin kullanıcıları sadece super_admin yönetebilir');
+    }
     const user = await this.userModel.findByIdAndDelete(id).exec();
     if (!user) {
       throw new NotFoundException('User not found');

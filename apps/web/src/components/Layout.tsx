@@ -173,8 +173,8 @@ export default function Layout() {
     { to: '/orders', label: t('navigation.orders'), icon: '📋' },
   ];
 
-  const isAdmin = user?.role === 'admin';
-  const isAdminCabir = user?.username === 'admin_cabir';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const catalogLinks: MenuLink[] = isAdmin
     ? [
@@ -185,15 +185,15 @@ export default function Layout() {
       ]
     : [];
 
-  // Bağlantı ayarları hem admin hem de sales_rep için görünür
   const systemLinks: MenuLink[] = user
     ? [
-        { to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' },
         ...(isAdmin ? [{ to: '/users', label: t('navigation.users'), icon: '👥' }] : []),
+        ...(isSuperAdmin ? [{ to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' }] : []),
+        ...(isSuperAdmin ? [{ to: '/audit', label: 'Audit Logs', icon: '🧾' }] : []),
       ]
     : [];
 
-  const analysisLinks: MenuLink[] = isAdminCabir
+  const analysisLinks: MenuLink[] = isSuperAdmin
     ? [{ to: '/reports', label: t('navigation.reports'), icon: '📊' }]
     : [];
 
@@ -865,7 +865,11 @@ export default function Layout() {
                                   textTransform: 'capitalize',
                                 }}
                               >
-                                {user.role === 'admin' ? `👑 ${t('auth:roles.admin')}` : `👤 ${t('auth:roles.salesRep')}`}
+                                {user.role === 'super_admin'
+                                  ? '🔐 Super Admin'
+                                  : user.role === 'admin'
+                                    ? `👑 ${t('auth:roles.admin')}`
+                                    : `👤 ${t('auth:roles.salesRep')}`}
                               </p>
                             )}
                           </div>
@@ -1149,7 +1153,11 @@ export default function Layout() {
                               textTransform: 'capitalize',
                             }}
                           >
-                            {user.role === 'admin' ? `👑 ${t('auth:roles.admin')}` : `👤 ${t('auth:roles.salesRep')}`}
+                            {user.role === 'super_admin'
+                              ? '🔐 Super Admin'
+                              : user.role === 'admin'
+                                ? `👑 ${t('auth:roles.admin')}`
+                                : `👤 ${t('auth:roles.salesRep')}`}
                           </p>
                         )}
                       </div>
