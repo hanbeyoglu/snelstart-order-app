@@ -20,6 +20,11 @@ export class AuditController {
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
     @Query('userId') userId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('critical') critical?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -28,8 +33,23 @@ export class AuditController {
       entityType,
       entityId,
       userId,
+      startDate,
+      endDate,
+      critical,
+      search,
+      status,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });
+  }
+
+  @Get('stats')
+  @Roles('super_admin')
+  @ApiOperation({ summary: 'Get audit log statistics (super_admin only)' })
+  async getAuditStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.auditService.getStats({ startDate, endDate });
   }
 }
