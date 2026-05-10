@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type UserRole = 'sales_rep' | 'admin' | 'super_admin';
+export type UserRole = 'customer' | 'sales_rep' | 'admin' | 'super_admin';
 
 @Schema({ timestamps: true })
 export class User extends Document {
@@ -20,8 +20,23 @@ export class User extends Document {
   @Prop({ required: true })
   passwordHash: string;
 
-  @Prop({ required: true, enum: ['sales_rep', 'admin', 'super_admin'], default: 'sales_rep' })
+  @Prop({ required: true, enum: ['customer', 'sales_rep', 'admin', 'super_admin'], default: 'sales_rep' })
   role: UserRole;
+
+  @Prop({ type: [String], default: [] })
+  permissions: string[];
+
+  @Prop({ required: false })
+  customerId?: string;
+
+  @Prop({ default: true })
+  isActive: boolean;
+
+  @Prop({ required: false })
+  preferredLanguage?: string;
+
+  @Prop({ required: false })
+  lastLoginAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

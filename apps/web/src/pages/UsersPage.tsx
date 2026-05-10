@@ -12,12 +12,21 @@ interface User {
   _id: string;
   username: string;
   email: string;
-  role: 'sales_rep' | 'admin' | 'super_admin';
+  role: 'customer' | 'sales_rep' | 'admin' | 'super_admin';
+  customerId?: string;
+  permissions?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-export default function UsersPage() {
+const ROLE_RANK: Record<User['role'], number> = {
+  customer: 0,
+  sales_rep: 1,
+  admin: 2,
+  super_admin: 3,
+};
+
+export default function UsersPage({ variant = 'staff' }: { variant?: 'staff' | 'portal' }) {
   const { t } = useAppTranslation(['common', 'users']);
   const { formatDate } = useLocaleFormat();
   const navigate = useNavigate();
@@ -25,11 +34,20 @@ export default function UsersPage() {
   const showToast = useToastStore((state) => state.showToast);
   const { user: currentUser } = useAuthStore();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const canManageUser = (target: User) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'super_admin') return target.role !== 'super_admin';
+    return ROLE_RANK[target.role] < ROLE_RANK[currentUser.role];
+  };
+
+  const isPortalUsers = variant === 'portal';
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', variant],
     queryFn: async () => {
-      const response = await api.get('/users');
+      const response = await api.get('/users', {
+        params: { role: isPortalUsers ? 'customer' : 'staff' },
+      });
       return response.data;
     },
   });
@@ -95,18 +113,31 @@ export default function UsersPage() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          {t('users:title')}
+          {isPortalUsers ? t('common:navigation.portalAccounts') : t('users:title')}
         </motion.h2>
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={() => navigate('/users/new')}
-          className="btn-primary"
-          style={{ minHeight: '44px' }}
-          whileTap={{ scale: 0.98 }}
-        >
-          ➕ {t('users:create')}
-        </motion.button>
+        {isPortalUsers ? (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => navigate('/customers')}
+            className="btn-primary"
+            style={{ minHeight: '44px' }}
+            whileTap={{ scale: 0.98 }}
+          >
+            ➕ {t('common:customerPortal.createFromCustomer')}
+          </motion.button>
+        ) : (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => navigate('/users/new')}
+            className="btn-primary"
+            style={{ minHeight: '44px' }}
+            whileTap={{ scale: 0.98 }}
+          >
+            ➕ {t('users:create')}
+          </motion.button>
+        )}
       </div>
 
       {users && users.length > 0 ? (
@@ -137,6 +168,8 @@ export default function UsersPage() {
                       ? 'linear-gradient(135deg, #111827 0%, #4f46e5 100%)'
                       : user.role === 'admin'
                       ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                      : user.role === 'customer'
+                      ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
                       : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     display: 'flex',
                     alignItems: 'center',
@@ -182,7 +215,7 @@ export default function UsersPage() {
                         color: user.role === 'super_admin' ? '#4f46e5' : user.role === 'admin' ? '#f59e0b' : 'var(--primary)',
                       }}
                     >
-                      {user.role === 'super_admin' ? '🔐 Super Admin' : user.role === 'admin' ? `👑 ${t('users:roles.admin')}` : `👤 ${t('users:roles.salesRep')}`}
+                      {user.role === 'super_admin' ? '🔐 Super Admin' : user.role === 'admin' ? `👑 ${t('users:roles.admin')}` : user.role === 'customer' ? `🛒 Customer${user.customerId ? `: ${user.customerId}` : ''}` : `👤 ${t('users:roles.salesRep')}`}
                     </div>
                     {user.createdAt && (
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -193,15 +226,17 @@ export default function UsersPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                <motion.button
-                  onClick={() => navigate(`/users/${user._id}/edit`)}
-                  className="btn-secondary"
-                  style={{ minHeight: '44px', padding: '0.5rem 1rem' }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  ✏️ {t('users:edit')}
-                </motion.button>
-                {currentUser?.id !== user._id && (
+                {canManageUser(user) && (
+                  <motion.button
+                    onClick={() => navigate(`/users/${user._id}/edit`)}
+                    className="btn-secondary"
+                    style={{ minHeight: '44px', padding: '0.5rem 1rem' }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    ✏️ {t('users:edit')}
+                  </motion.button>
+                )}
+                {currentUser?.id !== user._id && canManageUser(user) && (
                   <motion.button
                     onClick={() => setUserToDelete(user)}
                     className="btn-danger"
@@ -230,11 +265,11 @@ export default function UsersPage() {
             {t('users:emptyDescription')}
           </p>
           <motion.button
-            onClick={() => navigate('/users/new')}
+            onClick={() => navigate(isPortalUsers ? '/customers' : '/users/new')}
             className="btn-primary"
             whileTap={{ scale: 0.95 }}
           >
-            ➕ {t('users:create')}
+            ➕ {isPortalUsers ? t('common:customerPortal.goToCustomers') : t('users:create')}
           </motion.button>
         </motion.div>
       )}

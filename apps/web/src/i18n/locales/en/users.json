@@ -9,8 +9,38 @@
   "deleteTitle": "Delete User",
   "deleteDescription": "You are about to delete {{name}}. This action cannot be undone.",
   "roles": {
+    "superAdmin": "Super Admin",
     "admin": "Admin",
     "salesRep": "Employee"
+  },
+  "profile": {
+    "title": "User Information",
+    "accountInfo": "Account Information",
+    "fullName": "Full Name",
+    "useEmail": "Use email",
+    "newPasswordHelp": "New Password (at least 6 characters, leave empty if you do not want to change it)",
+    "confirmNewPassword": "Confirm New Password",
+    "notEditable": "Not editable",
+    "companyInfo": "Company Information",
+    "companyName": "Company Name",
+    "kvkNumber": "KVK Number",
+    "btwNumber": "VAT Number",
+    "website": "Website",
+    "companyInfoUnavailable": "Company information could not be loaded",
+    "placeholders": {
+      "firstName": "Your first name",
+      "lastName": "Your last name",
+      "email": "example@email.com"
+    },
+    "validation": {
+      "usernameRequired": "Please enter your username",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "messages": {
+      "updated": "Your profile information was updated successfully",
+      "updateError": "An error occurred while updating your profile"
+    }
   },
   "messages": {
     "deleted": "User deleted successfully",

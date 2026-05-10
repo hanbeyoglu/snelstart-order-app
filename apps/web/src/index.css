@@ -959,3 +959,185 @@ h3 {
     padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
+
+.portal-account-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.portal-account-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(320px, 1.4fr) minmax(220px, 0.8fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.portal-account-main {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.portal-account-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.portal-account-identity {
+  min-width: 0;
+}
+
+.portal-account-customer {
+  font-weight: 800;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.portal-account-username,
+.portal-account-email {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.portal-account-username {
+  margin-top: 0.18rem;
+  font-weight: 700;
+}
+
+.portal-account-email {
+  margin-top: 0.12rem;
+  font-size: 0.88rem;
+}
+
+.portal-account-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.portal-account-field {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.portal-account-field > span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.portal-account-field > strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.portal-account-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.portal-account-actions button {
+  min-height: 40px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  white-space: normal;
+}
+
+.portal-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.portal-switch input {
+  width: 22px;
+  height: 22px;
+  accent-color: #0f766e;
+}
+
+.portal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 1rem;
+}
+
+.portal-modal {
+  width: min(640px, 100%);
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.5rem;
+}
+
+@media (max-width: 1180px) {
+  .portal-account-card {
+    grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr);
+  }
+
+  .portal-account-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .portal-account-card {
+    grid-template-columns: 1fr;
+    padding: 0.9rem;
+  }
+
+  .portal-account-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-account-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .portal-account-main {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .portal-account-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .portal-account-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-modal {
+    padding: 1rem;
+  }
+}

@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { UserRole } from '../../auth/schemas/user.schema';
 
 export class UpdateCurrentUserDto {
@@ -21,7 +21,7 @@ export class UpdateCurrentUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   password?: string;
 }
 
@@ -31,16 +31,51 @@ export class CreateUserDto extends UpdateCurrentUserDto {
   username: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   password: string;
 
   @IsOptional()
-  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  @IsIn(['customer', 'sales_rep', 'admin', 'super_admin'])
   role?: UserRole;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  permissions?: string[];
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  preferredLanguage?: string;
 }
 
 export class UpdateUserDto extends UpdateCurrentUserDto {
   @IsOptional()
-  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  @IsIn(['customer', 'sales_rep', 'admin', 'super_admin'])
   role?: UserRole;
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  preferredLanguage?: string;
+}
+
+export class UpdateUserPermissionsDto {
+  @IsArray()
+  @IsString({ each: true })
+  permissions: string[];
 }

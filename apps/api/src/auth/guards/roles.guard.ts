@@ -1,12 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../schemas/user.schema';
-
-const ROLE_RANK: Record<UserRole, number> = {
-  sales_rep: 1,
-  admin: 2,
-  super_admin: 3,
-};
+import { ROLE_RANK } from '../permissions';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

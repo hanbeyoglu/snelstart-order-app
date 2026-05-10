@@ -9,8 +9,38 @@
   "deleteTitle": "Kullanıcıyı Sil",
   "deleteDescription": "{{name}} adlı kullanıcıyı silmek üzeresiniz. Bu işlem geri alınamaz.",
   "roles": {
+    "superAdmin": "Super Admin",
     "admin": "Admin",
     "salesRep": "Çalışan"
+  },
+  "profile": {
+    "title": "Kullanıcı Bilgileri",
+    "accountInfo": "Hesap Bilgileri",
+    "fullName": "Ad Soyad",
+    "useEmail": "E-posta kullan",
+    "newPasswordHelp": "Yeni Şifre (en az 6 karakter, değiştirmek istemiyorsanız boş bırakın)",
+    "confirmNewPassword": "Yeni Şifre Tekrar",
+    "notEditable": "Değiştirilemez",
+    "companyInfo": "Şirket Bilgileri",
+    "companyName": "Şirket Adı",
+    "kvkNumber": "KVK Numarası",
+    "btwNumber": "BTW Numarası",
+    "website": "Web sitesi",
+    "companyInfoUnavailable": "Şirket bilgileri alınamadı",
+    "placeholders": {
+      "firstName": "Adınız",
+      "lastName": "Soyadınız",
+      "email": "ornek@email.com"
+    },
+    "validation": {
+      "usernameRequired": "Lütfen kullanıcı adını girin",
+      "passwordMinLength": "Şifre en az 6 karakter olmalıdır",
+      "passwordMismatch": "Şifreler eşleşmiyor"
+    },
+    "messages": {
+      "updated": "Profil bilgileriniz başarıyla güncellendi",
+      "updateError": "Profil güncellenirken bir hata oluştu"
+    }
   },
   "messages": {
     "deleted": "Kullanıcı başarıyla silindi",

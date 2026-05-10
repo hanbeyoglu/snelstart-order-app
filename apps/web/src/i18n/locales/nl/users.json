@@ -9,8 +9,38 @@
   "deleteTitle": "Gebruiker verwijderen",
   "deleteDescription": "U staat op het punt {{name}} te verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
   "roles": {
+    "superAdmin": "Super Admin",
     "admin": "Admin",
     "salesRep": "Medewerker"
+  },
+  "profile": {
+    "title": "Gebruikersinformatie",
+    "accountInfo": "Accountgegevens",
+    "fullName": "Volledige naam",
+    "useEmail": "E-mail gebruiken",
+    "newPasswordHelp": "Nieuw wachtwoord (minimaal 6 tekens, laat leeg als u dit niet wilt wijzigen)",
+    "confirmNewPassword": "Nieuw wachtwoord herhalen",
+    "notEditable": "Niet bewerkbaar",
+    "companyInfo": "Bedrijfsgegevens",
+    "companyName": "Bedrijfsnaam",
+    "kvkNumber": "KVK-nummer",
+    "btwNumber": "Btw-nummer",
+    "website": "Website",
+    "companyInfoUnavailable": "Bedrijfsgegevens konden niet worden geladen",
+    "placeholders": {
+      "firstName": "Uw voornaam",
+      "lastName": "Uw achternaam",
+      "email": "voorbeeld@email.com"
+    },
+    "validation": {
+      "usernameRequired": "Voer uw gebruikersnaam in",
+      "passwordMinLength": "Wachtwoord moet minimaal 6 tekens bevatten",
+      "passwordMismatch": "Wachtwoorden komen niet overeen"
+    },
+    "messages": {
+      "updated": "Uw profielgegevens zijn succesvol bijgewerkt",
+      "updateError": "Er is een fout opgetreden bij het bijwerken van uw profiel"
+    }
   },
   "messages": {
     "deleted": "Gebruiker succesvol verwijderd",

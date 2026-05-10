@@ -10,7 +10,15 @@ export default function CustomerDetailPage() {
   const navigate = useNavigate();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPortalModal, setShowPortalModal] = useState(false);
   const [notes, setNotes] = useState('');
+  const [portalForm, setPortalForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    isActive: true,
+  });
+  const [resetPassword, setResetPassword] = useState('');
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -32,6 +40,17 @@ export default function CustomerDetailPage() {
     enabled: !!customerId,
   });
 
+  const { data: portalUsers = [] } = useQuery({
+    queryKey: ['portal-users', customerId],
+    queryFn: async () => {
+      const response = await api.get('/users', { params: { customerId } });
+      return response.data || [];
+    },
+    enabled: !!customerId,
+  });
+
+  const primaryPortalUser = portalUsers[0];
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       await api.delete(`/customers/${customerId}`);
@@ -46,9 +65,7 @@ export default function CustomerDetailPage() {
     },
     onError: (error: any) => {
       const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Müşteri silinirken bir hata oluştu';
+        error?.response?.data?.message || error?.message || 'Müşteri silinirken bir hata oluştu';
       showToast(message, 'error');
     },
   });
@@ -82,13 +99,59 @@ export default function CustomerDetailPage() {
     });
   };
 
+  const createPortalMutation = useMutation({
+    mutationFn: async () => {
+      if (!customerId) throw new Error('Müşteri bulunamadı');
+      const response = await api.post('/users', {
+        username: portalForm.username.trim(),
+        email: portalForm.email.trim() || undefined,
+        password: portalForm.password,
+        role: 'customer',
+        customerId,
+        isActive: portalForm.isActive,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portal-users', customerId] });
+      showToast('Portal hesabı oluşturuldu', 'success');
+      setShowPortalModal(false);
+      setPortalForm({ username: '', email: '', password: '', isActive: true });
+    },
+    onError: (error: any) => {
+      showToast(
+        error?.response?.data?.message || error?.message || 'Portal hesabı oluşturulamadı',
+        'error'
+      );
+    },
+  });
+
+  const updatePortalMutation = useMutation({
+    mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
+      const response = await api.put(`/users/${userId}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portal-users', customerId] });
+      showToast('Portal hesabı güncellendi', 'success');
+      setResetPassword('');
+    },
+    onError: (error: any) => {
+      showToast(
+        error?.response?.data?.message || error?.message || 'Portal hesabı güncellenemedi',
+        'error'
+      );
+    },
+  });
 
   if (isLoadingCustomer) {
     return (
       <div className="container">
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <div className="loading" style={{ margin: '0 auto' }} />
-          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Müşteri bilgileri yükleniyor...</p>
+          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
+            Müşteri bilgileri yükleniyor...
+          </p>
         </div>
       </div>
     );
@@ -111,7 +174,6 @@ export default function CustomerDetailPage() {
       </div>
     );
   }
-
 
   return (
     <div className="container">
@@ -146,6 +208,27 @@ export default function CustomerDetailPage() {
 
         <motion.button
           type="button"
+          className="btn-primary"
+          style={{
+            minHeight: '44px',
+            background: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+          }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            setPortalForm((current) => ({
+              ...current,
+              username:
+                current.username || customer.email || customer.relatiecode?.toString() || '',
+              email: current.email || customer.email || '',
+            }));
+            setShowPortalModal(true);
+          }}
+        >
+          {primaryPortalUser ? 'Portal Hesabını Düzenle' : 'Portal Hesabı Oluştur'}
+        </motion.button>
+
+        <motion.button
+          type="button"
           className="btn-danger"
           style={{ minHeight: '44px' }}
           whileTap={{ scale: 0.98 }}
@@ -158,6 +241,42 @@ export default function CustomerDetailPage() {
         </motion.button>
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
+        style={{ marginBottom: '1.5rem', border: '1px solid rgba(20, 184, 166, 0.25)' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+              Customer Portal
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
+              {primaryPortalUser
+                ? `${portalUsers.length} portal hesabı bağlı. Ana kullanıcı: ${primaryPortalUser.username}`
+                : 'Bu müşteri için henüz portal hesabı yok.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setShowPortalModal(true)}
+            style={{ minHeight: '42px' }}
+          >
+            {primaryPortalUser ? 'Hesapları Yönet' : 'Portal Hesabı Oluştur'}
+          </button>
+        </div>
+      </motion.div>
+
       {/* Planlanmaya Ekle / Gidildi Butonları ve Notlar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -166,12 +285,21 @@ export default function CustomerDetailPage() {
         className="card"
         style={{ marginBottom: '1.5rem' }}
       >
-        <h3 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)', fontWeight: 600, marginBottom: '1rem' }}>
+        <h3
+          style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)', fontWeight: 600, marginBottom: '1rem' }}
+        >
           Ziyaret Durumu
         </h3>
-        
+
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}
+          >
             Notlar
           </label>
           <textarea
@@ -192,7 +320,9 @@ export default function CustomerDetailPage() {
             disabled={updateVisitStatusMutation.isPending}
             whileTap={{ scale: 0.98 }}
           >
-            {updateVisitStatusMutation.isPending ? 'Güncelleniyor...' : '📅 Müşteri Gitme Planına Ekle'}
+            {updateVisitStatusMutation.isPending
+              ? 'Güncelleniyor...'
+              : '📅 Müşteri Gitme Planına Ekle'}
           </motion.button>
           <motion.button
             onClick={() => handleUpdateStatus('VISITED')}
@@ -226,6 +356,213 @@ export default function CustomerDetailPage() {
 
       {/* Silme Onay Modali */}
       <AnimatePresence>
+        {showPortalModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '1rem',
+            }}
+            onClick={() => setShowPortalModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 10 }}
+              className="card"
+              style={{
+                width: 'min(680px, 100%)',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '1.5rem',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>
+                {primaryPortalUser ? 'Portal Hesapları' : 'Portal Hesabı Oluştur'}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                {customer.naam} için customer hesabı otomatik bağlanacak.
+              </p>
+
+              {portalUsers.length > 0 && (
+                <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {portalUsers.map((portalUser: any) => (
+                    <div
+                      key={portalUser._id}
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div>
+                          <strong>{portalUser.username}</strong>
+                          {portalUser.email && (
+                            <p style={{ color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                              {portalUser.email}
+                            </p>
+                          )}
+                          <p
+                            style={{
+                              marginTop: '0.35rem',
+                              color:
+                                portalUser.isActive === false ? 'var(--danger)' : 'var(--success)',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {portalUser.isActive === false ? 'Pasif' : 'Aktif'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className={
+                            portalUser.isActive === false ? 'btn-success' : 'btn-secondary'
+                          }
+                          onClick={() =>
+                            updatePortalMutation.mutate({
+                              userId: portalUser._id,
+                              data: {
+                                isActive: portalUser.isActive === false,
+                                role: 'customer',
+                                customerId,
+                              },
+                            })
+                          }
+                        >
+                          {portalUser.isActive === false ? 'Aktif Yap' : 'Pasif Yap'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => navigate(`/users/${portalUser._id}/edit`)}
+                        >
+                          Düzenle
+                        </button>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginTop: '0.9rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <input
+                          type="password"
+                          value={resetPassword}
+                          onChange={(e) => setResetPassword(e.target.value)}
+                          placeholder="Yeni şifre"
+                          className="input"
+                          style={{ flex: '1 1 180px', minHeight: '42px' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          disabled={resetPassword.length < 8}
+                          onClick={() =>
+                            updatePortalMutation.mutate({
+                              userId: portalUser._id,
+                              data: { password: resetPassword, role: 'customer', customerId },
+                            })
+                          }
+                        >
+                          Şifre Sıfırla
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  createPortalMutation.mutate();
+                }}
+                style={{ display: 'grid', gap: '0.9rem' }}
+              >
+                <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  {portalUsers.length > 0 ? 'Yeni Portal Kullanıcısı Ekle' : 'Hesap Bilgileri'}
+                </h4>
+                <input
+                  className="input"
+                  required
+                  minLength={3}
+                  value={portalForm.username}
+                  onChange={(e) => setPortalForm({ ...portalForm, username: e.target.value })}
+                  placeholder="Kullanıcı adı"
+                />
+                <input
+                  className="input"
+                  type="email"
+                  value={portalForm.email}
+                  onChange={(e) => setPortalForm({ ...portalForm, email: e.target.value })}
+                  placeholder="Email"
+                />
+                <input
+                  className="input"
+                  required
+                  minLength={6}
+                  type="password"
+                  value={portalForm.password}
+                  onChange={(e) => setPortalForm({ ...portalForm, password: e.target.value })}
+                  placeholder="Şifre (en az 6 karakter)"
+                />
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontWeight: 700 }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={portalForm.isActive}
+                    onChange={(e) => setPortalForm({ ...portalForm, isActive: e.target.checked })}
+                  />
+                  Aktif
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    justifyContent: 'flex-end',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowPortalModal(false)}
+                  >
+                    Kapat
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={createPortalMutation.isPending}
+                  >
+                    {createPortalMutation.isPending ? 'Oluşturuluyor...' : 'Portal Hesabı Oluştur'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showDeleteModal && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -267,9 +604,15 @@ export default function CustomerDetailPage() {
               >
                 Müşteriyi Sil
               </h3>
-              <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                <strong>{customer.naam}</strong> adlı müşteriyi silmek üzeresiniz. Bu işlem geri alınamaz
-                ve müşteriye ait yerel kayıtlar da kaldırılacaktır.
+              <p
+                style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <strong>{customer.naam}</strong> adlı müşteriyi silmek üzeresiniz. Bu işlem geri
+                alınamaz ve müşteriye ait yerel kayıtlar da kaldırılacaktır.
               </p>
               <p style={{ fontSize: '0.85rem', color: 'var(--warning)', marginBottom: '1.25rem' }}>
                 SnelStart üzerindeki ilişki de silinir. Emin misiniz?
@@ -320,17 +663,25 @@ export default function CustomerDetailPage() {
         <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 700, marginBottom: '1rem' }}>
           {customer.naam}
         </h2>
-        
+
         {/* İlişki Türü */}
         {(customer as any).relatiesoort && (
           <div style={{ marginBottom: '1.5rem' }}>
-            <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+            <strong
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                display: 'block',
+                marginBottom: '0.5rem',
+              }}
+            >
               İlişki Türü:
             </strong>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {(Array.isArray((customer as any).relatiesoort)
                 ? (customer as any).relatiesoort
-                : [(customer as any).relatiesoort]).map((soort: string, index: number) => (
+                : [(customer as any).relatiesoort]
+              ).map((soort: string, index: number) => (
                 <span
                   key={index}
                   style={{
@@ -350,47 +701,63 @@ export default function CustomerDetailPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           {customer.relatiecode && (
             <div>
-              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Müşteri Kodu:</strong>
+              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Müşteri Kodu:
+              </strong>
               <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>{customer.relatiecode}</p>
             </div>
           )}
-          
+
           {/* Adres Bilgileri */}
           {((customer as any).straat || (customer as any).adres?.straat || customer.adres) && (
             <>
               {(customer as any).straat || (customer as any).adres?.straat ? (
                 <div>
-                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Sokak:</strong>
+                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Sokak:
+                  </strong>
                   <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
                     {(customer as any).straat || (customer as any).adres?.straat}
                   </p>
                 </div>
               ) : null}
-              
+
               {(customer as any).postcode || (customer as any).adres?.postcode ? (
                 <div>
-                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Posta Kodu:</strong>
+                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Posta Kodu:
+                  </strong>
                   <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
                     {(customer as any).postcode || (customer as any).adres?.postcode}
                   </p>
                 </div>
               ) : null}
-              
+
               {(customer as any).plaats || (customer as any).adres?.plaats ? (
                 <div>
-                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Şehir:</strong>
+                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Şehir:
+                  </strong>
                   <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
                     {(customer as any).plaats || (customer as any).adres?.plaats}
                   </p>
                 </div>
               ) : null}
-              
+
               {!((customer as any).straat || (customer as any).adres?.straat) && customer.adres && (
                 <div>
-                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Adres:</strong>
+                  <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Adres:
+                  </strong>
                   <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
                     {customer.adres}
                     {customer.postcode && `, ${customer.postcode}`}
@@ -400,32 +767,44 @@ export default function CustomerDetailPage() {
               )}
             </>
           )}
-          
+
           {customer.telefoon && (
             <div>
-              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Telefon:</strong>
+              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Telefon:
+              </strong>
               <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>{customer.telefoon}</p>
             </div>
           )}
-          
+
           {customer.email && (
             <div>
-              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>E-posta:</strong>
+              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                E-posta:
+              </strong>
               <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>{customer.email}</p>
             </div>
           )}
 
           {(customer as any).kvkNummer && (
             <div>
-              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>KVK Numara:</strong>
-              <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>{(customer as any).kvkNummer}</p>
+              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                KVK Numara:
+              </strong>
+              <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
+                {(customer as any).kvkNummer}
+              </p>
             </div>
           )}
 
           {(customer as any).btwNummer && (
             <div>
-              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>BTW Numara:</strong>
-              <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>{(customer as any).btwNummer}</p>
+              <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                BTW Numara:
+              </strong>
+              <p style={{ marginTop: '0.25rem', fontSize: '1rem' }}>
+                {(customer as any).btwNummer}
+              </p>
             </div>
           )}
         </div>
@@ -437,14 +816,18 @@ export default function CustomerDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <h3 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 600, marginBottom: '1rem' }}>
+        <h3
+          style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 600, marginBottom: '1rem' }}
+        >
           Siparişler ({isLoadingOrders ? '...' : orders?.length || 0})
         </h3>
 
         {isLoadingOrders ? (
           <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
             <div className="loading" style={{ margin: '0 auto' }} />
-            <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Siparişler yükleniyor...</p>
+            <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
+              Siparişler yükleniyor...
+            </p>
           </div>
         ) : !orders || orders.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
@@ -491,7 +874,14 @@ export default function CustomerDetailPage() {
                     whileHover={{ background: 'rgba(99, 102, 241, 0.05)' }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
                         <motion.span
                           animate={{ rotate: isExpanded ? 90 : 0 }}
                           transition={{ duration: 0.2 }}
@@ -503,12 +893,19 @@ export default function CustomerDetailPage() {
                           Sipariş #{order.nummer}
                         </h4>
                       </div>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                      <p
+                        style={{
+                          color: 'var(--text-secondary)',
+                          fontSize: '0.9rem',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
                         Tarih: {new Date(order.datum).toLocaleDateString('tr-TR')}
                       </p>
                       {order.modifiedOn && (
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                          Son Güncelleme: {new Date(order.modifiedOn).toLocaleDateString('tr-TR', {
+                          Son Güncelleme:{' '}
+                          {new Date(order.modifiedOn).toLocaleDateString('tr-TR', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -519,31 +916,53 @@ export default function CustomerDetailPage() {
                       )}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ 
-                        padding: '0.5rem 1rem', 
-                        background: order.procesStatus === 'Factuur' 
-                          ? 'rgba(16, 185, 129, 0.1)' 
-                          : 'rgba(99, 102, 241, 0.1)',
-                        borderRadius: '8px',
-                        display: 'inline-block',
-                        marginBottom: '0.5rem',
-                      }}>
-                        <span style={{ 
-                          fontSize: '0.85rem', 
-                          fontWeight: 600,
-                          color: order.procesStatus === 'Factuur' ? 'var(--success)' : 'var(--primary)',
-                        }}>
+                      <div
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background:
+                            order.procesStatus === 'Factuur'
+                              ? 'rgba(16, 185, 129, 0.1)'
+                              : 'rgba(99, 102, 241, 0.1)',
+                          borderRadius: '8px',
+                          display: 'inline-block',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color:
+                              order.procesStatus === 'Factuur'
+                                ? 'var(--success)'
+                                : 'var(--primary)',
+                          }}
+                        >
                           {order.procesStatus}
                         </span>
                       </div>
                       <div>
-                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                        <p
+                          style={{
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '0.25rem',
+                          }}
+                        >
                           Toplam (KDV Hariç):
                         </p>
-                        <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>
+                        <p
+                          style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}
+                        >
                           €{order.totaalExclusiefBtw?.toFixed(2) || '0.00'}
                         </p>
-                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                        <p
+                          style={{
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)',
+                            marginTop: '0.25rem',
+                          }}
+                        >
                           Toplam (KDV Dahil): €{order.totaalInclusiefBtw?.toFixed(2) || '0.00'}
                         </p>
                       </div>
@@ -561,7 +980,13 @@ export default function CustomerDetailPage() {
                         style={{ overflow: 'hidden', marginTop: '1rem' }}
                       >
                         {order.omschrijving && (
-                          <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                          <p
+                            style={{
+                              marginBottom: '1rem',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.9rem',
+                            }}
+                          >
                             <strong>Açıklama:</strong> {order.omschrijving}
                           </p>
                         )}
@@ -569,8 +994,14 @@ export default function CustomerDetailPage() {
                         {/* Sipariş Kalemleri */}
                         {order.regels && order.regels.length > 0 && (
                           <div style={{ marginTop: '1rem' }}>
-                            <h5 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Sipariş Kalemleri:</h5>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <h5
+                              style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}
+                            >
+                              Sipariş Kalemleri:
+                            </h5>
+                            <div
+                              style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                            >
                               {order.regels.map((regel: any, regelIndex: number) => (
                                 <div
                                   key={regelIndex}
@@ -581,23 +1012,62 @@ export default function CustomerDetailPage() {
                                     border: '1px solid rgba(99, 102, 241, 0.1)',
                                   }}
                                 >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'start',
+                                      flexWrap: 'wrap',
+                                      gap: '0.5rem',
+                                    }}
+                                  >
                                     <div style={{ flex: 1 }}>
-                                      <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{regel.omschrijving}</p>
-                                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                      <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                                        {regel.omschrijving}
+                                      </p>
+                                      <p
+                                        style={{
+                                          fontSize: '0.85rem',
+                                          color: 'var(--text-secondary)',
+                                        }}
+                                      >
                                         Miktar: {regel.aantal} adet
                                         {regel.kortingsPercentage > 0 && (
-                                          <span style={{ marginLeft: '0.5rem', color: 'var(--success)' }}>
+                                          <span
+                                            style={{
+                                              marginLeft: '0.5rem',
+                                              color: 'var(--success)',
+                                            }}
+                                          >
                                             (%{regel.kortingsPercentage} indirim)
                                           </span>
                                         )}
                                       </p>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Birim Fiyat:</p>
-                                      <p style={{ fontWeight: 600 }}>€{regel.stuksprijs?.toFixed(2) || '0.00'}</p>
-                                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Toplam:</p>
-                                      <p style={{ fontWeight: 700, color: 'var(--primary)' }}>€{regel.totaal?.toFixed(2) || '0.00'}</p>
+                                      <p
+                                        style={{
+                                          fontSize: '0.85rem',
+                                          color: 'var(--text-secondary)',
+                                        }}
+                                      >
+                                        Birim Fiyat:
+                                      </p>
+                                      <p style={{ fontWeight: 600 }}>
+                                        €{regel.stuksprijs?.toFixed(2) || '0.00'}
+                                      </p>
+                                      <p
+                                        style={{
+                                          fontSize: '0.85rem',
+                                          color: 'var(--text-secondary)',
+                                          marginTop: '0.25rem',
+                                        }}
+                                      >
+                                        Toplam:
+                                      </p>
+                                      <p style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                                        €{regel.totaal?.toFixed(2) || '0.00'}
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -608,23 +1078,40 @@ export default function CustomerDetailPage() {
 
                         {/* Adres Bilgileri */}
                         {(order.afleveradres || order.factuuradres) && (
-                          <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                          <div
+                            style={{
+                              marginTop: '1rem',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                              gap: '1rem',
+                            }}
+                          >
                             {order.afleveradres && (
                               <div>
-                                <strong style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Teslimat Adresi:</strong>
+                                <strong
+                                  style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}
+                                >
+                                  Teslimat Adresi:
+                                </strong>
                                 <p style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>
                                   {order.afleveradres.straat}
-                                  {order.afleveradres.postcode && `, ${order.afleveradres.postcode}`}
+                                  {order.afleveradres.postcode &&
+                                    `, ${order.afleveradres.postcode}`}
                                   {order.afleveradres.plaats && ` ${order.afleveradres.plaats}`}
                                 </p>
                               </div>
                             )}
                             {order.factuuradres && (
                               <div>
-                                <strong style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Fatura Adresi:</strong>
+                                <strong
+                                  style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}
+                                >
+                                  Fatura Adresi:
+                                </strong>
                                 <p style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>
                                   {order.factuuradres.straat}
-                                  {order.factuuradres.postcode && `, ${order.factuuradres.postcode}`}
+                                  {order.factuuradres.postcode &&
+                                    `, ${order.factuuradres.postcode}`}
                                   {order.factuuradres.plaats && ` ${order.factuuradres.plaats}`}
                                 </p>
                               </div>

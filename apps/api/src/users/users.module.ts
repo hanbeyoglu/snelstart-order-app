@@ -4,10 +4,14 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { AuditModule } from '../audit/audit.module';
+import { Customer, CustomerSchema } from '../customers/schemas/customer.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Customer.name, schema: CustomerSchema },
+    ]),
     AuditModule,
   ],
   controllers: [UsersController],

@@ -23,6 +23,6 @@ export class RegisterDto {
   password: string;
 
   @IsOptional()
-  @IsIn(['sales_rep', 'admin', 'super_admin'])
+  @IsIn(['customer', 'sales_rep', 'admin', 'super_admin'])
   role?: UserRole;
 }

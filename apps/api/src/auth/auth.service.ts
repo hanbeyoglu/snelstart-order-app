@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from './schemas/user.schema';
+import { getEffectivePermissions } from './permissions';
 import { CacheService } from '../cache/cache.service';
 
 @Injectable()
@@ -66,6 +67,10 @@ export class AuthService {
       return null;
     }
 
+    if (user.isActive === false) {
+      throw new UnauthorizedException('Portal hesabınız pasif. Lütfen yöneticinizle iletişime geçin.');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       // Invalid password - increment attempts
@@ -75,16 +80,23 @@ export class AuthService {
 
     // Successful login - reset attempts
     await this.resetFailedLoginAttempts(identifier);
+    user.lastLoginAt = new Date();
+    await user.save();
 
     const { passwordHash, ...result } = user.toObject();
     return result;
   }
 
   async login(user: any) {
-    const payload: any = { username: user.username, sub: user._id, role: user.role };
+    const permissions = getEffectivePermissions(user.role, user.permissions);
+    const payload: any = { username: user.username, sub: user._id, role: user.role, permissions };
     if (user.email) payload.email = user.email;
     if (user.firstName) payload.firstName = user.firstName;
     if (user.lastName) payload.lastName = user.lastName;
+    if (user.customerId) payload.customerId = user.customerId;
+    payload.isActive = user.isActive !== false;
+    if (user.preferredLanguage) payload.preferredLanguage = user.preferredLanguage;
+    if (user.lastLoginAt) payload.lastLoginAt = user.lastLoginAt;
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -94,6 +106,11 @@ export class AuthService {
         firstName: user.firstName || null,
         lastName: user.lastName || null,
         role: user.role,
+        permissions,
+        customerId: user.customerId || null,
+        isActive: user.isActive !== false,
+        preferredLanguage: user.preferredLanguage || null,
+        lastLoginAt: user.lastLoginAt || null,
       },
     };
   }
@@ -101,6 +118,9 @@ export class AuthService {
   async register(username: string, email: string | undefined, password: string, role: UserRole = 'sales_rep', requesterRole: UserRole = 'admin') {
     if (role === 'super_admin' && requesterRole !== 'super_admin') {
       throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
+    }
+    if (role === 'customer') {
+      throw new ForbiddenException('Customer kullanıcı oluşturmak için müşteri bağlantısı zorunludur');
     }
 
     // Username kontrolü yap
