@@ -1,1 +1,85 @@
-{}
+{
+  "title": "Raporlar ve Analitik",
+  "subtitle": "Satış, kâr, müşteri, KDV ve ürün performansını ticari kararlar için tek ekranda analiz edin.",
+  "all": "Tümü",
+  "orders": "sipariş",
+  "totals": "Toplam",
+  "error": "Rapor yüklenirken hata oluştu.",
+  "exportExcel": "Excel'e Aktar",
+  "exportCsv": "CSV Aktar",
+  "exporting": "Aktarılıyor...",
+  "exportSuccess": "Rapor dışa aktarıldı",
+  "topSellingProducts": "En Çok Satan Ürünler",
+  "customerAnalytics": "Müşteri Analizi",
+  "profitAnalysis": "Kâr Analizi",
+  "vatAnalytics": "KDV Analizi",
+  "missingCost": "Alış fiyatı eksik",
+  "withCost": "Alış fiyatı olanlar",
+  "missingCostOnly": "Alış fiyatı eksik olanlar",
+  "profitable": "Kârlı ürünler",
+  "lossMaking": "Zarar edenler",
+  "vatRate": "KDV %{{rate}}",
+  "ranges": {
+    "today": "Bugün",
+    "7d": "Son 7 gün",
+    "30d": "Son 30 gün",
+    "thisMonth": "Bu ay",
+    "lastMonth": "Geçen ay",
+    "thisYear": "Bu yıl"
+  },
+  "filters": {
+    "startDate": "Başlangıç",
+    "endDate": "Bitiş",
+    "customer": "Müşteri",
+    "category": "Kategori",
+    "product": "Ürün",
+    "productSearch": "Ürün, artikelcode veya müşteri ara",
+    "cost": "Maliyet filtresi",
+    "profit": "Kâr filtresi",
+    "sort": "Sıralama"
+  },
+  "sort": {
+    "revenueDesc": "Ciro yüksekten düşüğe",
+    "quantityDesc": "Adet yüksekten düşüğe",
+    "profitDesc": "Kâr yüksekten düşüğe",
+    "marginAsc": "Marj düşükten yükseğe"
+  },
+  "kpis": {
+    "totalOrders": "Toplam Sipariş",
+    "totalRevenue": "Toplam Ciro",
+    "totalVat": "Toplam KDV",
+    "netSales": "Net Satış",
+    "profit": "Tahmini Kâr",
+    "quantity": "Satılan Ürün Adedi",
+    "activeCustomers": "Aktif Müşteri",
+    "averageBasket": "Ortalama Sepet"
+  },
+  "charts": {
+    "salesTrend": "Satış Trendi",
+    "topProducts": "Top 10 Ürün Cirosu",
+    "quantityDistribution": "Adet Dağılımı",
+    "vatDistribution": "KDV Dağılımı"
+  },
+  "columns": {
+    "productName": "Ürün adı",
+    "artikelcode": "Artikelcode",
+    "quantity": "Satılan adet",
+    "cases": "Satılan koli",
+    "netRevenue": "Net ciro",
+    "vat": "KDV",
+    "grossRevenue": "Toplam ciro",
+    "purchasePrice": "Alış fiyatı",
+    "salesPrice": "Satış fiyatı",
+    "profit": "Tahmini kâr",
+    "margin": "Kâr marjı %",
+    "lastSale": "Son satış tarihi",
+    "customerCount": "Farklı müşteri",
+    "returns": "İade",
+    "costStatus": "Maliyet durumu"
+  },
+  "segments": {
+    "active": "Aktif",
+    "inactive": "Uzun süredir pasif",
+    "valuable": "Değerli müşteri"
+  }
+}
