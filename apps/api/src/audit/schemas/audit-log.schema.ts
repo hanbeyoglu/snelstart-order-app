@@ -15,6 +15,12 @@ export class AuditLog extends Document {
   @Prop()
   userId?: string;
 
+  @Prop()
+  ip?: string;
+
+  @Prop()
+  userAgent?: string;
+
   @Prop({ type: Object })
   changes?: Record<string, any>;
 

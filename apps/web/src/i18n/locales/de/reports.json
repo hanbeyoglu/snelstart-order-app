@@ -1,1 +1,85 @@
-{}
+{
+  "title": "Reports & Analytics",
+  "subtitle": "Analyze sales, profit, customers, VAT, and product performance in one decision-focused dashboard.",
+  "all": "All",
+  "orders": "orders",
+  "totals": "Total",
+  "error": "Could not load reports.",
+  "exportExcel": "Export Excel",
+  "exportCsv": "Export CSV",
+  "exporting": "Exporting...",
+  "exportSuccess": "Report exported",
+  "topSellingProducts": "Top Selling Products",
+  "customerAnalytics": "Customer Analytics",
+  "profitAnalysis": "Profit Analysis",
+  "vatAnalytics": "VAT Analytics",
+  "missingCost": "Missing purchase price",
+  "withCost": "With purchase price",
+  "missingCostOnly": "Missing purchase price only",
+  "profitable": "Profitable products",
+  "lossMaking": "Loss-making products",
+  "vatRate": "VAT {{rate}}%",
+  "ranges": {
+    "today": "Today",
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "thisYear": "This year"
+  },
+  "filters": {
+    "startDate": "Start",
+    "endDate": "End",
+    "customer": "Customer",
+    "category": "Category",
+    "product": "Product",
+    "productSearch": "Search product, article code, or customer",
+    "cost": "Cost filter",
+    "profit": "Profit filter",
+    "sort": "Sort"
+  },
+  "sort": {
+    "revenueDesc": "Revenue high to low",
+    "quantityDesc": "Quantity high to low",
+    "profitDesc": "Profit high to low",
+    "marginAsc": "Margin low to high"
+  },
+  "kpis": {
+    "totalOrders": "Total Orders",
+    "totalRevenue": "Total Revenue",
+    "totalVat": "Total VAT",
+    "netSales": "Net Sales",
+    "profit": "Estimated Profit",
+    "quantity": "Units Sold",
+    "activeCustomers": "Active Customers",
+    "averageBasket": "Average Basket"
+  },
+  "charts": {
+    "salesTrend": "Sales Trend",
+    "topProducts": "Top 10 Product Revenue",
+    "quantityDistribution": "Quantity Distribution",
+    "vatDistribution": "VAT Distribution"
+  },
+  "columns": {
+    "productName": "Product name",
+    "artikelcode": "Article code",
+    "quantity": "Quantity sold",
+    "cases": "Cases sold",
+    "netRevenue": "Net revenue",
+    "vat": "VAT",
+    "grossRevenue": "Gross revenue",
+    "purchasePrice": "Purchase price",
+    "salesPrice": "Sales price",
+    "profit": "Estimated profit",
+    "margin": "Profit margin %",
+    "lastSale": "Last sale date",
+    "customerCount": "Customers",
+    "returns": "Returns",
+    "costStatus": "Cost status"
+  },
+  "segments": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "valuable": "High value"
+  }
+}

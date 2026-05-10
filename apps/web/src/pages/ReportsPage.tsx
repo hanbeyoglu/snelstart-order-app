@@ -1,74 +1,168 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import * as XLSX from 'xlsx';
 import api from '../services/api';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { useToastStore } from '../store/toastStore';
 
-type ReportMode = 'orders' | 'top-products';
-type PurchasePriceFilter = 'all' | 'with-price' | 'without-price';
+type ProfitFilter = 'all' | 'profitable' | 'loss' | 'missing-cost';
+type PurchaseFilter = 'all' | 'with-price' | 'without-price';
+type SortDir = 'asc' | 'desc';
 
-interface ReportOrder {
-  id: string;
-  orderNo?: string;
-  customerId: string;
-  customerName: string;
-  date: string;
-  total: number;
-  procesStatus?: string;
+interface ReportKpi {
+  totalOrders: number;
+  totalRevenue: number;
+  totalVat: number;
+  netSales: number;
+  estimatedProfit: number;
+  totalQuantity: number;
+  activeCustomerCount: number;
+  averageBasket: number;
+  missingCostCount: number;
 }
 
-interface ReportTopProduct {
+interface TopProduct {
   productId: string;
   productName: string;
+  artikelcode?: string;
+  categoryName?: string;
   totalQuantity: number;
+  soldCases: number;
+  netRevenue: number;
+  vatAmount: number;
+  grossRevenue: number;
+  purchasePrice?: number | null;
   salesPrice: number;
-  purchasePrice: number;
+  estimatedProfit?: number | null;
+  profitMargin?: number | null;
+  lastSaleDate?: string;
+  customerCount: number;
+  returnCount: number;
+  missingPurchasePrice: boolean;
+}
+
+interface CustomerAnalytics {
+  customerId: string;
+  customerName: string;
+  orderCount: number;
   totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
+  averageBasket: number;
+  topProductName?: string;
+  lastOrderDate?: string;
+  lifetimeValue: number;
+  segment: 'active' | 'inactive' | 'valuable';
 }
 
-function formatDate(dateStr: string) {
-  try {
-    return new Date(dateStr).toLocaleDateString('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+const PAGE_SIZES = [25, 50, 100, 200];
+const CHART_COLORS = ['#2563eb', '#0f766e', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
-function formatCurrency(val: number) {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(val);
+function getDefaultRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 29);
+  return { startDate: isoDate(start), endDate: isoDate(end) };
 }
 
-const PAGE_SIZES = [25, 50, 100, 200, 500];
+function AnimatedNumber({ value, format }: { value: number; format: (value: number) => string }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const duration = 650;
+    const from = display;
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setDisplay(from + (value - from) * progress);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return <>{format(display)}</>;
+}
 
 export default function ReportsPage() {
-  const [mode, setMode] = useState<ReportMode>('orders');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [purchasePriceFilter, setPurchasePriceFilter] = useState<PurchasePriceFilter>('all');
+  const { t } = useAppTranslation(['common', 'reports']);
+  const { formatCurrency, locale } = useLocaleFormat();
+  const showToast = useToastStore((state) => state.showToast);
+  const initialRange = useMemo(getDefaultRange, []);
+  const [startDate, setStartDate] = useState(initialRange.startDate);
+  const [endDate, setEndDate] = useState(initialRange.endDate);
+  const [customerId, setCustomerId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [search, setSearch] = useState('');
+  const [purchasePriceFilter, setPurchasePriceFilter] = useState<PurchaseFilter>('all');
+  const [profitFilter, setProfitFilter] = useState<ProfitFilter>('all');
+  const [sortBy, setSortBy] = useState('netRevenue');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [exporting, setExporting] = useState(false);
+
+  const { data: customersResponse } = useQuery({
+    queryKey: ['report-customers'],
+    queryFn: async () => (await api.get('/customers', { params: { page: 1, limit: 100 } })).data,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['report-categories'],
+    queryFn: async () => (await api.get('/categories')).data,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const queryParams = {
+    startDate,
+    endDate,
+    customerId,
+    categoryId,
+    search,
+    purchasePriceFilter,
+    profitFilter,
+    sortBy,
+    sortDir,
+    skip: (page - 1) * pageSize,
+    top: pageSize,
+  };
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['reports', mode, startDate, endDate, page, pageSize, purchasePriceFilter],
+    queryKey: ['advanced-reports', queryParams],
     queryFn: async () => {
-      const skip = (page - 1) * pageSize;
       const params: Record<string, string | number> = {
-        type: mode,
-        skip,
+        startDate,
+        endDate,
+        skip: (page - 1) * pageSize,
         top: pageSize,
+        purchasePriceFilter,
+        profitFilter,
+        sortBy,
+        sortDir,
       };
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
-      if (mode === 'top-products') params.purchasePriceFilter = purchasePriceFilter;
-      const response = await api.get('/reports/orders', { params });
+      if (customerId) params.customerId = customerId;
+      if (categoryId) params.categoryId = categoryId;
+      if (search.trim()) params.search = search.trim();
+      const response = await api.get('/reports/advanced', { params });
       return response.data;
     },
     staleTime: 2 * 60 * 1000,
@@ -76,473 +170,409 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [mode, startDate, endDate, purchasePriceFilter, pageSize]);
+  }, [startDate, endDate, customerId, categoryId, search, purchasePriceFilter, profitFilter, sortBy, sortDir, pageSize]);
 
-  if (isLoading) {
-    return (
-      <div className="container">
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', gap: '1rem' }}>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            style={{
-              width: '60px',
-              height: '60px',
-              border: '5px solid rgba(99, 102, 241, 0.2)',
-              borderTopColor: 'var(--primary)',
-              borderRadius: '50%',
-            }}
-          />
-          <motion.p
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}
-          >
-            Raporlar yükleniyor...
-          </motion.p>
-        </div>
-      </div>
-    );
-  }
+  const kpis: ReportKpi = data?.kpis || {};
+  const previousKpis: ReportKpi = data?.previousKpis || {};
+  const topProducts: TopProduct[] = data?.topProducts || [];
+  const customers: CustomerAnalytics[] = data?.customers || [];
+  const totalCount = data?.topProductsTotalCount || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const trend = data?.trends?.daily || [];
+  const currencyTooltip = (value: unknown) => formatCurrency(Number(value) || 0);
+  const topChart = topProducts.slice(0, 10).map((item) => ({
+    name: item.productName.length > 24 ? `${item.productName.slice(0, 24)}...` : item.productName,
+    revenue: item.netRevenue,
+    quantity: item.totalQuantity,
+  }));
+  const vatChart = data?.vat?.byRate || [];
+  const visibleStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const visibleEnd = Math.min(page * pageSize, totalCount);
+
+  const quickRange = (range: 'today' | '7d' | '30d' | 'thisMonth' | 'lastMonth' | 'thisYear') => {
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
+    if (range === 'today') {
+      start = now;
+    } else if (range === '7d') {
+      start.setDate(now.getDate() - 6);
+    } else if (range === '30d') {
+      start.setDate(now.getDate() - 29);
+    } else if (range === 'thisMonth') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'lastMonth') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else {
+      start = new Date(now.getFullYear(), 0, 1);
+    }
+    setStartDate(isoDate(start));
+    setEndDate(isoDate(end));
+  };
+
+  const trendPercent = (current = 0, previous = 0) => {
+    if (!previous && !current) return 0;
+    if (!previous) return 100;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const auditExport = async (format: string, visibleRows: number) => {
+    try {
+      await api.post('/reports/export-audit', {
+        reportType: 'advanced',
+        format,
+        visibleRows,
+        filters: queryParams,
+      });
+    } catch {
+      // Export should not fail because audit logging failed.
+    }
+  };
+
+  const exportRows = () => topProducts.map((item) => ({
+    [t('reports:columns.productName')]: item.productName,
+    [t('reports:columns.artikelcode')]: item.artikelcode || '',
+    [t('reports:columns.quantity')]: item.totalQuantity,
+    [t('reports:columns.cases')]: item.soldCases,
+    [t('reports:columns.netRevenue')]: item.netRevenue,
+    [t('reports:columns.vat')]: item.vatAmount,
+    [t('reports:columns.grossRevenue')]: item.grossRevenue,
+    [t('reports:columns.purchasePrice')]: item.purchasePrice ?? '',
+    [t('reports:columns.salesPrice')]: item.salesPrice,
+    [t('reports:columns.profit')]: item.estimatedProfit ?? '',
+    [t('reports:columns.margin')]: item.profitMargin ?? '',
+    [t('reports:columns.lastSale')]: item.lastSaleDate ? new Date(item.lastSaleDate) : '',
+    [t('reports:columns.customerCount')]: item.customerCount,
+    [t('reports:columns.returns')]: item.returnCount,
+    [t('reports:columns.costStatus')]: item.missingPurchasePrice ? t('reports:missingCost') : '',
+  }));
+
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const rows = exportRows();
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet['!cols'] = Object.keys(rows[0] || {}).map((key) => ({ wch: Math.max(14, key.length + 4) }));
+      const totalRowIndex = rows.length + 2;
+      XLSX.utils.sheet_add_aoa(worksheet, [[t('reports:totals'), '', '', '', kpis.netSales, kpis.totalVat, kpis.totalRevenue, '', '', kpis.estimatedProfit]], { origin: `A${totalRowIndex}` });
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Top Products');
+      XLSX.writeFile(workbook, `reports-${startDate}-${endDate}.xlsx`);
+      await auditExport('xlsx', rows.length);
+      showToast(t('reports:exportSuccess'), 'success');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(exportRows());
+      const csv = XLSX.utils.sheet_to_csv(worksheet);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reports-${startDate}-${endDate}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      await auditExport('csv', topProducts.length);
+      showToast(t('reports:exportSuccess'), 'success');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (isError) {
-    const errMsg = (error as any)?.response?.status === 404
-      ? 'Bu sayfa bulunamadı.'
-      : (error as any)?.response?.data?.message || (error as Error)?.message || 'Bir hata oluştu.';
-    return (
-      <div className="container">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="card"
-          style={{
-            padding: '2rem',
-            textAlign: 'center',
-            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.08) 100%)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-          }}
-        >
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-          <h2 style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>Hata</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>{errMsg}</p>
-        </motion.div>
-      </div>
-    );
+    const message = (error as any)?.response?.data?.message || (error as Error)?.message || t('reports:error');
+    return <div className="container"><div className="card" style={{ padding: '2rem', color: 'var(--danger)' }}>{message}</div></div>;
   }
 
-  const items = data?.items ?? [];
-  const totalCount = data?.totalCount ?? 0;
-  const orders = mode === 'orders' ? (items as ReportOrder[]) : null;
-  const topProducts = mode === 'top-products' ? (items as ReportTopProduct[]) : null;
-
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const startItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endItem = Math.min(page * pageSize, totalCount);
-
-  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-
   return (
-    <div className="container">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{ marginBottom: '2rem' }}
-      >
-        <h1
-          style={{
-            fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
-            fontWeight: 800,
-            marginBottom: '1rem',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Raporlar
-        </h1>
-
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            alignItems: 'center',
-            marginBottom: '1rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              Rapor Türü:
-            </label>
-            <select
-              value={mode}
-              onChange={(e) => {
-                setMode(e.target.value as ReportMode);
-                setPage(1);
-              }}
-              style={{
-                minWidth: '200px',
-                padding: '0.5rem 1rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-                background: 'white',
-              }}
-            >
-              <option value="orders">Siparişler</option>
-              <option value="top-products">En Çok Satan Ürünler</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <label style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              Başlangıç:
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-              }}
-            />
-            <label style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
-              Bitiş:
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-              }}
-            />
-          </div>
-
-          {mode === 'top-products' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                  Alış fiyatı filtresi:
-                </label>
-                <select
-                  value={purchasePriceFilter}
-                  onChange={(e) => {
-                    setPurchasePriceFilter(e.target.value as PurchasePriceFilter);
-                    setPage(1);
-                  }}
-                  style={{
-                    minWidth: '200px',
-                    padding: '0.5rem 1rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    background: 'white',
-                  }}
-                >
-                  <option value="all">Tümü</option>
-                  <option value="with-price">Sadece alış fiyatı olanlar</option>
-                  <option value="without-price">Sadece alış fiyatı olmayanlar</option>
-                </select>
-              </div>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  userSelect: 'none',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={purchasePriceFilter === 'without-price'}
-                  onChange={(e) => {
-                    setPurchasePriceFilter(e.target.checked ? 'without-price' : 'all');
-                    setPage(1);
-                  }}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-                />
-                <span>Alış fiyatı olmayan ürünleri göster</span>
-              </label>
-            </>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
-            <label style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              Sayfa başına:
-            </label>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-                background: 'white',
-              }}
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
+    <div className="container reports-page">
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="reports-hero">
+        <div>
+          <h1>{t('reports:title')}</h1>
+          <p>{t('reports:subtitle')}</p>
+        </div>
+        <div className="reports-export-actions">
+          <button className="btn-secondary" type="button" disabled={exporting || topProducts.length === 0} onClick={exportCsv}>
+            {exporting ? t('reports:exporting') : t('reports:exportCsv')}
+          </button>
+          <button className="btn-primary" type="button" disabled={exporting || topProducts.length === 0} onClick={exportExcel}>
+            {exporting ? t('reports:exporting') : t('reports:exportExcel')}
+          </button>
         </div>
       </motion.div>
 
-      {mode === 'orders' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="card"
-          style={{ overflowX: 'auto', padding: 0 }}
-        >
-          {!orders || orders.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Belirtilen tarih aralığında sipariş bulunamadı.
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-              <thead>
-                <tr style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)', borderBottom: '2px solid var(--border-color)' }}>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>Sipariş No</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>Müşteri</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>Tarih</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Toplam</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>{o.orderNo || o.id}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{o.customerName}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{formatDate(o.date)}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(o.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {(orders?.length ?? 0) > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                padding: '1rem 1.5rem',
-                borderTop: '1px solid var(--border-color)',
-              }}
-            >
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {startItem}-{endItem} / {totalCount} sipariş
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  onClick={() => goToPage(1)}
-                  disabled={page <= 1}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                    opacity: page <= 1 ? 0.5 : 1,
-                  }}
-                >
-                  ««
-                </button>
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page <= 1}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                    opacity: page <= 1 ? 0.5 : 1,
-                  }}
-                >
-                  «
-                </button>
-                <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>
-                  Sayfa {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page >= totalPages}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                    opacity: page >= totalPages ? 0.5 : 1,
-                  }}
-                >
-                  »
-                </button>
-                <button
-                  onClick={() => goToPage(totalPages)}
-                  disabled={page >= totalPages}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                    opacity: page >= totalPages ? 0.5 : 1,
-                  }}
-                >
-                  »»
-                </button>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
+      <div className="card reports-filters">
+        <div className="reports-quick-ranges">
+          {(['today', '7d', '30d', 'thisMonth', 'lastMonth', 'thisYear'] as const).map((range) => (
+            <button key={range} type="button" className="btn-secondary" onClick={() => quickRange(range)}>
+              {t(`reports:ranges.${range}`)}
+            </button>
+          ))}
+        </div>
+        <div className="reports-filter-grid">
+          <label>
+            <span>{t('reports:filters.startDate')}</span>
+            <input className="input" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+          </label>
+          <label>
+            <span>{t('reports:filters.endDate')}</span>
+            <input className="input" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+          </label>
+          <label>
+            <span>{t('reports:filters.customer')}</span>
+            <select className="input" value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
+              <option value="">{t('reports:all')}</option>
+              {(customersResponse?.data || []).map((customer: any) => (
+                <option key={customer.id} value={customer.id}>{customer.naam}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t('reports:filters.category')}</span>
+            <select className="input" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+              <option value="">{t('reports:all')}</option>
+              {categories.map((category: any) => (
+                <option key={category.id} value={category.id}>{category.omschrijving}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t('reports:filters.product')}</span>
+            <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('reports:filters.productSearch')} />
+          </label>
+          <label>
+            <span>{t('reports:filters.cost')}</span>
+            <select className="input" value={purchasePriceFilter} onChange={(event) => setPurchasePriceFilter(event.target.value as PurchaseFilter)}>
+              <option value="all">{t('reports:all')}</option>
+              <option value="with-price">{t('reports:withCost')}</option>
+              <option value="without-price">{t('reports:missingCostOnly')}</option>
+            </select>
+          </label>
+          <label>
+            <span>{t('reports:filters.profit')}</span>
+            <select className="input" value={profitFilter} onChange={(event) => setProfitFilter(event.target.value as ProfitFilter)}>
+              <option value="all">{t('reports:all')}</option>
+              <option value="profitable">{t('reports:profitable')}</option>
+              <option value="loss">{t('reports:lossMaking')}</option>
+              <option value="missing-cost">{t('reports:missingCostOnly')}</option>
+            </select>
+          </label>
+          <label>
+            <span>{t('reports:filters.sort')}</span>
+            <select className="input" value={`${sortBy}:${sortDir}`} onChange={(event) => {
+              const [field, dir] = event.target.value.split(':');
+              setSortBy(field);
+              setSortDir(dir as SortDir);
+            }}>
+              <option value="netRevenue:desc">{t('reports:sort.revenueDesc')}</option>
+              <option value="totalQuantity:desc">{t('reports:sort.quantityDesc')}</option>
+              <option value="estimatedProfit:desc">{t('reports:sort.profitDesc')}</option>
+              <option value="profitMargin:asc">{t('reports:sort.marginAsc')}</option>
+            </select>
+          </label>
+        </div>
+      </div>
 
-      {mode === 'top-products' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="card"
-          style={{ overflowX: 'auto', padding: 0 }}
-        >
-          {!topProducts || topProducts.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Belirtilen tarih aralığında ürün satış verisi bulunamadı.
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-              <thead>
-                <tr style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)', borderBottom: '2px solid var(--border-color)' }}>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700 }}>Ürün Adı</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Toplam Miktar</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Satış Fiyatı</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Alış Fiyatı</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Gelir</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Maliyet</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700 }}>Kar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topProducts.map((p) => (
-                  <tr key={p.productId} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>{p.productName}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{p.totalQuantity}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(p.salesPrice)}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(p.purchasePrice)}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(p.totalRevenue)}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(p.totalCost)}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: p.totalProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                      {formatCurrency(p.totalProfit)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {(topProducts?.length ?? 0) > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                padding: '1rem 1.5rem',
-                borderTop: '1px solid var(--border-color)',
-              }}
-            >
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {startItem}-{endItem} / {totalCount} ürün
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  onClick={() => goToPage(1)}
-                  disabled={page <= 1}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                    opacity: page <= 1 ? 0.5 : 1,
-                  }}
-                >
-                  ««
-                </button>
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page <= 1}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                    opacity: page <= 1 ? 0.5 : 1,
-                  }}
-                >
-                  «
-                </button>
-                <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>
-                  Sayfa {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page >= totalPages}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                    opacity: page >= totalPages ? 0.5 : 1,
-                  }}
-                >
-                  »
-                </button>
-                <button
-                  onClick={() => goToPage(totalPages)}
-                  disabled={page >= totalPages}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    background: 'white',
-                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                    opacity: page >= totalPages ? 0.5 : 1,
-                  }}
-                >
-                  »»
-                </button>
+      {isLoading ? (
+        <div className="reports-skeleton-grid">
+          {Array.from({ length: 8 }).map((_, index) => <div key={index} className="card reports-skeleton" />)}
+        </div>
+      ) : (
+        <>
+          <div className="reports-kpi-grid">
+            <KpiCard label={t('reports:kpis.totalOrders')} value={kpis.totalOrders} previous={previousKpis.totalOrders} format={(v) => String(Math.round(v))} trend={trendPercent(kpis.totalOrders, previousKpis.totalOrders)} />
+            <KpiCard label={t('reports:kpis.totalRevenue')} value={kpis.totalRevenue} previous={previousKpis.totalRevenue} format={formatCurrency} trend={trendPercent(kpis.totalRevenue, previousKpis.totalRevenue)} />
+            <KpiCard label={t('reports:kpis.totalVat')} value={kpis.totalVat} previous={previousKpis.totalVat} format={formatCurrency} trend={trendPercent(kpis.totalVat, previousKpis.totalVat)} />
+            <KpiCard label={t('reports:kpis.netSales')} value={kpis.netSales} previous={previousKpis.netSales} format={formatCurrency} trend={trendPercent(kpis.netSales, previousKpis.netSales)} />
+            <KpiCard label={t('reports:kpis.profit')} value={kpis.estimatedProfit} previous={previousKpis.estimatedProfit} format={formatCurrency} trend={trendPercent(kpis.estimatedProfit, previousKpis.estimatedProfit)} />
+            <KpiCard label={t('reports:kpis.quantity')} value={kpis.totalQuantity} previous={previousKpis.totalQuantity} format={(v) => new Intl.NumberFormat(locale).format(Math.round(v))} trend={trendPercent(kpis.totalQuantity, previousKpis.totalQuantity)} />
+            <KpiCard label={t('reports:kpis.activeCustomers')} value={kpis.activeCustomerCount} previous={previousKpis.activeCustomerCount} format={(v) => String(Math.round(v))} trend={trendPercent(kpis.activeCustomerCount, previousKpis.activeCustomerCount)} />
+            <KpiCard label={t('reports:kpis.averageBasket')} value={kpis.averageBasket} previous={previousKpis.averageBasket} format={formatCurrency} trend={trendPercent(kpis.averageBasket, previousKpis.averageBasket)} />
+          </div>
+
+          <div className="reports-chart-grid">
+            <ChartCard title={t('reports:charts.salesTrend')}>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={trend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={currencyTooltip} />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" name={t('reports:kpis.totalRevenue')} stroke="#2563eb" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="profit" name={t('reports:kpis.profit')} stroke="#0f766e" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+            <ChartCard title={t('reports:charts.topProducts')}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={topChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-18} height={70} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={currencyTooltip} />
+                  <Bar dataKey="revenue" name={t('reports:columns.netRevenue')} fill="#2563eb" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+            <ChartCard title={t('reports:charts.quantityDistribution')}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={topChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-18} height={70} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="quantity" name={t('reports:columns.quantity')} fill="#0f766e" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+            <ChartCard title={t('reports:charts.vatDistribution')}>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={vatChart} dataKey="vatAmount" nameKey="vatRate" outerRadius={96} label={(entry: any) => `%${entry.payload?.vatRate ?? entry.name ?? ''}`}>
+                    {vatChart.map((_: any, index: number) => <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={currencyTooltip} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          <section className="card reports-table-card">
+            <div className="reports-section-header">
+              <div>
+                <h2>{t('reports:topSellingProducts')}</h2>
+                <p>{visibleStart}-{visibleEnd} / {totalCount}</p>
               </div>
+              <select className="input" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+                {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+              </select>
             </div>
-          )}
-        </motion.div>
+            <div className="reports-table-wrap">
+              <table className="reports-table">
+                <thead>
+                  <tr>
+                    <th>{t('reports:columns.productName')}</th>
+                    <th>{t('reports:columns.artikelcode')}</th>
+                    <th>{t('reports:columns.quantity')}</th>
+                    <th>{t('reports:columns.cases')}</th>
+                    <th>{t('reports:columns.netRevenue')}</th>
+                    <th>{t('reports:columns.vat')}</th>
+                    <th>{t('reports:columns.grossRevenue')}</th>
+                    <th>{t('reports:columns.purchasePrice')}</th>
+                    <th>{t('reports:columns.salesPrice')}</th>
+                    <th>{t('reports:columns.profit')}</th>
+                    <th>{t('reports:columns.margin')}</th>
+                    <th>{t('reports:columns.lastSale')}</th>
+                    <th>{t('reports:columns.customerCount')}</th>
+                    <th>{t('reports:columns.returns')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topProducts.map((item) => (
+                    <tr key={item.productId}>
+                      <td>
+                        <strong>{item.productName}</strong>
+                        {item.missingPurchasePrice && <span className="report-warning-badge">{t('reports:missingCost')}</span>}
+                      </td>
+                      <td>{item.artikelcode || '-'}</td>
+                      <td>{item.totalQuantity}</td>
+                      <td>{item.soldCases}</td>
+                      <td>{formatCurrency(item.netRevenue)}</td>
+                      <td>{formatCurrency(item.vatAmount)}</td>
+                      <td>{formatCurrency(item.grossRevenue)}</td>
+                      <td>{item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}</td>
+                      <td>{formatCurrency(item.salesPrice)}</td>
+                      <td className={(item.estimatedProfit ?? 0) < 0 ? 'report-negative' : 'report-positive'}>{item.estimatedProfit == null ? '-' : formatCurrency(item.estimatedProfit)}</td>
+                      <td>{item.profitMargin == null ? '-' : `%${item.profitMargin.toFixed(1)}`}</td>
+                      <td>{item.lastSaleDate ? new Date(item.lastSaleDate).toLocaleDateString(locale) : '-'}</td>
+                      <td>{item.customerCount}</td>
+                      <td>{item.returnCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="reports-pagination">
+              <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(1)}>«</button>
+              <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
+              <span>{page} / {totalPages}</span>
+              <button className="btn-secondary" disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>›</button>
+              <button className="btn-secondary" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</button>
+            </div>
+          </section>
+
+          <div className="reports-insight-grid">
+            <InsightList title={t('reports:customerAnalytics')} items={customers.slice(0, 8).map((customer) => ({
+              title: customer.customerName,
+              meta: `${customer.orderCount} ${t('reports:orders')} · ${customer.topProductName || '-'}`,
+              value: formatCurrency(customer.totalRevenue),
+              badge: t(`reports:segments.${customer.segment}`),
+            }))} />
+            <InsightList title={t('reports:profitAnalysis')} items={(data?.profit?.byCategory || []).slice(0, 8).map((item: any) => ({
+              title: item.categoryName,
+              meta: `%${item.margin.toFixed(1)} ${t('reports:columns.margin')}`,
+              value: formatCurrency(item.profit),
+              badge: formatCurrency(item.netSales),
+            }))} />
+            <InsightList title={t('reports:vatAnalytics')} items={vatChart.map((item: any) => ({
+              title: t('reports:vatRate', { rate: item.vatRate }),
+              meta: formatCurrency(item.netSales),
+              value: formatCurrency(item.vatAmount),
+              badge: formatCurrency(item.grossRevenue),
+            }))} />
+          </div>
+        </>
       )}
+    </div>
+  );
+}
+
+function KpiCard({ label, value, format, trend }: { label: string; value: number; previous: number; format: (value: number) => string; trend: number }) {
+  const positive = trend >= 0;
+  return (
+    <motion.div className="card reports-kpi-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+      <span>{label}</span>
+      <strong><AnimatedNumber value={value || 0} format={format} /></strong>
+      <em className={positive ? 'report-positive' : 'report-negative'}>{positive ? '↑' : '↓'} {Math.abs(trend)}%</em>
+    </motion.div>
+  );
+}
+
+function ChartCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="card reports-chart-card">
+      <h2>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function InsightList({ title, items }: { title: string; items: Array<{ title: string; meta: string; value: string; badge?: string }> }) {
+  return (
+    <div className="card reports-insight-card">
+      <h2>{title}</h2>
+      <div>
+        {items.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>-</p> : items.map((item, index) => (
+          <div className="reports-insight-row" key={`${item.title}-${index}`}>
+            <div>
+              <strong>{item.title}</strong>
+              <span>{item.meta}</span>
+            </div>
+            <div>
+              <b>{item.value}</b>
+              {item.badge && <em>{item.badge}</em>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -16,6 +16,8 @@ export class AuditService {
     entityType: string;
     entityId: string;
     userId?: string;
+    ip?: string;
+    userAgent?: string;
     changes?: Record<string, any>;
     metadata?: Record<string, any>;
   }): Promise<void> {
@@ -29,6 +31,14 @@ export class AuditService {
     } catch (error) {
       console.error('[AuditService] Failed to write audit log:', error);
     }
+  }
+
+  requestContext(req?: any) {
+    if (!req) return {};
+    return {
+      ip: req.ip || req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress,
+      userAgent: req.headers?.['user-agent'],
+    };
   }
 
   async getLogs(filters?: {
