@@ -20,6 +20,8 @@ const generateUUID = () => {
   });
 };
 
+const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 export default function CartPage() {
   const { t } = useAppTranslation(['common', 'cart', 'products', 'errors']);
   const { formatCurrency } = useLocaleFormat();
@@ -143,14 +145,40 @@ export default function CartPage() {
     enabled: items.some((item) => !item.isChildItem),
   });
 
-  // Toplamları hesapla - her zaman items'dan hesapla
+  // Toplamları hesapla - sistem fiyatları KDV hariç tuttuğu için KDV ayrıca gösterilir
   const cartTotals = useMemo(() => {
-    const subtotal = items.reduce((sum, item) => {
-      // customUnitPrice varsa onu kullan, yoksa unitPrice kullan
+    const breakdown = new Map<number, { vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>();
+    const subtotalExclVat = money(items.reduce((sum, item) => {
       const unitPrice = item.customUnitPrice ?? item.unitPrice;
       return sum + unitPrice * item.quantity;
-    }, 0);
-    return { subtotal, total: subtotal };
+    }, 0));
+
+    for (const item of items) {
+      const unitPrice = item.customUnitPrice ?? item.unitPrice;
+      const lineSubtotalExclVat = money(unitPrice * item.quantity);
+      const vatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
+      const lineVatAmount = money((lineSubtotalExclVat * vatRate) / 100);
+      const lineTotalInclVat = money(lineSubtotalExclVat + lineVatAmount);
+      const current = breakdown.get(vatRate) || { vatRate, subtotalExclVat: 0, vatAmount: 0, totalInclVat: 0 };
+      current.subtotalExclVat = money(current.subtotalExclVat + lineSubtotalExclVat);
+      current.vatAmount = money(current.vatAmount + lineVatAmount);
+      current.totalInclVat = money(current.totalInclVat + lineTotalInclVat);
+      breakdown.set(vatRate, current);
+    }
+
+    const vatAmount = money(Array.from(breakdown.values()).reduce((sum, line) => sum + line.vatAmount, 0));
+    const totalInclVat = money(subtotalExclVat + vatAmount);
+
+    return {
+      subtotal: subtotalExclVat,
+      total: totalInclVat,
+      subtotalExclVat,
+      vatAmount,
+      totalInclVat,
+      vatBreakdown: Array.from(breakdown.values())
+        .filter((line) => line.vatAmount > 0)
+        .sort((a, b) => a.vatRate - b.vatRate),
+    };
   }, [items]);
 
   const createOrderMutation = useMutation({
@@ -172,6 +200,10 @@ export default function CartPage() {
           basePrice: item.basePrice || item.unitPrice,
           totalPrice: totalPrice,
           vatPercentage: item.vatPercentage || 0,
+          vatType: item.vatType ?? null,
+          vatRate: item.vatRate ?? item.vatPercentage ?? 0,
+          vatGroupId: item.vatGroupId,
+          vatGroupName: item.vatGroupName,
           customUnitPrice: item.customUnitPrice,
           adminOverride: item.adminOverride,
           adminPriceOverrideConfirmed: item.adminPriceOverrideConfirmed,
@@ -451,6 +483,11 @@ export default function CartPage() {
             (rawPrice === '' ||
               Number.isNaN(numericPrice) ||
               (!!validation && !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed)));
+          const lineUnitPriceExclVat = Number.isNaN(numericPrice) ? (item.customUnitPrice ?? item.unitPrice) : numericPrice;
+          const lineSubtotalExclVat = money(lineUnitPriceExclVat * item.quantity);
+          const lineVatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
+          const lineVatAmount = money((lineSubtotalExclVat * lineVatRate) / 100);
+          const lineTotalInclVat = money(lineSubtotalExclVat + lineVatAmount);
 
           return (
           <motion.div
@@ -645,6 +682,9 @@ export default function CartPage() {
                     />
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>€</span>
                   </div>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600 }}>
+                    {t('cart:exclVat')}
+                  </span>
                 </div>
 
                 {/* Miktar */}
@@ -692,7 +732,25 @@ export default function CartPage() {
                       color: isChildItem ? 'var(--success)' : 'var(--text-primary)',
                     }}
                   >
-                    {formatCurrency((item.customUnitPrice ?? item.unitPrice) * item.quantity)}
+                    {formatCurrency(lineSubtotalExclVat)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 500 }}>
+                    {t('cart:vatRate', { rate: lineVatRate })}
+                  </label>
+                  <div style={{ minHeight: '36px', display: 'flex', alignItems: 'center', fontSize: '0.9rem', fontWeight: 700 }}>
+                    {formatCurrency(lineVatAmount)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 500 }}>
+                    {t('cart:inclVat')}
+                  </label>
+                  <div style={{ minHeight: '36px', display: 'flex', alignItems: 'center', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {formatCurrency(lineTotalInclVat)}
                   </div>
                 </div>
               </div>
@@ -800,9 +858,37 @@ export default function CartPage() {
               fontWeight: 500,
             }}
           >
-            <span>{t('cart:subtotal')}</span>
-            <span>{formatCurrency(cartTotals.subtotal)}</span>
+            <span>{t('cart:amount')}</span>
+            <span>{formatCurrency(cartTotals.subtotalExclVat)}</span>
           </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '0.75rem',
+              fontSize: 'clamp(1rem, 4vw, 1.1rem)',
+              fontWeight: 500,
+            }}
+          >
+            <span>{t('cart:vat')}</span>
+            <span>{formatCurrency(cartTotals.vatAmount)}</span>
+          </div>
+          {cartTotals.vatBreakdown.map((line) => (
+            <div
+              key={line.vatRate}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '0.5rem',
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
+                color: 'var(--text-secondary)',
+                fontWeight: 600,
+              }}
+            >
+              <span>{t('cart:vatRate', { rate: line.vatRate })}</span>
+              <span>{formatCurrency(line.vatAmount)}</span>
+            </div>
+          ))}
           <div
             style={{
               display: 'flex',
@@ -817,8 +903,8 @@ export default function CartPage() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            <span>{t('cart:total')}</span>
-            <span>{formatCurrency(cartTotals.total)}</span>
+            <span>{t('cart:totalAmount')}</span>
+            <span>{formatCurrency(cartTotals.totalInclVat)}</span>
           </div>
           <motion.button
             onClick={() => !hasPriceErrors && createOrderMutation.mutate()}

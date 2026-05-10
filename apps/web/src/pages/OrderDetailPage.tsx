@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const showToast = useToastStore((state) => state.showToast);
+  const { formatCurrency } = useLocaleFormat();
   const queryClient = useQueryClient();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -23,6 +25,15 @@ export default function OrderDetailPage() {
       return response.data;
     },
   });
+
+  const getLineTotals = (item: any) => {
+    const unitPriceExclVat = Number(item.unitPriceExclVat ?? item.unitPrice ?? item.customUnitPrice ?? 0);
+    const lineSubtotalExclVat = Number(item.lineSubtotalExclVat ?? item.subtotalExclVat ?? item.totalPrice ?? unitPriceExclVat * Number(item.quantity || 0));
+    const vatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
+    const lineVatAmount = Number(item.lineVatAmount ?? item.vatAmount ?? Math.round(((lineSubtotalExclVat * vatRate) / 100 + Number.EPSILON) * 100) / 100);
+    const lineTotalInclVat = Number(item.lineTotalInclVat ?? item.totalInclVat ?? lineSubtotalExclVat + lineVatAmount);
+    return { unitPriceExclVat, lineSubtotalExclVat, vatRate, lineVatAmount, lineTotalInclVat };
+  };
 
   // Fetch SnelStart order to check procesStatus
   const { data: snelStartOrder } = useQuery({
@@ -459,9 +470,40 @@ export default function OrderDetailPage() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              €{(order.total || order.subtotal || 0).toFixed(2)}
+              {formatCurrency(order.totalInclVat ?? order.total ?? order.subtotal ?? 0)}
             </p>
           </div>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '0.75rem',
+            padding: '1rem',
+            border: '1px solid rgba(99, 102, 241, 0.14)',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>Tutar</div>
+            <div style={{ fontWeight: 800 }}>{formatCurrency(order.subtotalExclVat ?? order.subtotal ?? 0)}</div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>KDV</div>
+            <div style={{ fontWeight: 800 }}>{formatCurrency(order.vatTotal ?? order.vatAmount ?? 0)}</div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>Toplam Tutar</div>
+            <div style={{ fontWeight: 900 }}>{formatCurrency(order.totalInclVat ?? order.total ?? 0)}</div>
+          </div>
+          {(order.vatBreakdown || []).filter((line: any) => Number(line.vatAmount || 0) > 0).map((line: any) => (
+            <div key={line.vatRate}>
+              <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>KDV %{line.vatRate}</div>
+              <div style={{ fontWeight: 800 }}>{formatCurrency(line.vatAmount || 0)}</div>
+            </div>
+          ))}
         </div>
 
         {order.errorMessage && (
@@ -488,7 +530,9 @@ export default function OrderDetailPage() {
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {order.items?.map((item: any, index: number) => (
+          {order.items?.map((item: any, index: number) => {
+            const lineTotals = getLineTotals(item);
+            return (
             <motion.div
               key={index}
               initial={{ opacity: 0, x: -20 }}
@@ -534,7 +578,7 @@ export default function OrderDetailPage() {
                     Birim Fiyat
                   </label>
                   <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    €{(item.unitPrice || item.customUnitPrice || 0).toFixed(2)}
+                    {formatCurrency(lineTotals.unitPriceExclVat)} KDV hariç
                   </p>
                 </div>
 
@@ -551,12 +595,31 @@ export default function OrderDetailPage() {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    €{(item.totalPrice || (item.unitPrice || item.customUnitPrice || 0) * item.quantity).toFixed(2)}
+                    {formatCurrency(lineTotals.lineSubtotalExclVat)}
+                  </p>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
+                    KDV %{lineTotals.vatRate}
+                  </label>
+                  <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {formatCurrency(lineTotals.lineVatAmount)}
+                  </p>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
+                    KDV dahil
+                  </label>
+                  <p style={{ fontSize: 'clamp(1.1rem, 3vw, 1.25rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {formatCurrency(lineTotals.lineTotalInclVat)}
                   </p>
                 </div>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </motion.div>
     </div>

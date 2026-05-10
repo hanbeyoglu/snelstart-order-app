@@ -302,7 +302,7 @@ export default function OrdersPage() {
                 const statusConfig = getStatusConfig(order.status);
                 const orderDate = new Date(order.createdAt || order.updatedAt);
                 const itemCount = order.items?.length || 0;
-                const totalAmount = order.total || order.subtotal || 0;
+                const totalAmount = order.totalInclVat ?? order.total ?? order.subtotal ?? 0;
                 const customer = order.customerId ? customersMap[order.customerId] : null;
 
                 return (

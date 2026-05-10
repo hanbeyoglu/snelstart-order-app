@@ -15,10 +15,66 @@ export class CartService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   }
 
+  private money(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private getVatRate(source: any): number {
+    const parsed = Number(source?.vatRate ?? source?.btwPercentage ?? source?.vatPercentage ?? 0);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  private calculateTotals(items: CartItem[]) {
+    const subtotalExclVat = this.money(items.reduce((sum, item) => sum + item.totalPrice, 0));
+    const breakdownByRate = new Map<number, { vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>();
+
+    for (const item of items) {
+      const vatRate = this.getVatRate(item);
+      const lineSubtotal = this.money(item.totalPrice);
+      const vatAmount = this.money((lineSubtotal * vatRate) / 100);
+      const lineTotalInclVat = this.money(lineSubtotal + vatAmount);
+
+      item.unitPriceExclVat = this.money(item.unitPrice);
+      item.subtotalExclVat = lineSubtotal;
+      item.vatAmount = vatAmount;
+      item.lineSubtotalExclVat = lineSubtotal;
+      item.lineVatAmount = vatAmount;
+      item.lineTotalInclVat = lineTotalInclVat;
+      item.totalInclVat = lineTotalInclVat;
+
+      const current = breakdownByRate.get(vatRate) || {
+        vatRate,
+        subtotalExclVat: 0,
+        vatAmount: 0,
+        totalInclVat: 0,
+      };
+      current.subtotalExclVat = this.money(current.subtotalExclVat + lineSubtotal);
+      current.vatAmount = this.money(current.vatAmount + vatAmount);
+      current.totalInclVat = this.money(current.totalInclVat + lineTotalInclVat);
+      breakdownByRate.set(vatRate, current);
+    }
+
+    const vatAmount = this.money(Array.from(breakdownByRate.values()).reduce((sum, item) => sum + item.vatAmount, 0));
+    const totalInclVat = this.money(subtotalExclVat + vatAmount);
+
+    return {
+      subtotalExclVat,
+      vatAmount,
+      vatTotal: vatAmount,
+      totalInclVat,
+      vatBreakdown: Array.from(breakdownByRate.values()).sort((a, b) => a.vatRate - b.vatRate),
+    };
+  }
+
   async calculateCart(items: Array<{ productId: string; quantity: number }>, customerId?: string): Promise<{
     items: CartItem[];
     subtotal: number;
     total: number;
+    subtotalExclVat: number;
+    vatAmount: number;
+    vatTotal: number;
+    totalInclVat: number;
+    vatBreakdown: Array<{ vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>;
   }> {
     const cartItems: CartItem[] = [];
 
@@ -26,7 +82,7 @@ export class CartService {
       const product: any = await this.productsService.getProductById(item.productId, customerId);
       const basePrice = product.basePrice || 0;
       const finalPrice = customerId ? Number(product.finalPrice ?? basePrice) : basePrice;
-      const vatPercentage = product.btwPercentage || 0;
+      const vatRate = this.getVatRate(product);
       const parentQuantity = this.positiveNumber(item.quantity, 1);
       const totalPrice = finalPrice * parentQuantity;
 
@@ -39,7 +95,11 @@ export class CartService {
         unitPrice: finalPrice,
         basePrice,
         totalPrice,
-        vatPercentage,
+        vatPercentage: vatRate,
+        vatType: product.vatType ?? null,
+        vatRate,
+        vatGroupId: product.vatGroupId,
+        vatGroupName: product.vatGroupName,
         isParentArticle: product.isParentArticle === true,
       });
 
@@ -48,6 +108,7 @@ export class CartService {
         const quantityPerParent = this.positiveNumber(subArticle.quantityPerParent, 1);
         const childQuantity = parentQuantity * quantityPerParent;
         const childUnitPrice = this.positiveNumber(child?.verkoopprijs, 0);
+        const childVatRate = this.getVatRate(child);
 
         cartItems.push({
           productId: `${product.id}::child::${subArticle.childSnelstartId}`,
@@ -57,7 +118,11 @@ export class CartService {
           unitPrice: childUnitPrice,
           basePrice: childUnitPrice,
           totalPrice: childUnitPrice * childQuantity,
-          vatPercentage: 0,
+          vatPercentage: childVatRate,
+          vatType: child?.vatType ?? null,
+          vatRate: childVatRate,
+          vatGroupId: child?.vatGroupId,
+          vatGroupName: child?.vatGroupName,
           isChildItem: true,
           lineType: 'recipe_child',
           parentProductId: product.id,
@@ -73,9 +138,13 @@ export class CartService {
       }
     }
 
-    const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const total = subtotal; // VAT already included in price
+    const totals = this.calculateTotals(cartItems);
 
-    return { items: cartItems, subtotal, total };
+    return {
+      items: cartItems,
+      subtotal: totals.subtotalExclVat,
+      total: totals.totalInclVat,
+      ...totals,
+    };
   }
 }

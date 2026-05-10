@@ -42,6 +42,7 @@
     "purchasePrice": "Einkaufspreis",
     "basePrice": "Basispreis",
     "vat": "MwSt.",
+    "exclVat": "zzgl. MwSt.",
     "date": "Datum",
     "discount": "Rabatt",
     "customer": "Kunde"

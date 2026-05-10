@@ -121,7 +121,11 @@ export default function ProductDetailPage() {
       unitPrice: finalPrice,
       basePrice: basePrice, // Base price
       totalPrice: finalPrice * quantity,
-      vatPercentage: product.btwPercentage || 0,
+      vatPercentage: product.vatRate ?? product.btwPercentage ?? 0,
+      vatType: product.vatType ?? null,
+      vatRate: product.vatRate ?? product.btwPercentage ?? 0,
+      vatGroupId: product.vatGroupId,
+      vatGroupName: product.vatGroupName,
       ...(adminOverride && {
         adminOverride: true,
         adminPriceOverrideConfirmed,
@@ -446,7 +450,7 @@ export default function ProductDetailPage() {
                     margin: 0,
                   }}
                 >
-                  {formatCurrency(finalPrice)}
+                  {formatCurrency(finalPrice)} {t('products:fields.exclVat')}
                 </p>
               </div>
               {/* Alış fiyatı sadece admin için görünür */}
@@ -520,7 +524,7 @@ export default function ProductDetailPage() {
                 </p>
               </div>
             )}
-            <p style={{ color: 'var(--text-secondary)' }}>{t('products:fields.vat')}: %{product.btwPercentage || 0}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t('products:fields.vat')}: %{product.vatRate ?? product.btwPercentage ?? 0}</p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)', marginBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
