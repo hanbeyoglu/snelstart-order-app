@@ -6,6 +6,7 @@ import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { hasPermission } from '../utils/permissions';
 
 interface Customer {
   id: string;
@@ -41,7 +42,7 @@ export default function CustomersPage() {
   const showToast = useToastStore((state) => state.showToast);
   const { user } = useAuthStore();
   const cityFilterRef = useRef<HTMLDivElement>(null);
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const canViewWholesalers = hasPermission(user, 'customers.wholesalers.view');
 
   // Close city filter when clicking outside
   useEffect(() => {
@@ -72,6 +73,12 @@ export default function CustomersPage() {
     setPage(1);
   }, [selectedCities]);
 
+  useEffect(() => {
+    if (!canViewWholesalers && showAllCustomers) {
+      setShowAllCustomers(false);
+    }
+  }, [canViewWholesalers, showAllCustomers]);
+
   // Get cities list
   const { data: cities } = useQuery({
     queryKey: ['customers-cities'],
@@ -90,7 +97,7 @@ export default function CustomersPage() {
       };
       if (debouncedSearch) params.search = debouncedSearch;
       if (selectedCities.length > 0) params.cities = selectedCities.join(',');
-      if (isAdmin && showAllCustomers) params.includeAll = 'true';
+      if (canViewWholesalers && showAllCustomers) params.includeAll = 'true';
       const response = await api.get('/customers', { params });
       return response.data;
     },
@@ -423,7 +430,7 @@ export default function CustomersPage() {
           className="input"
           style={{ flex: 1, minWidth: '200px', fontSize: '1rem' }}
         />
-        {isAdmin && (
+        {canViewWholesalers && (
           <motion.label
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
