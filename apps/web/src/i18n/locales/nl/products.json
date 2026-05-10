@@ -32,6 +32,7 @@
     "category": "Categorie",
     "barcode": "Barcode",
     "stock": "Voorraad",
+    "inStock": "Beschikbaar",
     "unit": "Eenheid",
     "unitFallback": "stuks",
     "quantity": "Aantal",

@@ -44,6 +44,7 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
     @Query('inStockOnly') inStockOnly?: string,
+    @Request() req?: any,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 20;
@@ -53,10 +54,12 @@ export class ProductsController {
       : groupId
         ? [groupId]
         : undefined;
-    return this.productsService.getProducts(groupIds, search, customerId, pageNum, limitNum, sortBy, inStock);
+    const effectiveCustomerId = req?.user?.role === 'customer' ? req.user.customerId : customerId;
+    return this.productsService.getProducts(groupIds, search, effectiveCustomerId, pageNum, limitNum, sortBy, inStock);
   }
 
   @Get('price-warnings')
+  @Roles('admin')
   @ApiOperation({ summary: 'Ürünler: Satış < Alış veya kar marjı <%5' })
   async getPriceWarnings(
     @Query('page') page?: string,
@@ -107,6 +110,7 @@ export class ProductsController {
       entityType: 'Product',
       entityId: id,
       userId: req.user.userId,
+      ...this.auditService.requestContext(req),
       changes: { isActive: body.isActive === true },
     });
     return updated;
@@ -117,8 +121,10 @@ export class ProductsController {
   async getProductById(
     @Param('id') id: string,
     @Query('customerId') customerId?: string,
+    @Request() req?: any,
   ) {
-    return this.productsService.getProductById(id, customerId);
+    const effectiveCustomerId = req?.user?.role === 'customer' ? req.user.customerId : customerId;
+    return this.productsService.getProductById(id, effectiveCustomerId, req?.user?.role === 'customer');
   }
 
   @Post('sync')
@@ -137,6 +143,7 @@ export class ProductsController {
         entityType: 'Product',
         entityId: 'bulk',
         userId: req.user.userId,
+        ...this.auditService.requestContext(req),
         metadata: result,
       });
 
@@ -179,6 +186,7 @@ export class ProductsController {
         entityType: 'Product',
         entityId: 'bulk',
         userId: req?.user?.userId,
+        ...this.auditService.requestContext(req),
         metadata: { since: lastSyncTimestamp.toISOString(), ...result },
       });
       

@@ -32,6 +32,7 @@
     "category": "Kategori",
     "barcode": "Barkod",
     "stock": "Stok",
+    "inStock": "Var",
     "unit": "Birim",
     "unitFallback": "adet",
     "quantity": "Miktar",

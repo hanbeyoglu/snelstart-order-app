@@ -32,6 +32,7 @@
     "category": "Kategorie",
     "barcode": "Barcode",
     "stock": "Lagerbestand",
+    "inStock": "Verfugbar",
     "unit": "Einheit",
     "unitFallback": "Stk.",
     "quantity": "Menge",
