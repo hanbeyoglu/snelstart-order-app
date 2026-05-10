@@ -7,9 +7,20 @@ export interface CartItem {
   sku: string;
   quantity: number;
   unitPrice: number;
+  unitPriceExclVat?: number;
   basePrice: number;
   totalPrice: number;
   vatPercentage: number;
+  vatType?: string | null;
+  vatRate?: number;
+  vatGroupId?: string;
+  vatGroupName?: string;
+  subtotalExclVat?: number;
+  vatAmount?: number;
+  lineSubtotalExclVat?: number;
+  lineVatAmount?: number;
+  lineTotalInclVat?: number;
+  totalInclVat?: number;
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
   adminOverride?: boolean;
   adminPriceOverrideConfirmed?: boolean;
@@ -38,6 +49,26 @@ export class LocalOrder extends Document {
 
   @Prop({ required: true })
   total: number;
+
+  @Prop({ default: 0 })
+  subtotalExclVat?: number;
+
+  @Prop({ default: 0 })
+  vatAmount?: number;
+
+  @Prop({ default: 0 })
+  vatTotal?: number;
+
+  @Prop({ default: 0 })
+  totalInclVat?: number;
+
+  @Prop({ type: Array, default: [] })
+  vatBreakdown?: Array<{
+    vatRate: number;
+    subtotalExclVat: number;
+    vatAmount: number;
+    totalInclVat: number;
+  }>;
 
   @Prop({ required: true, enum: ['DRAFT', 'PENDING_SYNC', 'SYNCED', 'FAILED'], default: 'DRAFT' })
   status: string;

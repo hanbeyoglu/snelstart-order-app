@@ -42,6 +42,7 @@
     "purchasePrice": "Alış Fiyatı",
     "basePrice": "Baz Fiyat",
     "vat": "KDV",
+    "exclVat": "KDV hariç",
     "date": "Tarih",
     "discount": "İndirim",
     "customer": "Müşteri"

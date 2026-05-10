@@ -38,6 +38,61 @@ export class OrdersService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   }
 
+  private money(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private getVatRate(source: any): number {
+    const parsed = Number(source?.vatRate ?? source?.btwPercentage ?? source?.vatPercentage ?? 0);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  private calculateOrderTotals(items: any[]) {
+    const breakdownByRate = new Map<number, { vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>();
+    const enrichedItems = items.map((item) => {
+      const lineSubtotal = this.money(Number(item.unitPrice || 0) * Number(item.quantity || 0));
+      const vatRate = this.getVatRate(item);
+      const vatAmount = this.money((lineSubtotal * vatRate) / 100);
+      const totalInclVat = this.money(lineSubtotal + vatAmount);
+      const current = breakdownByRate.get(vatRate) || {
+        vatRate,
+        subtotalExclVat: 0,
+        vatAmount: 0,
+        totalInclVat: 0,
+      };
+      current.subtotalExclVat = this.money(current.subtotalExclVat + lineSubtotal);
+      current.vatAmount = this.money(current.vatAmount + vatAmount);
+      current.totalInclVat = this.money(current.totalInclVat + totalInclVat);
+      breakdownByRate.set(vatRate, current);
+
+      return {
+        ...item,
+        unitPriceExclVat: this.money(Number(item.unitPrice || 0)),
+        totalPrice: lineSubtotal,
+        vatPercentage: vatRate,
+        vatRate,
+        subtotalExclVat: lineSubtotal,
+        vatAmount,
+        lineSubtotalExclVat: lineSubtotal,
+        lineVatAmount: vatAmount,
+        lineTotalInclVat: totalInclVat,
+        totalInclVat,
+      };
+    });
+    const subtotalExclVat = this.money(enrichedItems.reduce((sum, item) => sum + item.subtotalExclVat, 0));
+    const vatAmount = this.money(Array.from(breakdownByRate.values()).reduce((sum, item) => sum + item.vatAmount, 0));
+    const totalInclVat = this.money(subtotalExclVat + vatAmount);
+
+    return {
+      items: enrichedItems,
+      subtotalExclVat,
+      vatAmount,
+      vatTotal: vatAmount,
+      totalInclVat,
+      vatBreakdown: Array.from(breakdownByRate.values()).sort((a, b) => a.vatRate - b.vatRate),
+    };
+  }
+
   private async validateOrderPrices(items: any[], user?: any) {
     const productIds = items
       .filter((item) => item.isChildItem !== true)
@@ -91,23 +146,23 @@ export class OrdersService {
       requested.customerId,
       user,
     );
+    const totals = this.calculateOrderTotals(trustedItems);
     const validated = {
       idempotencyKey: requested.idempotencyKey,
       customerId: requested.customerId,
-      items: trustedItems,
+      items: totals.items,
     };
-
-    // Calculate subtotal and total from items
-    const subtotal = validated.items.reduce((sum, item) => {
-      return sum + (item.unitPrice * item.quantity);
-    }, 0);
-    const total = subtotal; // VAT is already included in unitPrice or handled separately
 
     // Create local order
     const order = new this.orderModel({
       ...validated,
-      subtotal,
-      total,
+      subtotal: totals.subtotalExclVat,
+      total: totals.totalInclVat,
+      subtotalExclVat: totals.subtotalExclVat,
+      vatAmount: totals.vatAmount,
+      vatTotal: totals.vatTotal,
+      totalInclVat: totals.totalInclVat,
+      vatBreakdown: totals.vatBreakdown,
       status: 'PENDING_SYNC',
     });
     await order.save();
@@ -195,7 +250,7 @@ export class OrdersService {
       const product: any = await this.productsService.getProductById(item.productId, customerId);
       const basePrice = Number(product.basePrice || product.verkoopprijs || 0);
       const trustedUnitPrice = Number(product.finalPrice ?? basePrice);
-      const vatPercentage = Number(product.btwPercentage || 0);
+      const vatRate = this.getVatRate(product);
       const requestedUnitPrice = Number(item.unitPrice);
       const hasRequestedPrice = Number.isFinite(requestedUnitPrice);
       const priceChanged = hasRequestedPrice && requestedUnitPrice !== trustedUnitPrice;
@@ -233,7 +288,11 @@ export class OrdersService {
         unitPrice,
         basePrice,
         totalPrice: unitPrice * this.positiveNumber(item.quantity, 1),
-        vatPercentage,
+        vatPercentage: vatRate,
+        vatType: product.vatType ?? null,
+        vatRate,
+        vatGroupId: product.vatGroupId,
+        vatGroupName: product.vatGroupName,
         lineType: 'product',
         ...(priceChanged
           ? {
@@ -249,7 +308,7 @@ export class OrdersService {
         const dbChild = subArticle.childProduct
           ? await this.productModel
               .findOne({ snelstartId: subArticle.childSnelstartId })
-              .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs eenheid voorraad')
+              .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs vatType vatRate vatGroupId vatGroupName eenheid voorraad')
               .lean()
               .exec()
           : null;
@@ -258,6 +317,7 @@ export class OrdersService {
         const parentQuantity = this.positiveNumber(item.quantity, 1);
         const childQuantity = parentQuantity * quantityPerParent;
         const childUnitPrice = this.positiveNumber(child?.verkoopprijs, 0);
+        const childVatRate = this.getVatRate(child);
 
         trustedItems.push({
           productId: subArticle.childSnelstartId,
@@ -267,7 +327,11 @@ export class OrdersService {
           unitPrice: childUnitPrice,
           basePrice: childUnitPrice,
           totalPrice: childUnitPrice * childQuantity,
-          vatPercentage: 0,
+          vatPercentage: childVatRate,
+          vatType: child?.vatType ?? null,
+          vatRate: childVatRate,
+          vatGroupId: child?.vatGroupId,
+          vatGroupName: child?.vatGroupName,
           isChildItem: true,
           lineType: 'recipe_child',
           parentProductId: product.id || item.productId,
@@ -443,11 +507,15 @@ export class OrdersService {
     // Update order fields
     if (orderData.items) {
       await this.validateOrderPrices(orderData.items, user);
-      const subtotal = orderData.items.reduce((sum: number, item: any) => {
-        return sum + (item.unitPrice * item.quantity);
-      }, 0);
-      orderData.subtotal = subtotal;
-      orderData.total = subtotal;
+      const totals = this.calculateOrderTotals(orderData.items);
+      orderData.items = totals.items;
+      orderData.subtotal = totals.subtotalExclVat;
+      orderData.total = totals.totalInclVat;
+      orderData.subtotalExclVat = totals.subtotalExclVat;
+      orderData.vatAmount = totals.vatAmount;
+      orderData.vatTotal = totals.vatTotal;
+      orderData.totalInclVat = totals.totalInclVat;
+      orderData.vatBreakdown = totals.vatBreakdown;
     }
 
     Object.assign(order, orderData);

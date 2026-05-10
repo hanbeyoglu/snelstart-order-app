@@ -42,6 +42,7 @@
     "purchasePrice": "Purchase Price",
     "basePrice": "Base Price",
     "vat": "VAT",
+    "exclVat": "excl. VAT",
     "date": "Date",
     "discount": "Discount",
     "customer": "Customer"

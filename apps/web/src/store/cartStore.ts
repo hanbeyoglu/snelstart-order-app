@@ -54,6 +54,7 @@ function createChildCartItem(parent: CartItem, subArticle: NonNullable<CartItem[
   const quantityPerParent = positiveNumber(subArticle.quantityPerParent, 1);
   const quantity = positiveNumber(parent.quantity, 1) * quantityPerParent;
   const unitPrice = positiveNumber(child?.verkoopprijs, 0);
+  const vatRate = positiveNumber(child?.vatRate, 0);
 
   return {
     productId: `${parent.productId}::child::${subArticle.childSnelstartId}`,
@@ -63,7 +64,11 @@ function createChildCartItem(parent: CartItem, subArticle: NonNullable<CartItem[
     unitPrice,
     basePrice: unitPrice,
     totalPrice: unitPrice * quantity,
-    vatPercentage: 0,
+    vatPercentage: vatRate,
+    vatType: child?.vatType ?? null,
+    vatRate,
+    vatGroupId: child?.vatGroupId,
+    vatGroupName: child?.vatGroupName,
     isChildItem: true,
     lineType: 'recipe_child',
     parentProductId: parent.productId,
@@ -108,6 +113,10 @@ function mergeParentCartItem(existing: CartItem, incoming: CartItem): CartItem {
     basePrice: incoming.basePrice ?? existing.basePrice,
     totalPrice: (existing.customUnitPrice ?? incoming.customUnitPrice ?? incoming.unitPrice ?? existing.unitPrice) * (existing.quantity + incoming.quantity),
     vatPercentage: incoming.vatPercentage ?? existing.vatPercentage,
+    vatType: incoming.vatType ?? existing.vatType,
+    vatRate: incoming.vatRate ?? existing.vatRate,
+    vatGroupId: incoming.vatGroupId ?? existing.vatGroupId,
+    vatGroupName: incoming.vatGroupName ?? existing.vatGroupName,
     inkoopprijs: incoming.inkoopprijs ?? existing.inkoopprijs,
     eenheid: incoming.eenheid ?? existing.eenheid,
     coverImageUrl: incoming.coverImageUrl ?? existing.coverImageUrl,

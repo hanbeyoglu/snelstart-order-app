@@ -42,6 +42,7 @@
     "purchasePrice": "Inkoopprijs",
     "basePrice": "Basisprijs",
     "vat": "Btw",
+    "exclVat": "excl. btw",
     "date": "Datum",
     "discount": "Korting",
     "customer": "Klant"

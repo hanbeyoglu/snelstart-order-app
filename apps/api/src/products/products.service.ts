@@ -21,6 +21,35 @@ export class ProductsService {
     private imagesService: ImagesService,
   ) {}
 
+  private mapVatTypeToRate(vatType?: string | null): number {
+    switch ((vatType || '').toLowerCase()) {
+      case 'laag':
+        return 9;
+      case 'hoog':
+        return 21;
+      case 'geen':
+      case 'vrijgesteld':
+      default:
+        return 0;
+    }
+  }
+
+  private buildVatGroupLookup(groups: any[]) {
+    return new Map((groups || []).map((group) => [group.id, group]));
+  }
+
+  private getProductVatFields(artikelomzetgroepId?: string, vatGroups?: Map<string, any>) {
+    const group = artikelomzetgroepId ? vatGroups?.get(artikelomzetgroepId) : null;
+    const vatType = group?.verkoopNederlandBtwSoort ?? null;
+
+    return {
+      vatType,
+      vatRate: this.mapVatTypeToRate(vatType),
+      vatGroupId: artikelomzetgroepId,
+      vatGroupName: group?.omschrijving,
+    };
+  }
+
   /**
    * Full sync: Retrieve all products using dynamic pagination
    * This method scales to any number of products (1,000, 5,000, 10,000+)
@@ -44,6 +73,7 @@ export class ProductsService {
 
       console.log(`[ProductsService] Retrieved ${allProducts.length} products from API. Starting upsert...`);
       console.log(`[ProductsService] Total products to process: ${allProducts.length}`);
+      const vatGroups = this.buildVatGroupLookup(await this.snelStartService.getArtikelOmzetGroepen().catch(() => []));
 
       // Track duplicates and errors
       const duplicateSnelstartIds = new Set<string>();
@@ -81,6 +111,7 @@ export class ProductsService {
           // Extract artikelomzetgroepId from nested object if available
           const artikelomzetgroepId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
           const artikelomzetgroepOmschrijving = product.artikelOmzetgroep?.omschrijving || product.artikelomzetgroepOmschrijving;
+          const vatFields = this.getProductVatFields(artikelomzetgroepId, vatGroups);
           
               // Check if product exists - ONLY by snelstartId
               const existingProduct = await this.productModel.findOne({
@@ -109,6 +140,10 @@ export class ProductsService {
                 contentQuantity,
                 inkoopprijs: product.inkoopprijs,
                 btwPercentage: product.btwPercentage,
+                vatType: vatFields.vatType,
+                vatRate: vatFields.vatRate,
+                vatGroupId: vatFields.vatGroupId,
+                vatGroupName: vatFields.vatGroupName || artikelomzetgroepOmschrijving,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
                 isParentArticle,
@@ -245,6 +280,7 @@ export class ProductsService {
       );
 
       console.log(`[ProductsService] Retrieved ${modifiedProducts.length} modified products. Starting upsert...`);
+      const vatGroups = this.buildVatGroupLookup(await this.snelStartService.getArtikelOmzetGroepen().catch(() => []));
 
       // Track duplicates and errors
       const duplicateSnelstartIds = new Set<string>();
@@ -280,6 +316,7 @@ export class ProductsService {
 
               const artikelomzetgroepId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
               const artikelomzetgroepOmschrijving = product.artikelOmzetgroep?.omschrijving || product.artikelomzetgroepOmschrijving;
+              const vatFields = this.getProductVatFields(artikelomzetgroepId, vatGroups);
               
               // Check if product exists - ONLY by snelstartId
               const existingProduct = await this.productModel.findOne({
@@ -308,6 +345,10 @@ export class ProductsService {
                 contentQuantity,
                 inkoopprijs: product.inkoopprijs,
                 btwPercentage: product.btwPercentage,
+                vatType: vatFields.vatType,
+                vatRate: vatFields.vatRate,
+                vatGroupId: vatFields.vatGroupId,
+                vatGroupName: vatFields.vatGroupName || artikelomzetgroepOmschrijving,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
                 isParentArticle,
@@ -529,7 +570,7 @@ export class ProductsService {
       items.map(async (subArticle) => {
         const childProduct = await this.productModel
           .findOne({ snelstartId: subArticle.childSnelstartId })
-          .select('snelstartId omschrijving artikelnummer artikelcode voorraad verkoopprijs inkoopprijs eenheid imageUrl')
+          .select('snelstartId omschrijving artikelnummer artikelcode voorraad verkoopprijs inkoopprijs vatType vatRate vatGroupId vatGroupName eenheid imageUrl')
           .lean()
           .exec();
 
@@ -544,6 +585,10 @@ export class ProductsService {
                 voorraad: childProduct.voorraad,
                 verkoopprijs: childProduct.verkoopprijs,
                 inkoopprijs: childProduct.inkoopprijs,
+                vatType: childProduct.vatType ?? null,
+                vatRate: childProduct.vatRate ?? 0,
+                vatGroupId: childProduct.vatGroupId,
+                vatGroupName: childProduct.vatGroupName,
                 eenheid: childProduct.eenheid,
                 coverImageUrl: childProduct.imageUrl || null,
               }
@@ -744,6 +789,10 @@ export class ProductsService {
               ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
               inkoopprijs: product.inkoopprijs,
               btwPercentage: product.btwPercentage,
+              vatType: product.vatType ?? null,
+              vatRate: product.vatRate ?? 0,
+              vatGroupId: product.vatGroupId,
+              vatGroupName: product.vatGroupName,
               eenheid: product.eenheid,
               barcode: product.barcode,
               basePrice,
@@ -901,6 +950,10 @@ export class ProductsService {
           finalPrice,
           ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
           btwPercentage: product.btwPercentage,
+          vatType: product.vatType ?? null,
+          vatRate: product.vatRate ?? 0,
+          vatGroupId: product.vatGroupId,
+          vatGroupName: product.vatGroupName,
           eenheid: product.eenheid,
           barcode: product.barcode,
           coverImageUrl,
@@ -1015,9 +1068,10 @@ export class ProductsService {
     
     // Get category name if artikelomzetgroepId exists
     let categoryName = artikelomzetgroepOmschrijving;
+    let category: any = null;
     if (artikelomzetgroepId && !categoryName) {
       try {
-        const category = await this.categoriesService.getCategoryById(artikelomzetgroepId);
+        category = await this.categoriesService.getCategoryById(artikelomzetgroepId);
         if (category) {
           categoryName = category.omschrijving;
         }
@@ -1047,6 +1101,9 @@ export class ProductsService {
     const isParentArticle = product.isHoofdartikel === true;
     const subArticles = this.mapSubArticles(product);
     const contentQuantity = this.parseContentQuantity(product) ?? dbProduct?.contentQuantity ?? null;
+    const vatType = product.verkoopNederlandBtwSoort ?? dbProduct?.vatType ?? category?.verkoopNederlandBtwSoort ?? null;
+    const vatRate = this.mapVatTypeToRate(vatType);
+    const vatGroupName = categoryName || dbProduct?.vatGroupName || artikelomzetgroepOmschrijving;
 
     // Save to database
     await this.productModel.findOneAndUpdate(
@@ -1065,6 +1122,10 @@ export class ProductsService {
         contentQuantity,
         inkoopprijs: product.inkoopprijs,
         btwPercentage: product.btwPercentage,
+        vatType,
+        vatRate,
+        vatGroupId: artikelomzetgroepId,
+        vatGroupName,
         eenheid: product.eenheid,
         barcode: product.barcode,
         isParentArticle,
@@ -1092,6 +1153,10 @@ export class ProductsService {
       basePrice,
       finalPrice,
       ...this.getPackagePricingFields(finalPrice, contentQuantity),
+      vatType,
+      vatRate,
+      vatGroupId: artikelomzetgroepId,
+      vatGroupName,
       // Ensure artikelcode is included (use artikelcode or artikelnummer)
       artikelcode: product.artikelcode || product.artikelnummer,
       // Include category name

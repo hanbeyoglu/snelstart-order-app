@@ -235,7 +235,11 @@ export default function ProductsPage() {
       unitPrice,
       basePrice,
       totalPrice: unitPrice,
-      vatPercentage: product.btwPercentage || 0,
+      vatPercentage: product.vatRate ?? product.btwPercentage ?? 0,
+      vatType: product.vatType ?? null,
+      vatRate: product.vatRate ?? product.btwPercentage ?? 0,
+      vatGroupId: product.vatGroupId,
+      vatGroupName: product.vatGroupName,
       ...(adminOverride && {
         adminOverride: true,
         adminPriceOverrideConfirmed,
@@ -847,7 +851,7 @@ export default function ProductsPage() {
                   color: 'var(--text-primary)',
                 }}
               >
-                {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}: {formatCurrency(displayPrice)}
+                {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}: {formatCurrency(displayPrice)} {t('products:fields.exclVat')}
               </p>
               {caseUnit && contentQuantity && calculatedUnitPrice !== null && (
                 <div

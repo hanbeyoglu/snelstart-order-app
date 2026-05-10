@@ -52,6 +52,18 @@ export class Product extends Document {
   @Prop()
   btwPercentage?: number; // VAT
 
+  @Prop({ default: null })
+  vatType?: string | null;
+
+  @Prop({ default: 0 })
+  vatRate?: number;
+
+  @Prop()
+  vatGroupId?: string;
+
+  @Prop()
+  vatGroupName?: string;
+
   @Prop()
   eenheid?: string; // Unit
 
@@ -98,6 +110,7 @@ ProductSchema.index({ omschrijving: 'text' }); // Text search index
 ProductSchema.index({ barcode: 1 }); // Barcode searches
 ProductSchema.index({ artikelgroepId: 1 }); // Category filtering
 ProductSchema.index({ artikelomzetgroepId: 1 }); // Category filtering
+ProductSchema.index({ vatRate: 1 }); // VAT reporting/filtering
 ProductSchema.index({ isActive: 1 }); // Active products filter
 ProductSchema.index({ isActive: 1, omschrijving: 1 }); // Visibility admin pagination/filtering
 ProductSchema.index({ isParentArticle: 1 }); // Parent/recept products
