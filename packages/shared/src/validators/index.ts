@@ -91,6 +91,7 @@ export const createOrderSchema = z.object({
   idempotencyKey: z.string().uuid(),
   customerId: z.string(),
   items: z.array(cartItemSchema),
+  memo: z.string().trim().min(1).max(1000).optional(),
 });
 
 export const createOrderRequestSchema = z.object({

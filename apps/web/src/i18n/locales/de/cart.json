@@ -6,7 +6,7 @@
   "customerSearchPlaceholder": "Kunden suchen oder auswahlen...",
   "selectedCustomer": "Ausgewahlter Kunde",
   "subtotal": "Zwischensumme:",
-  "total": "Gesamt:",
+  "total": "Gesamtbetrag:",
   "amount": "Betrag:",
   "vat": "MwSt.:",
   "exclVat": "zzgl. MwSt.",
@@ -24,6 +24,21 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Produkt aus Warenkorb entfernen?",
   "confirmRemoveDescription": "Dieses Produkt wird aus Ihrem Warenkorb entfernt.",
+  "delivery": {
+    "title": "Lieferentscheidung *",
+    "requiredDescription": "Wahlen Sie die Lieferoption, bevor Sie die Bestellung erstellen.",
+    "timeTitle": "Lieferzeit *",
+    "timeDescription": "Wahlen Sie sofortige Lieferung oder ein bestimmtes Datum.",
+    "dateLabel": "Lieferdatum",
+    "options": {
+      "marketDelivery": "Zum Markt liefern",
+      "warehousePickup": "Im Lager abholen"
+    },
+    "timeOptions": {
+      "asap": "Sofort",
+      "scheduled": "Datum auswahlen"
+    }
+  },
   "adminPriceOverride": {
     "title": "Unter den Preiskriterien",
     "description": "Dieser Preis liegt unter den festgelegten Verkaufskriterien. Sind Sie sicher, dass Sie ihn andern mochten?",
@@ -33,6 +48,8 @@
   },
   "messages": {
     "selectCustomer": "Bitte wahlen Sie einen Kunden aus",
+    "selectDelivery": "Bitte wahlen Sie eine Lieferoption",
+    "selectDeliveryTime": "Bitte wahlen Sie eine Lieferzeit",
     "orderCreated": "Bestellung erfolgreich erstellt!",
     "orderCreateError": "Beim Erstellen der Bestellung ist ein Fehler aufgetreten",
     "cartCleared": "Warenkorb geleert",

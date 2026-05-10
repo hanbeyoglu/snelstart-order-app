@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ProductsService } from '../products/products.service';
 import { PricingService } from '../pricing/pricing.service';
 import { CartItem } from '@snelstart-order-app/shared';
@@ -66,7 +66,7 @@ export class CartService {
     };
   }
 
-  async calculateCart(items: Array<{ productId: string; quantity: number }>, customerId?: string): Promise<{
+  async calculateCart(items: Array<{ productId: string; quantity: number }>, customerId?: string, user?: any): Promise<{
     items: CartItem[];
     subtotal: number;
     total: number;
@@ -76,6 +76,9 @@ export class CartService {
     totalInclVat: number;
     vatBreakdown: Array<{ vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>;
   }> {
+    if (user?.role === 'customer' && !customerId) {
+      throw new ForbiddenException('Customer kullanıcı müşteri kaydına bağlı değil');
+    }
     const cartItems: CartItem[] = [];
 
     for (const item of items.filter((cartItem: any) => cartItem.isChildItem !== true)) {

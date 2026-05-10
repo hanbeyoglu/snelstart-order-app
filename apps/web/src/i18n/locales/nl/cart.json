@@ -6,7 +6,7 @@
   "customerSearchPlaceholder": "Zoek of selecteer een klant...",
   "selectedCustomer": "Geselecteerde klant",
   "subtotal": "Subtotaal:",
-  "total": "Totaal:",
+  "total": "Totaal incl. btw:",
   "amount": "Bedrag:",
   "vat": "Btw:",
   "exclVat": "excl. btw",
@@ -24,6 +24,21 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Product uit winkelwagen verwijderen?",
   "confirmRemoveDescription": "Dit product wordt uit uw winkelwagen verwijderd.",
+  "delivery": {
+    "title": "Leveringskeuze *",
+    "requiredDescription": "Selecteer de leveringsoptie voordat u de bestelling maakt.",
+    "timeTitle": "Levertijd *",
+    "timeDescription": "Kies directe levering of een specifieke datum.",
+    "dateLabel": "Leverdatum",
+    "options": {
+      "marketDelivery": "Leveren aan winkel",
+      "warehousePickup": "Afhalen bij magazijn"
+    },
+    "timeOptions": {
+      "asap": "Meteen",
+      "scheduled": "Datum selecteren"
+    }
+  },
   "adminPriceOverride": {
     "title": "Onder prijscriteria",
     "description": "Deze prijs ligt onder de vastgestelde verkoopcriteria. Weet u zeker dat u deze wilt wijzigen?",
@@ -33,6 +48,8 @@
   },
   "messages": {
     "selectCustomer": "Selecteer een klant",
+    "selectDelivery": "Selecteer een leveringsoptie",
+    "selectDeliveryTime": "Selecteer een levertijd",
     "orderCreated": "Bestelling succesvol aangemaakt!",
     "orderCreateError": "Er is een fout opgetreden bij het maken van de bestelling",
     "cartCleared": "Winkelwagen geleegd",

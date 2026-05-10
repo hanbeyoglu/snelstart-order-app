@@ -41,6 +41,27 @@ export class LocalOrder extends Document {
   @Prop({ required: true })
   customerId: string;
 
+  @Prop()
+  createdByUserId?: string;
+
+  @Prop()
+  createdByUsername?: string;
+
+  @Prop()
+  createdByFullName?: string;
+
+  @Prop()
+  createdByRole?: string;
+
+  @Prop()
+  createdByCustomerId?: string;
+
+  @Prop()
+  createdByCustomerName?: string;
+
+  @Prop()
+  memo?: string;
+
   @Prop({ type: Array, required: true })
   items: CartItem[];
 

@@ -4,14 +4,19 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 export default function OrderDetailPage() {
+  const { t } = useAppTranslation(['cart', 'orders']);
+  const { formatCurrency, locale } = useLocaleFormat();
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const showToast = useToastStore((state) => state.showToast);
-  const { formatCurrency } = useLocaleFormat();
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const isCustomer = user?.role === 'customer';
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -25,15 +30,6 @@ export default function OrderDetailPage() {
       return response.data;
     },
   });
-
-  const getLineTotals = (item: any) => {
-    const unitPriceExclVat = Number(item.unitPriceExclVat ?? item.unitPrice ?? item.customUnitPrice ?? 0);
-    const lineSubtotalExclVat = Number(item.lineSubtotalExclVat ?? item.subtotalExclVat ?? item.totalPrice ?? unitPriceExclVat * Number(item.quantity || 0));
-    const vatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
-    const lineVatAmount = Number(item.lineVatAmount ?? item.vatAmount ?? Math.round(((lineSubtotalExclVat * vatRate) / 100 + Number.EPSILON) * 100) / 100);
-    const lineTotalInclVat = Number(item.lineTotalInclVat ?? item.totalInclVat ?? lineSubtotalExclVat + lineVatAmount);
-    return { unitPriceExclVat, lineSubtotalExclVat, vatRate, lineVatAmount, lineTotalInclVat };
-  };
 
   // Fetch SnelStart order to check procesStatus
   const { data: snelStartOrder } = useQuery({
@@ -50,7 +46,7 @@ export default function OrderDetailPage() {
         return null;
       }
     },
-    enabled: !!order?.snelstartOrderId && !!order?.customerId,
+    enabled: !isCustomer && !!order?.snelstartOrderId && !!order?.customerId,
   });
 
   // Check if order can be edited/deleted
@@ -69,14 +65,46 @@ export default function OrderDetailPage() {
       const response = await api.delete(`/orders/${orderId}`);
       return response.data;
     },
+    onMutate: async () => {
+      if (!orderId) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: ['orders'] });
+      await queryClient.cancelQueries({ queryKey: ['dashboard'] });
+      await queryClient.cancelQueries({ queryKey: ['order-stats'] });
+
+      const previousOrders = queryClient.getQueriesData({ queryKey: ['orders'] });
+      previousOrders.forEach(([queryKey, data]) => {
+        if (!Array.isArray(data)) return;
+        queryClient.setQueryData(
+          queryKey,
+          data.filter((cachedOrder: any) => cachedOrder?._id !== orderId),
+        );
+      });
+
+      const previousOrder = queryClient.getQueryData(['order', orderId]);
+      queryClient.removeQueries({ queryKey: ['order', orderId], exact: true });
+
+      return { previousOrders, previousOrder };
+    },
     onSuccess: () => {
       showToast('Sipariş başarıyla silindi', 'success');
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      navigate('/orders');
+      navigate(isCustomer ? '/my-orders' : '/orders', { replace: true });
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      context?.previousOrders?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      if (orderId && context?.previousOrder) {
+        queryClient.setQueryData(['order', orderId], context.previousOrder);
+      }
+
       const errorMessage = error?.response?.data?.message || error?.message || 'Sipariş silinirken bir hata oluştu';
       showToast(errorMessage, 'error', 5000);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
     },
   });
 
@@ -131,7 +159,7 @@ export default function OrderDetailPage() {
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
             Sipariş bulunamadı
           </h2>
-          <motion.button onClick={() => navigate('/orders')} className="btn-primary" whileTap={{ scale: 0.98 }}>
+          <motion.button onClick={() => navigate(isCustomer ? '/my-orders' : '/orders')} className="btn-primary" whileTap={{ scale: 0.98 }}>
             Siparişlere Dön
           </motion.button>
         </div>
@@ -174,6 +202,69 @@ export default function OrderDetailPage() {
 
   const statusConfig = getStatusConfig(order.status);
   const orderDate = new Date(order.createdAt || order.updatedAt);
+  const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+  const getOrderLineTotals = (item: any) => {
+    const unitPriceExclVat = Number(item.unitPriceExclVat ?? item.unitPrice ?? item.customUnitPrice ?? 0);
+    const lineSubtotalExclVat = Number(item.lineSubtotalExclVat ?? item.subtotalExclVat ?? item.totalPrice ?? unitPriceExclVat * Number(item.quantity || 0));
+    const vatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
+    const lineVatAmount = Number(item.lineVatAmount ?? item.vatAmount ?? money((lineSubtotalExclVat * vatRate) / 100));
+    const lineTotalInclVat = Number(item.lineTotalInclVat ?? item.totalInclVat ?? money(lineSubtotalExclVat + lineVatAmount));
+    return { unitPriceExclVat, lineSubtotalExclVat, vatRate, lineVatAmount, lineTotalInclVat };
+  };
+  const orderSubtotalExclVat = Number(order.subtotalExclVat ?? order.subtotal ?? 0);
+  const orderVatTotal = Number(order.vatTotal ?? order.vatAmount ?? (order.totalInclVat ? order.totalInclVat - orderSubtotalExclVat : 0));
+  const orderTotalInclVat = Number(order.totalInclVat ?? order.total ?? orderSubtotalExclVat + orderVatTotal);
+  const vatBreakdown = Array.isArray(order.vatBreakdown)
+    ? order.vatBreakdown
+    : [];
+  const createdByName = order.createdByRole === 'customer'
+    ? order.createdByCustomerName || order.createdByUsername || '-'
+    : order.createdByFullName || order.createdByUsername || '-';
+  const orderMemoLines = String(order.memo || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const deliveryDecision = orderMemoLines
+    .find((line) => line.toLowerCase().startsWith('teslimat:'))
+    ?.replace(/^Teslimat:\s*/i, '') || '-';
+  const deliveryTime = orderMemoLines
+    .find((line) => line.toLowerCase().startsWith('teslimat zamanı:'))
+    ?.replace(/^Teslimat zamanı:\s*/i, '') || '-';
+  const orderDetailItems = [
+    {
+      label: 'Oluşturulma Tarihi',
+      value: orderDate.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' }),
+      helper: orderDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
+    },
+    {
+      label: t('orders:fields.createdBy'),
+      value: createdByName,
+      helper: order.createdByRole || '-',
+    },
+    ...(order.createdByRole === 'customer'
+      ? [
+          {
+            label: t('orders:fields.createdByCustomer'),
+            value: order.createdByCustomerName || order.createdByCustomerId || '-',
+            helper: order.createdByCustomerId || undefined,
+          },
+        ]
+      : []),
+    ...(order.snelstartOrderId
+      ? [
+          {
+            label: 'SnelStart Sipariş ID',
+            value: order.snelstartOrderId,
+            helper: 'Senkron referansı',
+          },
+        ]
+      : []),
+    {
+      label: 'Müşteri ID',
+      value: order.customerId,
+      helper: 'Relatie',
+    },
+  ];
 
   return (
     <div className="container">
@@ -187,12 +278,12 @@ export default function OrderDetailPage() {
           flexWrap: 'wrap',
         }}
       >
-        <motion.button onClick={() => navigate('/orders')} className="btn-secondary" style={{ minHeight: '44px' }} whileTap={{ scale: 0.98 }}>
+        <motion.button onClick={() => navigate(isCustomer ? '/my-orders' : '/orders')} className="btn-secondary" style={{ minHeight: '44px' }} whileTap={{ scale: 0.98 }}>
           ← Geri
         </motion.button>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {canEdit && (
+          {!isCustomer && canEdit && (
             <motion.button
               type="button"
               className="btn-primary"
@@ -203,7 +294,7 @@ export default function OrderDetailPage() {
               Siparişi Düzenle
             </motion.button>
           )}
-          {canDelete && (
+          {!isCustomer && canDelete && (
             <motion.button
               type="button"
               className="btn-danger"
@@ -214,7 +305,7 @@ export default function OrderDetailPage() {
               Siparişi Sil
             </motion.button>
           )}
-          {!canEdit && !canDelete && (
+          {!isCustomer && !canEdit && !canDelete && (
             <div
               style={{
                 padding: '0.75rem 1rem',
@@ -386,124 +477,159 @@ export default function OrderDetailPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="card"
-        style={{ marginBottom: '1.5rem' }}
+        style={{
+          marginBottom: '1.5rem',
+          padding: 0,
+          overflow: 'hidden',
+          border: '1px solid rgba(99, 102, 241, 0.16)',
+          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
+        }}
       >
-        <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '1.5rem' }}>
-          Sipariş Detayları
-        </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-              Sipariş ID
-            </label>
-            <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {order._id?.slice(-8).toUpperCase() || 'N/A'}
-            </p>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-              Durum
-            </label>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                background: statusConfig.bg,
-                border: `2px solid ${statusConfig.color}`,
-                fontWeight: 600,
-                color: statusConfig.color,
-                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-              }}
-            >
-              <span>{statusConfig.icon}</span>
-              <span>{statusConfig.text}</span>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-              Oluşturulma Tarihi
-            </label>
-            <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 500, color: 'var(--text-primary)' }}>
-              {orderDate.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' })}
-            </p>
-            <p style={{ fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', color: 'var(--text-secondary)' }}>
-              {orderDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-
-          {order.snelstartOrderId && (
+        <div
+          style={{
+            padding: 'clamp(1.25rem, 4vw, 2rem)',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%)',
+            borderBottom: '1px solid rgba(99, 102, 241, 0.14)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-                SnelStart Sipariş ID
-              </label>
-              <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                {order.snelstartOrderId}
-              </p>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
+                Sipariş Detayları
+              </div>
+              <h2 style={{ fontSize: 'clamp(1.6rem, 5vw, 2.35rem)', fontWeight: 900, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+                #{order._id?.slice(-8).toUpperCase() || 'N/A'}
+              </h2>
             </div>
-          )}
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-              Müşteri ID
-            </label>
-            <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 500, color: 'var(--text-primary)' }}>
-              {order.customerId}
-            </p>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-              Toplam Tutar
-            </label>
-            <p
-              style={{
-                fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              {formatCurrency(order.totalInclVat ?? order.total ?? order.subtotal ?? 0)}
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.65rem' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.55rem 0.9rem',
+                  borderRadius: '999px',
+                  background: statusConfig.bg,
+                  border: `1px solid ${statusConfig.color}`,
+                  fontWeight: 800,
+                  color: statusConfig.color,
+                  fontSize: '0.9rem',
+                }}
+              >
+                <span>{statusConfig.icon}</span>
+                <span>{statusConfig.text}</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700 }}>{t('cart:totalAmount')}</div>
+                <div style={{ fontSize: 'clamp(1.45rem, 4vw, 2rem)', fontWeight: 900, color: 'var(--primary)' }}>
+                  {formatCurrency(orderTotalInclVat)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div style={{ padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '0.9rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <div
+              style={{
+                padding: '1rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.04))',
+                border: '1px solid rgba(16, 185, 129, 0.22)',
+              }}
+            >
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                {t('orders:fields.deliveryDecision')}
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 850 }}>
+                {deliveryDecision}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: '1rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(99, 102, 241, 0.04))',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+              }}
+            >
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                {t('orders:fields.deliveryTime')}
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 850 }}>
+                {deliveryTime}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.9rem', marginBottom: '1rem' }}>
+            {orderDetailItems.map((item) => (
+              <div
+                key={`${item.label}-${item.value}`}
+                style={{
+                  padding: '1rem',
+                  borderRadius: '14px',
+                  background: 'rgba(255, 255, 255, 0.78)',
+                  border: '1px solid rgba(148, 163, 184, 0.18)',
+                  boxShadow: '0 10px 30px rgba(15, 23, 42, 0.04)',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
+                  {item.label}
+                </div>
+                <div style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 750, overflowWrap: 'anywhere' }}>
+                  {item.value}
+                </div>
+                {item.helper && (
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.3rem', overflowWrap: 'anywhere' }}>
+                    {item.helper}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '0.75rem',
             padding: '1rem',
             border: '1px solid rgba(99, 102, 241, 0.14)',
-            borderRadius: '12px',
-            marginBottom: '1.5rem',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.06))',
           }}
         >
           <div>
-            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>Tutar</div>
-            <div style={{ fontWeight: 800 }}>{formatCurrency(order.subtotalExclVat ?? order.subtotal ?? 0)}</div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>{t('cart:amount')}</div>
+            <div style={{ fontWeight: 800 }}>{formatCurrency(orderSubtotalExclVat)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>KDV</div>
-            <div style={{ fontWeight: 800 }}>{formatCurrency(order.vatTotal ?? order.vatAmount ?? 0)}</div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>{t('cart:vat')}</div>
+            <div style={{ fontWeight: 800 }}>{formatCurrency(orderVatTotal)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>Toplam Tutar</div>
-            <div style={{ fontWeight: 900 }}>{formatCurrency(order.totalInclVat ?? order.total ?? 0)}</div>
+            <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>{t('cart:totalAmount')}</div>
+            <div style={{ fontWeight: 900 }}>{formatCurrency(orderTotalInclVat)}</div>
           </div>
-          {(order.vatBreakdown || []).filter((line: any) => Number(line.vatAmount || 0) > 0).map((line: any) => (
+          {vatBreakdown.map((line: any) => (
             <div key={line.vatRate}>
-              <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>KDV %{line.vatRate}</div>
+              <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                {t('cart:vatRate', { rate: line.vatRate })}
+              </div>
               <div style={{ fontWeight: 800 }}>{formatCurrency(line.vatAmount || 0)}</div>
             </div>
           ))}
+        </div>
         </div>
 
         {order.errorMessage && (
@@ -531,7 +657,7 @@ export default function OrderDetailPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {order.items?.map((item: any, index: number) => {
-            const lineTotals = getLineTotals(item);
+            const lineTotals = getOrderLineTotals(item);
             return (
             <motion.div
               key={index}
@@ -578,13 +704,13 @@ export default function OrderDetailPage() {
                     Birim Fiyat
                   </label>
                   <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {formatCurrency(lineTotals.unitPriceExclVat)} KDV hariç
+                    {formatCurrency(lineTotals.unitPriceExclVat)} {t('cart:exclVat')}
                   </p>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-                    Toplam
+                    {t('cart:lineTotal')}
                   </label>
                   <p
                     style={{
@@ -601,7 +727,7 @@ export default function OrderDetailPage() {
 
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-                    KDV %{lineTotals.vatRate}
+                    {t('cart:vatRate', { rate: lineTotals.vatRate })}
                   </label>
                   <p style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {formatCurrency(lineTotals.lineVatAmount)}
@@ -610,7 +736,7 @@ export default function OrderDetailPage() {
 
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)' }}>
-                    KDV dahil
+                    {t('cart:inclVat')}
                   </label>
                   <p style={{ fontSize: 'clamp(1.1rem, 3vw, 1.25rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {formatCurrency(lineTotals.lineTotalInclVat)}

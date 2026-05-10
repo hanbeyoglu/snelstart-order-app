@@ -18,34 +18,34 @@ export class OrdersController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard statistics' })
-  async getDashboardStats(@Query('period') period: 'daily' | 'weekly' | 'monthly' = 'daily') {
-    return this.ordersService.getDashboardStats(period);
+  async getDashboardStats(@Query('period') period: 'daily' | 'weekly' | 'monthly' = 'daily', @Req() req: any) {
+    return this.ordersService.getDashboardStats(period, req.user);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get orders' })
-  async getOrders(@Query('status') status?: string) {
+  async getOrders(@Query('status') status: string | undefined, @Req() req: any) {
     const filters: any = {};
     if (status) filters.status = status;
-    return this.ordersService.getOrders(filters);
+    return this.ordersService.getOrders(filters, req.user);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
-  async getOrderById(@Param('id') id: string) {
-    return this.ordersService.getOrderById(id);
+  async getOrderById(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.getOrderById(id, req.user);
   }
 
   @Post(':id/retry')
   @ApiOperation({ summary: 'Retry failed order sync' })
   async retryOrder(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.retryOrder(id, req.user?.userId);
+    return this.ordersService.retryOrder(id, req.user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete order' })
   async deleteOrder(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.deleteOrder(id, req.user?.userId);
+    return this.ordersService.deleteOrder(id, req.user);
   }
 
   @Put(':id')

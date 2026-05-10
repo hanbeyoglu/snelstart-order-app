@@ -176,6 +176,13 @@ export interface LocalOrder {
   _id?: string;
   idempotencyKey: string; // Client-generated UUID
   customerId: string;
+  createdByUserId?: string;
+  createdByUsername?: string;
+  createdByFullName?: string;
+  createdByRole?: 'customer' | 'sales_rep' | 'admin' | 'super_admin' | string;
+  createdByCustomerId?: string;
+  createdByCustomerName?: string;
+  memo?: string;
   items: CartItem[];
   subtotal: number;
   total: number;

@@ -22,6 +22,13 @@ const generateUUID = () => {
 
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+const getLocalDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function CartPage() {
   const { t } = useAppTranslation(['common', 'cart', 'products', 'errors']);
   const { formatCurrency } = useLocaleFormat();
@@ -35,10 +42,28 @@ export default function CartPage() {
   const customerSearchRef = useRef<HTMLDivElement>(null);
   const [localUnitPrices, setLocalUnitPrices] = useState<Record<string, string>>({});
   const [itemToRemove, setItemToRemove] = useState<{ productId: string; productName: string } | null>(null);
+  const [deliveryDecision, setDeliveryDecision] = useState('');
+  const [deliveryTiming, setDeliveryTiming] = useState<'asap' | 'scheduled' | ''>('');
+  const [deliveryDate, setDeliveryDate] = useState('');
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isCustomer = user?.role === 'customer';
   const { confirmPriceOverride } = useAdminPriceOverride();
+  const deliveryOptions = [
+    {
+      value: 'market_delivery',
+      label: t('cart:delivery.options.marketDelivery'),
+      memoLabel: 'Markete Teslim',
+    },
+    {
+      value: 'warehouse_pickup',
+      label: t('cart:delivery.options.warehousePickup'),
+      memoLabel: 'Depodan Teslim Alınacak',
+    },
+  ];
+  const todayInputValue = getLocalDateInputValue(new Date());
+  const deliveryTimeComplete = deliveryTiming === 'asap' || (deliveryTiming === 'scheduled' && deliveryDate);
 
   // Debounce customer search
   useEffect(() => {
@@ -61,6 +86,13 @@ export default function CartPage() {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showCustomerList]);
+
+  useEffect(() => {
+    if (isCustomer && user?.customerId) {
+      setSelectedCustomerId(user.customerId);
+      setCustomer(user.customerId);
+    }
+  }, [isCustomer, user?.customerId, setCustomer]);
 
   // Sepet değiştikçe lokal birim fiyat state'ini senkronize et
   useEffect(() => {
@@ -181,27 +213,56 @@ export default function CartPage() {
     };
   }, [items]);
 
+  const getLineTotals = (item: any) => {
+    const unitPriceExclVat = item.customUnitPrice ?? item.unitPrice ?? item.unitPriceExclVat ?? 0;
+    const lineSubtotalExclVat = money(unitPriceExclVat * item.quantity);
+    const vatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
+    const lineVatAmount = money((lineSubtotalExclVat * vatRate) / 100);
+    const lineTotalInclVat = money(lineSubtotalExclVat + lineVatAmount);
+
+    return {
+      unitPriceExclVat,
+      lineSubtotalExclVat,
+      vatRate,
+      lineVatAmount,
+      lineTotalInclVat,
+    };
+  };
+
   const createOrderMutation = useMutation({
     mutationFn: async () => {
       if (!selectedCustomerId) {
         throw new Error(t('cart:messages.selectCustomer'));
       }
+      const selectedDeliveryOption = deliveryOptions.find((option) => option.value === deliveryDecision);
+      if (!selectedDeliveryOption) {
+        throw new Error(t('cart:messages.selectDelivery'));
+      }
+      if (!deliveryTimeComplete) {
+        throw new Error(t('cart:messages.selectDeliveryTime'));
+      }
+      const deliveryTimeMemo =
+        deliveryTiming === 'asap'
+          ? 'Hemen'
+          : `Belirli tarih: ${deliveryDate}`;
 
       // Eğer customUnitPrice varsa, onu kullan; yoksa cartCalculation'dan gelen fiyatı kullan
       const orderItems = items.filter((item) => !item.isChildItem).map((item) => {
         const unitPrice = item.customUnitPrice ?? item.unitPrice;
         const totalPrice = unitPrice * item.quantity;
+        const vatRate = item.vatRate ?? item.vatPercentage ?? 0;
         return {
           productId: item.productId,
           productName: item.productName,
           sku: item.sku || item.productId || 'N/A', // Fallback: sku yoksa productId veya 'N/A'
           quantity: item.quantity,
           unitPrice: unitPrice,
+          unitPriceExclVat: unitPrice,
           basePrice: item.basePrice || item.unitPrice,
           totalPrice: totalPrice,
-          vatPercentage: item.vatPercentage || 0,
+          vatPercentage: vatRate,
           vatType: item.vatType ?? null,
-          vatRate: item.vatRate ?? item.vatPercentage ?? 0,
+          vatRate,
           vatGroupId: item.vatGroupId,
           vatGroupName: item.vatGroupName,
           customUnitPrice: item.customUnitPrice,
@@ -216,15 +277,38 @@ export default function CartPage() {
       const response = await api.post('/orders', {
         idempotencyKey: generateUUID(),
         customerId: selectedCustomerId,
+        memo: `Teslimat: ${selectedDeliveryOption.memoLabel}\nTeslimat zamanı: ${deliveryTimeMemo}`,
         items: orderItems,
       });
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (createdOrder) => {
+      queryClient.getQueriesData({ queryKey: ['orders'] }).forEach(([queryKey, data]) => {
+        if (!Array.isArray(data)) return;
+
+        const statusFilter = Array.isArray(queryKey) ? queryKey[2] : undefined;
+        if (statusFilter && createdOrder?.status !== statusFilter) {
+          return;
+        }
+
+        queryClient.setQueryData(queryKey, [
+          createdOrder,
+          ...data.filter((cachedOrder: any) => cachedOrder?._id !== createdOrder?._id),
+        ]);
+      });
+      if (createdOrder?._id) {
+        queryClient.setQueryData(['order', createdOrder._id], createdOrder);
+      }
+
       clear();
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      setDeliveryDecision('');
+      setDeliveryTiming('');
+      setDeliveryDate('');
+      queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
       showToast(t('cart:messages.orderCreated'), 'success');
-      navigate('/orders');
+      navigate(isCustomer ? '/my-orders' : '/orders');
     },
     onError: (error: any) => {
       const apiMessage = error?.response?.data?.message;
@@ -261,7 +345,7 @@ export default function CartPage() {
             {t('cart:emptyDescription')}
           </p>
           <motion.button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/products')}
             className="btn-primary"
             style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}
             whileTap={{ scale: 0.95 }}
@@ -275,6 +359,7 @@ export default function CartPage() {
 
   return (
     <div className="container">
+      {!isCustomer && (
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -319,6 +404,21 @@ export default function CartPage() {
           </motion.button>
         )}
       </motion.div>
+      )}
+
+      {isCustomer && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card"
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: '0.35rem' }}>{t('cart:selectedCustomer')}</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Sipariş bağlı müşteri kaydınızla oluşturulacak.
+          </div>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -336,29 +436,37 @@ export default function CartPage() {
           👤 {t('cart:selectCustomer')}:
         </label>
         <div ref={customerSearchRef} style={{ position: 'relative', marginTop: '0.5rem', zIndex: 1000 }}>
-          <input
-            type="text"
-            value={selectedCustomer ? selectedCustomer.naam : customerSearch}
-            onChange={(e) => {
-              setCustomerSearch(e.target.value);
-              setShowCustomerList(true);
-              if (selectedCustomerId && e.target.value !== selectedCustomer?.naam) {
+	          <input
+	            type="text"
+	            value={selectedCustomer ? selectedCustomer.naam : customerSearch}
+	            disabled={isCustomer}
+	            readOnly={isCustomer}
+	            onChange={(e) => {
+	              if (isCustomer) return;
+	              setCustomerSearch(e.target.value);
+	              setShowCustomerList(true);
+	              if (selectedCustomerId && e.target.value !== selectedCustomer?.naam) {
                 setSelectedCustomerId('');
                 setCustomer(null);
-              }
-            }}
-            onFocus={() => setShowCustomerList(true)}
-            placeholder={t('cart:customerSearchPlaceholder')}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              fontSize: '1rem',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-            }}
-          />
-          {selectedCustomerId && (
-            <button
+	              }
+	            }}
+	            onFocus={() => {
+	              if (!isCustomer) setShowCustomerList(true);
+	            }}
+	            placeholder={t('cart:customerSearchPlaceholder')}
+	            style={{
+	              width: '100%',
+	              padding: '0.75rem',
+	              fontSize: '1rem',
+	              border: '1px solid var(--border-color)',
+	              borderRadius: '8px',
+	              background: isCustomer ? 'rgba(243, 244, 246, 0.8)' : undefined,
+	              color: isCustomer ? 'var(--text-secondary)' : undefined,
+	              cursor: isCustomer ? 'not-allowed' : undefined,
+	            }}
+	          />
+	          {selectedCustomerId && !isCustomer && (
+	            <button
               onClick={() => {
                 setSelectedCustomerId('');
                 setCustomer(null);
@@ -382,7 +490,7 @@ export default function CartPage() {
               ✕
             </button>
           )}
-          {showCustomerList && (
+	          {showCustomerList && !isCustomer && (
             <div
               style={{
                 position: 'absolute',
@@ -465,6 +573,151 @@ export default function CartPage() {
         )}
       </motion.div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
+        style={{
+          marginBottom: '1.5rem',
+          border: deliveryDecision ? '1px solid rgba(16, 185, 129, 0.25)' : '2px solid rgba(245, 158, 11, 0.35)',
+          background: deliveryDecision
+            ? 'rgba(16, 185, 129, 0.04)'
+            : 'rgba(245, 158, 11, 0.06)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700, fontSize: 'clamp(0.95rem, 3vw, 1.05rem)' }}>
+              {t('cart:delivery.title')}
+            </label>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              {t('cart:delivery.requiredDescription')}
+            </div>
+          </div>
+          {!deliveryDecision && (
+            <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: '0.9rem' }}>
+              {t('forms.required')}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+          {deliveryOptions.map((option) => {
+            const isSelected = deliveryDecision === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setDeliveryDecision(option.value)}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '10px',
+                  border: isSelected ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                  background: isSelected ? 'rgba(16, 185, 129, 0.12)' : 'white',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  minHeight: '48px',
+                }}
+              >
+                {isSelected ? '✓ ' : ''}{option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {deliveryDecision && (
+          <div
+            style={{
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid rgba(99, 102, 241, 0.18)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>
+                  {t('cart:delivery.timeTitle')}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  {t('cart:delivery.timeDescription')}
+                </div>
+              </div>
+              {!deliveryTimeComplete && (
+                <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: '0.9rem' }}>
+                  {t('forms.required')}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeliveryTiming('asap');
+                  setDeliveryDate('');
+                }}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '10px',
+                  border: deliveryTiming === 'asap' ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                  background: deliveryTiming === 'asap' ? 'rgba(16, 185, 129, 0.12)' : 'white',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  minHeight: '48px',
+                }}
+              >
+                {deliveryTiming === 'asap' ? '✓ ' : ''}{t('cart:delivery.timeOptions.asap')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryTiming('scheduled')}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '10px',
+                  border: deliveryTiming === 'scheduled' ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                  background: deliveryTiming === 'scheduled' ? 'rgba(16, 185, 129, 0.12)' : 'white',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  minHeight: '48px',
+                }}
+              >
+                {deliveryTiming === 'scheduled' ? '✓ ' : ''}{t('cart:delivery.timeOptions.scheduled')}
+              </button>
+            </div>
+
+            {deliveryTiming === 'scheduled' && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {t('cart:delivery.dateLabel')}
+                </label>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  min={todayInputValue}
+                  onChange={(event) => setDeliveryDate(event.target.value)}
+                  style={{
+                    width: '100%',
+                    maxWidth: '320px',
+                    padding: '0.75rem',
+                    border: deliveryDate ? '1px solid var(--border-color)' : '2px solid rgba(245, 158, 11, 0.45)',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    background: 'white',
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
+
       <AnimatePresence>
         {items.map((item, index) => {
           const isChildItem = item.isChildItem === true;
@@ -478,6 +731,7 @@ export default function CartPage() {
                 basePrice: item.basePrice || item.unitPrice,
                 purchasePrice: item.inkoopprijs,
               });
+          const lineTotals = getLineTotals(item);
           const hasPriceErrorForItem =
             !isChildItem &&
             (rawPrice === '' ||
@@ -608,7 +862,7 @@ export default function CartPage() {
                       step="0.01"
                       inputMode="decimal"
                       value={displayPrice}
-                      disabled={isChildItem}
+                      disabled={isChildItem || isCustomer}
                       onChange={async (e) => {
                         if (isChildItem) return;
                         const displayValue = e.target.value;
@@ -682,9 +936,9 @@ export default function CartPage() {
                     />
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>€</span>
                   </div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600 }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600 }}>
                     {t('cart:exclVat')}
-                  </span>
+                  </div>
                 </div>
 
                 {/* Miktar */}
@@ -699,7 +953,6 @@ export default function CartPage() {
                       onCommit={(newQuantity) => {
                         if (!isChildItem) updateQuantity(item.productId, newQuantity);
                       }}
-                      max={item.voorraad}
                       ariaLabel={`${item.productName} ${t('products:fields.quantity')}`}
                       disabled={isChildItem}
                       style={{ 
@@ -907,7 +1160,7 @@ export default function CartPage() {
             <span>{formatCurrency(cartTotals.totalInclVat)}</span>
           </div>
           <motion.button
-            onClick={() => !hasPriceErrors && createOrderMutation.mutate()}
+            onClick={() => selectedCustomerId && deliveryDecision && deliveryTimeComplete && !hasPriceErrors && createOrderMutation.mutate()}
             className="btn-success"
             style={{ 
               width: '100%', 
@@ -915,11 +1168,11 @@ export default function CartPage() {
               fontSize: 'clamp(1rem, 4vw, 1.1rem)', 
               fontWeight: 600,
               minHeight: '52px',
-              opacity: hasPriceErrors ? 0.6 : 1,
-              cursor: hasPriceErrors ? 'not-allowed' : 'pointer',
+              opacity: !selectedCustomerId || !deliveryDecision || !deliveryTimeComplete || hasPriceErrors ? 0.6 : 1,
+              cursor: !selectedCustomerId || !deliveryDecision || !deliveryTimeComplete || hasPriceErrors ? 'not-allowed' : 'pointer',
             }}
-            disabled={!selectedCustomerId || createOrderMutation.isPending || hasPriceErrors}
-            whileTap={{ scale: selectedCustomerId && !createOrderMutation.isPending && !hasPriceErrors ? 0.98 : 1 }}
+            disabled={!selectedCustomerId || !deliveryDecision || !deliveryTimeComplete || createOrderMutation.isPending || hasPriceErrors}
+            whileTap={{ scale: selectedCustomerId && deliveryDecision && deliveryTimeComplete && !createOrderMutation.isPending && !hasPriceErrors ? 0.98 : 1 }}
           >
             {createOrderMutation.isPending ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
