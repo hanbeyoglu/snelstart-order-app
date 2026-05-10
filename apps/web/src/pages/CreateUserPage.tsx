@@ -1,12 +1,13 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from '../utils/permissions';
 
-type UserRole = 'sales_rep' | 'admin' | 'super_admin';
+type UserRole = 'customer' | 'sales_rep' | 'admin' | 'super_admin';
 
 export default function CreateUserPage() {
   const navigate = useNavigate();
@@ -19,9 +20,32 @@ export default function CreateUserPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('sales_rep');
   const [useEmail, setUseEmail] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [customerId, setCustomerId] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+
+  const { data: permissionCatalog } = useQuery({
+    queryKey: ['permission-catalog'],
+    queryFn: async () => {
+      const response = await api.get('/users/permissions/catalog');
+      return response.data.permissions as string[];
+    },
+  });
+
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers-for-user-select', customerSearch],
+    queryFn: async () => {
+      const response = await api.get('/customers', {
+        params: { page: 1, limit: 25, ...(customerSearch ? { search: customerSearch } : {}) },
+      });
+      return response.data;
+    },
+    enabled: role === 'customer',
+  });
+  const customers = customersResponse?.data || [];
 
   const createMutation = useMutation({
-    mutationFn: async (data: { username: string; email?: string; password: string; role: UserRole }) => {
+    mutationFn: async (data: { username: string; email?: string; password: string; role: UserRole; permissions?: string[]; customerId?: string }) => {
       const response = await api.post('/users', data);
       return response.data;
     },
@@ -77,10 +101,19 @@ export default function CreateUserPage() {
       return;
     }
 
-    const userData: { username: string; password: string; role: UserRole; email?: string } = { 
+    if (role === 'customer' && !customerId) {
+      showToast('Customer rolü için müşteri seçimi zorunludur', 'error');
+      return;
+    }
+
+    const userData: { username: string; password: string; role: UserRole; email?: string; permissions?: string[]; customerId?: string } = {
       username: username.trim(), 
       password, 
-      role 
+      role,
+      ...(role !== 'super_admin'
+        ? { permissions: permissions.filter((permission) => (permissionCatalog || []).includes(permission)) }
+        : {}),
+      ...(role === 'customer' ? { customerId } : {}),
     };
     
     // useEmail false ise email'i hiç gönderme
@@ -261,12 +294,113 @@ export default function CreateUserPage() {
               style={{ width: '100%', minHeight: '44px' }}
             >
               <option value="sales_rep">👤 Çalışan</option>
+              <option value="customer">🛒 Customer</option>
               <option value="admin">👑 Admin</option>
               {currentUser?.role === 'super_admin' && (
                 <option value="super_admin">🔐 Super Admin</option>
               )}
             </select>
           </div>
+
+          {role === 'customer' && (
+            <div style={{ marginBottom: '2rem' }}>
+              <label htmlFor="customerSearch" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Bağlı Müşteri *
+              </label>
+              <input
+                id="customerSearch"
+                type="text"
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Müşteri adı, kodu veya e-posta ara"
+                className="input"
+                style={{ width: '100%', minHeight: '44px', marginBottom: '0.75rem' }}
+              />
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="input"
+                required
+                style={{ width: '100%', minHeight: '44px' }}
+              >
+                <option value="">Müşteri seçin</option>
+                {customers.map((customer: any) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''} {customer.email ? `- ${customer.email}` : customer.telefoon ? `- ${customer.telefoon}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Aynı müşteri kaydına birden fazla customer kullanıcı bağlanabilir.
+              </p>
+            </div>
+          )}
+
+          {role !== 'super_admin' && permissionCatalog && permissionCatalog.length > 0 && (
+            <div style={{ marginBottom: '2rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                İzinler
+              </label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '0.75rem',
+                }}
+              >
+                {permissionCatalog.map((permission) => (
+                  <label
+                    key={permission}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      minHeight: '44px',
+                      padding: '0.7rem 0.8rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      background: 'var(--surface)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={permissions.includes(permission)}
+                      onChange={(e) => {
+                        setPermissions((current) =>
+                          e.target.checked
+                            ? [...new Set([...current, permission])]
+                            : current.filter((item) => item !== permission),
+                        );
+                      }}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--primary)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600 }}>
+                        {PERMISSION_LABELS[permission] || permission}
+                      </span>
+                      <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.35 }}>
+                        {PERMISSION_DESCRIPTIONS[permission] || permission}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <motion.button

@@ -9,6 +9,7 @@ import { SnelStartService } from '../snelstart/snelstart.service';
 import { CategoriesService } from '../categories/categories.service';
 import { ProductsService } from '../products/products.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { getEffectivePermissions } from './permissions';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -109,6 +110,8 @@ export class AuthController {
       firstName: req.user.firstName,
       lastName: req.user.lastName,
       role: req.user.role,
+      permissions: getEffectivePermissions(req.user.role, req.user.permissions),
+      customerId: req.user.customerId || null,
     };
   }
 }

@@ -7,6 +7,7 @@ import { useCartStore } from '../store/cartStore';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { canManagePermissions, hasPermission } from '../utils/permissions';
 import api from '../services/api';
 import dhyLogo from '../assets/image/DHY-logo.jpg';
 
@@ -120,34 +121,46 @@ export default function Layout() {
   };
 
   const navLinks = [
-    { to: '/', label: t('navigation.dashboard'), icon: '📊' },
-    { to: '/products', label: t('navigation.products'), icon: '🛍️' },
-    { to: '/categories', label: t('navigation.categories'), icon: '📁' },
-    { to: '/customers', label: t('navigation.customers'), icon: '👥' },
-    { to: '/orders', label: t('navigation.orders'), icon: '📋' },
+    ...(hasPermission(user, 'dashboard.view')
+      ? [{ to: '/', label: t('navigation.dashboard'), icon: '📊' }]
+      : []),
+    ...(hasPermission(user, 'products.view')
+      ? [
+          { to: '/products', label: t('navigation.products'), icon: '🛍️' },
+          { to: '/categories', label: t('navigation.categories'), icon: '📁' },
+        ]
+      : []),
+    ...(hasPermission(user, 'customers.view')
+      ? [{ to: '/customers', label: t('navigation.customers'), icon: '👥' }]
+      : []),
+    ...(hasPermission(user, 'orders.view')
+      ? [{ to: '/orders', label: t('navigation.orders'), icon: '📋' }]
+      : []),
   ];
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
-  const isSuperAdmin = user?.role === 'super_admin';
-
-  const catalogLinks: MenuLink[] = isAdmin
-    ? [
-        { to: '/settings/product-visibility', label: t('navigation.productVisibility'), icon: '👁️' },
-        { to: '/settings/category-visibility', label: t('navigation.categoryVisibility'), icon: '📁' },
-        { to: '/admin/images', label: t('navigation.productImages'), icon: '🖼️' },
-        { to: '/admin/price-warnings', label: t('navigation.priceWarnings'), icon: '⚠️' },
-      ]
-    : [];
+  const catalogLinks: MenuLink[] = [
+    ...(hasPermission(user, 'products.manage')
+      ? [
+          { to: '/settings/product-visibility', label: t('navigation.productVisibility'), icon: '👁️' },
+          { to: '/settings/category-visibility', label: t('navigation.categoryVisibility'), icon: '📁' },
+          { to: '/admin/images', label: t('navigation.productImages'), icon: '🖼️' },
+        ]
+      : []),
+    ...(hasPermission(user, 'pricing.manage')
+      ? [{ to: '/admin/price-warnings', label: t('navigation.priceWarnings'), icon: '⚠️' }]
+      : []),
+  ];
 
   const systemLinks: MenuLink[] = user
     ? [
-        ...(isAdmin ? [{ to: '/users', label: t('navigation.users'), icon: '👥' }] : []),
-        ...(isSuperAdmin ? [{ to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' }] : []),
-        ...(isSuperAdmin ? [{ to: '/audit', label: 'Audit Logs', icon: '🧾' }] : []),
+        ...(canManagePermissions(user) ? [{ to: '/users', label: t('navigation.users'), icon: '👥' }] : []),
+        ...(canManagePermissions(user) ? [{ to: '/portal-users', label: t('navigation.portalAccounts'), icon: '🛒' }] : []),
+        ...(hasPermission(user, 'snelstart.settings.manage') ? [{ to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' }] : []),
+        ...(user.role === 'super_admin' && hasPermission(user, 'audit.view') ? [{ to: '/audit', label: 'Audit Logs', icon: '🧾' }] : []),
       ]
     : [];
 
-  const analysisLinks: MenuLink[] = isSuperAdmin
+  const analysisLinks: MenuLink[] = hasPermission(user, 'reports.view')
     ? [{ to: '/reports', label: t('navigation.reports'), icon: '📊' }]
     : [];
 
@@ -761,7 +774,10 @@ export default function Layout() {
                         border: '1px solid rgba(99, 102, 241, 0.1)',
                         padding: '0.75rem',
                         zIndex: 1001,
-                        overflow: 'hidden',
+                        maxHeight: 'min(78vh, 640px)',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        overscrollBehavior: 'contain',
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -823,7 +839,9 @@ export default function Layout() {
                                   ? '🔐 Super Admin'
                                   : user.role === 'admin'
                                     ? `👑 ${t('auth:roles.admin')}`
-                                    : `👤 ${t('auth:roles.salesRep')}`}
+                                    : user.role === 'customer'
+                                      ? '🛒 Customer'
+                                      : `👤 ${t('auth:roles.salesRep')}`}
                               </p>
                             )}
                           </div>
@@ -1111,7 +1129,9 @@ export default function Layout() {
                               ? '🔐 Super Admin'
                               : user.role === 'admin'
                                 ? `👑 ${t('auth:roles.admin')}`
-                                : `👤 ${t('auth:roles.salesRep')}`}
+                                : user.role === 'customer'
+                                  ? '🛒 Customer'
+                                  : `👤 ${t('auth:roles.salesRep')}`}
                           </p>
                         )}
                       </div>

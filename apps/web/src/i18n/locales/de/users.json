@@ -9,8 +9,38 @@
   "deleteTitle": "Benutzer löschen",
   "deleteDescription": "Sie sind dabei, {{name}} zu löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
   "roles": {
+    "superAdmin": "Super Admin",
     "admin": "Admin",
     "salesRep": "Mitarbeiter"
+  },
+  "profile": {
+    "title": "Benutzerinformationen",
+    "accountInfo": "Kontoinformationen",
+    "fullName": "Vollständiger Name",
+    "useEmail": "E-Mail verwenden",
+    "newPasswordHelp": "Neues Passwort (mindestens 6 Zeichen, leer lassen, wenn Sie es nicht ändern möchten)",
+    "confirmNewPassword": "Neues Passwort wiederholen",
+    "notEditable": "Nicht bearbeitbar",
+    "companyInfo": "Unternehmensinformationen",
+    "companyName": "Unternehmensname",
+    "kvkNumber": "KVK-Nummer",
+    "btwNumber": "USt-Nummer",
+    "website": "Website",
+    "companyInfoUnavailable": "Unternehmensinformationen konnten nicht geladen werden",
+    "placeholders": {
+      "firstName": "Ihr Vorname",
+      "lastName": "Ihr Nachname",
+      "email": "beispiel@email.com"
+    },
+    "validation": {
+      "usernameRequired": "Bitte geben Sie Ihren Benutzernamen ein",
+      "passwordMinLength": "Das Passwort muss mindestens 6 Zeichen lang sein",
+      "passwordMismatch": "Passwörter stimmen nicht überein"
+    },
+    "messages": {
+      "updated": "Ihre Profilinformationen wurden erfolgreich aktualisiert",
+      "updateError": "Beim Aktualisieren Ihres Profils ist ein Fehler aufgetreten"
+    }
   },
   "messages": {
     "deleted": "Benutzer erfolgreich gelöscht",

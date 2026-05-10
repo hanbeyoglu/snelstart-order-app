@@ -5,8 +5,9 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from '../utils/permissions';
 
-type UserRole = 'sales_rep' | 'admin' | 'super_admin';
+type UserRole = 'customer' | 'sales_rep' | 'admin' | 'super_admin';
 
 export default function EditUserPage() {
   const { userId } = useParams();
@@ -20,6 +21,10 @@ export default function EditUserPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('sales_rep');
   const [useEmail, setUseEmail] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [initialPermissions, setInitialPermissions] = useState<string[]>([]);
+  const [customerId, setCustomerId] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['user', userId],
@@ -30,18 +35,45 @@ export default function EditUserPage() {
     enabled: !!userId,
   });
 
+  const { data: permissionCatalog } = useQuery({
+    queryKey: ['permission-catalog'],
+    queryFn: async () => {
+      const response = await api.get('/users/permissions/catalog');
+      return response.data.permissions as string[];
+    },
+  });
+
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers-for-user-select', customerSearch],
+    queryFn: async () => {
+      const response = await api.get('/customers', {
+        params: { page: 1, limit: 25, ...(customerSearch ? { search: customerSearch } : {}) },
+      });
+      return response.data;
+    },
+    enabled: role === 'customer',
+  });
+  const customers = customersResponse?.data || [];
+
   useEffect(() => {
     if (user) {
       setUsername(user.username || '');
       setEmail(user.email || '');
       setUseEmail(!!user.email);
       setRole(user.role);
+      setCustomerId(user.customerId || '');
+      setPermissions(user.permissions || []);
+      setInitialPermissions(user.permissions || []);
     }
   }, [user]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { username?: string; email?: string; password?: string; role?: UserRole }) => {
-      const response = await api.put(`/users/${userId}`, data);
+    mutationFn: async (data: { username?: string; email?: string; password?: string; role?: UserRole; permissions?: string[]; customerId?: string }) => {
+      const { permissions: nextPermissions, ...profileData } = data;
+      const response = await api.put(`/users/${userId}`, profileData);
+      if (nextPermissions && user?.role !== 'super_admin') {
+        await api.put(`/users/${userId}/permissions`, { permissions: nextPermissions });
+      }
       return response.data;
     },
     onSuccess: () => {
@@ -71,9 +103,15 @@ export default function EditUserPage() {
 
     // Email opsiyonel - zorunluluk kontrolü yok
 
-    const updateData: { username?: string; email?: string | null; password?: string; role?: UserRole } = {
+    if (role === 'customer' && !customerId) {
+      showToast('Customer rolü için müşteri seçimi zorunludur', 'error');
+      return;
+    }
+
+    const updateData: { username?: string; email?: string | null; password?: string; role?: UserRole; customerId?: string } = {
       username: username.trim(),
       role,
+      ...(role === 'customer' ? { customerId } : {}),
     };
 
     // Email işleme: useEmail true ise ve email varsa gönder, false ise undefined gönder (kaldır)
@@ -104,9 +142,17 @@ export default function EditUserPage() {
     }
 
     // null değerlerini undefined'a çevir (TypeScript tip uyumu için)
-    const finalUpdateData: { username?: string; email?: string; password?: string; role?: UserRole } = {
+    const normalizedPermissions = permissions.filter((permission) =>
+      (permissionCatalog || []).includes(permission),
+    );
+    const permissionsChanged =
+      normalizedPermissions.length !== initialPermissions.length ||
+      normalizedPermissions.some((permission) => !initialPermissions.includes(permission));
+
+    const finalUpdateData: { username?: string; email?: string; password?: string; role?: UserRole; permissions?: string[]; customerId?: string } = {
       ...updateData,
       email: updateData.email === null ? undefined : updateData.email,
+      ...(permissionsChanged ? { permissions: normalizedPermissions } : {}),
     };
 
     updateMutation.mutate(finalUpdateData);
@@ -320,12 +366,115 @@ export default function EditUserPage() {
               style={{ width: '100%', minHeight: '44px' }}
             >
               <option value="sales_rep">👤 Çalışan</option>
-              <option value="admin">👑 Admin</option>
+              <option value="customer">🛒 Customer</option>
+              {currentUser?.role === 'super_admin' && (
+                <option value="admin">👑 Admin</option>
+              )}
               {currentUser?.role === 'super_admin' && (
                 <option value="super_admin">🔐 Super Admin</option>
               )}
             </select>
           </div>
+
+          {role === 'customer' && (
+            <div style={{ marginBottom: '2rem' }}>
+              <label htmlFor="customerSearch" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Bağlı Müşteri *
+              </label>
+              <input
+                id="customerSearch"
+                type="text"
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Müşteri adı, kodu veya e-posta ara"
+                className="input"
+                style={{ width: '100%', minHeight: '44px', marginBottom: '0.75rem' }}
+              />
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="input"
+                required
+                style={{ width: '100%', minHeight: '44px' }}
+              >
+                <option value="">Müşteri seçin</option>
+                {customers.map((customer: any) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''} {customer.email ? `- ${customer.email}` : customer.telefoon ? `- ${customer.telefoon}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Aynı müşteri kaydına birden fazla customer kullanıcı bağlanabilir.
+              </p>
+            </div>
+          )}
+
+          {user.role !== 'super_admin' && permissionCatalog && permissionCatalog.length > 0 && (
+            <div style={{ marginBottom: '2rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                İzinler
+              </label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '0.75rem',
+                }}
+              >
+                {permissionCatalog.map((permission) => (
+                  <label
+                    key={permission}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      minHeight: '44px',
+                      padding: '0.7rem 0.8rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      background: 'var(--surface)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={permissions.includes(permission)}
+                      onChange={(e) => {
+                        setPermissions((current) =>
+                          e.target.checked
+                            ? [...new Set([...current, permission])]
+                            : current.filter((item) => item !== permission),
+                        );
+                      }}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--primary)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600 }}>
+                        {PERMISSION_LABELS[permission] || permission}
+                      </span>
+                      <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.35 }}>
+                        {PERMISSION_DESCRIPTIONS[permission] || permission}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <motion.button

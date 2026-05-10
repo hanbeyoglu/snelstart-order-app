@@ -9,14 +9,18 @@ interface User {
   email?: string;
   firstName?: string;
   lastName?: string;
-  role: 'sales_rep' | 'admin' | 'super_admin';
+  role: 'customer' | 'sales_rep' | 'admin' | 'super_admin';
+  permissions?: string[];
+  customerId?: string | null;
+  isActive?: boolean;
+  preferredLanguage?: string | null;
 }
 
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   setUser: (user: User) => void;
 }
@@ -36,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
         });
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
         useCartStore.getState().setCurrentUser(response.data.user.id);
+        return response.data.user;
       },
       logout: () => {
         const { user } = useAuthStore.getState();

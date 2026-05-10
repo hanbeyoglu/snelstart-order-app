@@ -9,8 +9,38 @@
   "deleteTitle": "حذف المستخدم",
   "deleteDescription": "أنت على وشك حذف {{name}}. لا يمكن التراجع عن هذا الإجراء.",
   "roles": {
+    "superAdmin": "مسؤول عام",
     "admin": "مسؤول",
     "salesRep": "موظف"
+  },
+  "profile": {
+    "title": "معلومات المستخدم",
+    "accountInfo": "معلومات الحساب",
+    "fullName": "الاسم الكامل",
+    "useEmail": "استخدام البريد الإلكتروني",
+    "newPasswordHelp": "كلمة مرور جديدة (6 أحرف على الأقل، اتركها فارغة إذا كنت لا تريد تغييرها)",
+    "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+    "notEditable": "غير قابل للتعديل",
+    "companyInfo": "معلومات الشركة",
+    "companyName": "اسم الشركة",
+    "kvkNumber": "رقم KVK",
+    "btwNumber": "رقم ضريبة القيمة المضافة",
+    "website": "الموقع الإلكتروني",
+    "companyInfoUnavailable": "تعذر تحميل معلومات الشركة",
+    "placeholders": {
+      "firstName": "اسمك الأول",
+      "lastName": "اسم العائلة",
+      "email": "example@email.com"
+    },
+    "validation": {
+      "usernameRequired": "يرجى إدخال اسم المستخدم",
+      "passwordMinLength": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل",
+      "passwordMismatch": "كلمات المرور غير متطابقة"
+    },
+    "messages": {
+      "updated": "تم تحديث معلومات ملفك الشخصي بنجاح",
+      "updateError": "حدث خطأ أثناء تحديث ملفك الشخصي"
+    }
   },
   "messages": {
     "deleted": "تم حذف المستخدم بنجاح",

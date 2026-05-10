@@ -23,9 +23,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const loggedInUser = await login(email, password);
       showToast(t('auth:login.success'), 'success');
-      navigate('/');
+      navigate(loggedInUser.role === 'customer' ? '/products' : '/');
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage =

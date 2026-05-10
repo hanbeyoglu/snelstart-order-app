@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useToastStore } from '../store/toastStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 
 interface CompanyInfo {
   naam?: string;
@@ -19,6 +20,7 @@ interface CompanyInfo {
 }
 
 export default function UserPage() {
+  const { t } = useAppTranslation(['common', 'users']);
   const { user, setUser } = useAuthStore();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
@@ -50,22 +52,33 @@ export default function UserPage() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string }) => {
+    mutationFn: async (data: {
+      username?: string;
+      email?: string | null;
+      firstName?: string;
+      lastName?: string;
+      password?: string;
+    }) => {
       const response = await api.put('/users/me', data);
       return response.data;
     },
     onSuccess: (data) => {
       // Auth store'u güncelle
       setUser({
+        ...user,
         id: data._id || data.id,
         username: data.username,
         email: data.email || null,
         firstName: data.firstName || null,
         lastName: data.lastName || null,
         role: data.role,
+        permissions: data.permissions ?? user?.permissions,
+        customerId: data.customerId ?? user?.customerId ?? null,
+        isActive: data.isActive ?? user?.isActive,
+        preferredLanguage: data.preferredLanguage ?? user?.preferredLanguage ?? null,
       });
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-      showToast('Profil bilgileriniz başarıyla güncellendi', 'success');
+      showToast(t('users:profile.messages.updated'), 'success');
       setIsEditing(false);
       setPassword('');
       setConfirmPassword('');
@@ -75,7 +88,7 @@ export default function UserPage() {
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
-        'Profil güncellenirken bir hata oluştu';
+        t('users:profile.messages.updateError');
       showToast(message, 'error', 5000);
     },
   });
@@ -84,11 +97,17 @@ export default function UserPage() {
     e.preventDefault();
 
     if (!username || !username.trim()) {
-      showToast('Lütfen kullanıcı adını girin', 'error');
+      showToast(t('users:profile.validation.usernameRequired'), 'error');
       return;
     }
 
-    const updateData: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string } = {
+    const updateData: {
+      username?: string;
+      email?: string | null;
+      firstName?: string;
+      lastName?: string;
+      password?: string;
+    } = {
       username: username.trim(),
       firstName: firstName.trim() || undefined,
       lastName: lastName.trim() || undefined,
@@ -108,11 +127,11 @@ export default function UserPage() {
     // Şifre kontrolü
     if (password) {
       if (password.length < 6) {
-        showToast('Şifre en az 6 karakter olmalıdır', 'error');
+        showToast(t('users:profile.validation.passwordMinLength'), 'error');
         return;
       }
       if (password !== confirmPassword) {
-        showToast('Şifreler eşleşmiyor', 'error');
+        showToast(t('users:profile.validation.passwordMismatch'), 'error');
         return;
       }
       updateData.password = password;
@@ -140,7 +159,7 @@ export default function UserPage() {
           WebkitTextFillColor: 'transparent',
         }}
       >
-        Kullanıcı Bilgileri
+        {t('users:profile.title')}
       </motion.h2>
 
       {/* User Info Card */}
@@ -150,20 +169,24 @@ export default function UserPage() {
         className="card"
         style={{ marginBottom: '2rem' }}
       >
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <h3 style={{ 
-            fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', 
-            fontWeight: 700, 
-            margin: 0 
-          }}>
-            👤 Hesap Bilgileri
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            👤 {t('users:profile.accountInfo')}
           </h3>
           {!isEditing && (
             <motion.button
@@ -178,175 +201,207 @@ export default function UserPage() {
                 setConfirmPassword('');
               }}
               className="btn-primary"
-              style={{ 
-                padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)', 
+              style={{
+                padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)',
                 fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              ✏️ Düzenle
+              ✏️ {t('users:edit')}
             </motion.button>
           )}
         </div>
 
         {!isEditing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}
+          >
             {(user?.firstName || user?.lastName) && (
               <div>
-                <p style={{ 
-                  color: 'var(--text-secondary)', 
-                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
-                  marginBottom: '0.25rem' 
-                }}>
-                  Ad Soyad
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  {t('users:profile.fullName')}
                 </p>
-                <p style={{ 
-                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
-                  fontWeight: 600,
-                  wordBreak: 'break-word'
-                }}>
+                <p
+                  style={{
+                    fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                    fontWeight: 600,
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {[user?.firstName, user?.lastName].filter(Boolean).join(' ')}
                 </p>
               </div>
             )}
             <div>
-              <p style={{ 
-                color: 'var(--text-secondary)', 
-                fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
-                marginBottom: '0.25rem' 
-              }}>
-                Kullanıcı Adı
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                {t('common:forms.username')}
               </p>
-              <p style={{ 
-                fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
-                fontWeight: 600,
-                wordBreak: 'break-word'
-              }}>
+              <p
+                style={{
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                  fontWeight: 600,
+                  wordBreak: 'break-word',
+                }}
+              >
                 {user?.username}
               </p>
             </div>
             {user?.email && (
               <div>
-                <p style={{ 
-                  color: 'var(--text-secondary)', 
-                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
-                  marginBottom: '0.25rem' 
-                }}>
-                  E-posta
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  {t('common:forms.email')}
                 </p>
-                <p style={{ 
-                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
-                  fontWeight: 600,
-                  wordBreak: 'break-word'
-                }}>
+                <p
+                  style={{
+                    fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                    fontWeight: 600,
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {user.email}
                 </p>
               </div>
             )}
             <div>
-              <p style={{ 
-                color: 'var(--text-secondary)', 
-                fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
-                marginBottom: '0.25rem' 
-              }}>
-                Rol
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                {t('common:forms.role')}
               </p>
-              <p style={{ 
-                fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
-                fontWeight: 600 
-              }}>
-                {user?.role === 'super_admin' ? '🔐 Super Admin' : user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'}
+              <p
+                style={{
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                  fontWeight: 600,
+                }}
+              >
+                {user?.role === 'super_admin'
+                  ? `🔐 ${t('users:roles.superAdmin')}`
+                  : user?.role === 'admin'
+                    ? `👑 ${t('users:roles.admin')}`
+                    : `👤 ${t('users:roles.salesRep')}`}
               </p>
             </div>
           </div>
         ) : (
           <form onSubmit={handleEditProfile}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}
+            >
               <div style={{ display: 'flex', gap: 'clamp(0.75rem, 2vw, 1rem)', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 140px', minWidth: 0 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                    fontWeight: 600,
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                  }}>
-                    Ad
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                      fontWeight: 600,
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    }}
+                  >
+                    {t('common:forms.firstName')}
                   </label>
                   <input
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Adınız"
-                    style={{ 
-                      width: '100%', 
-                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                      borderRadius: '8px', 
+                    placeholder={t('users:profile.placeholders.firstName')}
+                    style={{
+                      width: '100%',
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                      borderRadius: '8px',
                       border: '1px solid var(--border)',
                       fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
                 <div style={{ flex: '1 1 140px', minWidth: 0 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                    fontWeight: 600,
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                  }}>
-                    Soyad
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                      fontWeight: 600,
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    }}
+                  >
+                    {t('common:forms.lastName')}
                   </label>
                   <input
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Soyadınız"
-                    style={{ 
-                      width: '100%', 
-                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                      borderRadius: '8px', 
+                    placeholder={t('users:profile.placeholders.lastName')}
+                    style={{
+                      width: '100%',
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                      borderRadius: '8px',
                       border: '1px solid var(--border)',
                       fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
               </div>
               <div>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                  fontWeight: 600,
-                  fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                }}>
-                  Kullanıcı Adı *
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                  }}
+                >
+                  {t('common:forms.username')} *
                 </label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  style={{ 
-                    width: '100%', 
-                    padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                    borderRadius: '8px', 
+                  style={{
+                    width: '100%',
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                    borderRadius: '8px',
                     border: '1px solid var(--border)',
                     fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
-                  cursor: 'pointer'
-                }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                    cursor: 'pointer',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={useEmail}
@@ -356,14 +411,16 @@ export default function UserPage() {
                       height: 'clamp(18px, 4vw, 20px)',
                       cursor: 'pointer',
                       flexShrink: 0,
-                      margin: 0
+                      margin: 0,
                     }}
                   />
-                  <span style={{ 
-                    fontWeight: 600,
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                  }}>
-                    E-posta kullan
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    }}
+                  >
+                    {t('users:profile.useEmail')}
                   </span>
                 </label>
                 {useEmail && (
@@ -371,54 +428,58 @@ export default function UserPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ornek@email.com"
-                    style={{ 
-                      width: '100%', 
-                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                      borderRadius: '8px', 
+                    placeholder={t('users:profile.placeholders.email')}
+                    style={{
+                      width: '100%',
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                      borderRadius: '8px',
                       border: '1px solid var(--border)',
                       fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
                       marginTop: 'clamp(0.4rem, 1.5vw, 0.5rem)',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                   />
                 )}
               </div>
 
               <div>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                  fontWeight: 600,
-                  fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                }}>
-                  Yeni Şifre (değiştirmek istemiyorsanız boş bırakın)
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                  }}
+                >
+                  {t('users:profile.newPasswordHelp')}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{ 
-                    width: '100%', 
-                    padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                    borderRadius: '8px', 
+                  style={{
+                    width: '100%',
+                    padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                    borderRadius: '8px',
                     border: '1px solid var(--border)',
                     fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               {password && (
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
-                    fontWeight: 600,
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
-                  }}>
-                    Yeni Şifre Tekrar *
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                      fontWeight: 600,
+                      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                    }}
+                  >
+                    {t('users:profile.confirmNewPassword')} *
                   </label>
                   <input
                     type="password"
@@ -426,55 +487,66 @@ export default function UserPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required={!!password}
-                    style={{ 
-                      width: '100%', 
-                      padding: 'clamp(0.6rem, 2vw, 0.75rem)', 
-                      borderRadius: '8px', 
+                    style={{
+                      width: '100%',
+                      padding: 'clamp(0.6rem, 2vw, 0.75rem)',
+                      borderRadius: '8px',
                       border: '1px solid var(--border)',
                       fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
               )}
 
               <div>
-                <p style={{ 
-                  color: 'var(--text-secondary)', 
-                  fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)', 
-                  marginBottom: '0.25rem' 
-                }}>
-                  Rol
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  {t('common:forms.role')}
                 </p>
-                <p style={{ 
-                  fontSize: 'clamp(1rem, 3vw, 1.1rem)', 
-                  fontWeight: 600, 
-                  color: 'var(--text-secondary)' 
-                }}>
-                  {user?.role === 'super_admin' ? '🔐 Super Admin' : user?.role === 'admin' ? '👑 Admin' : '👤 Satış Temsilcisi'} (Değiştirilemez)
+                <p
+                  style={{
+                    fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {user?.role === 'super_admin'
+                    ? `🔐 ${t('users:roles.superAdmin')}`
+                    : user?.role === 'admin'
+                      ? `👑 ${t('users:roles.admin')}`
+                      : `👤 ${t('users:roles.salesRep')}`}{' '}
+                  ({t('users:profile.notEditable')})
                 </p>
               </div>
 
-              <div style={{ 
-                display: 'flex', 
-                gap: 'clamp(0.75rem, 2vw, 1rem)', 
-                marginTop: 'clamp(0.75rem, 2vw, 1rem)',
-                flexWrap: 'wrap'
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 'clamp(0.75rem, 2vw, 1rem)',
+                  marginTop: 'clamp(0.75rem, 2vw, 1rem)',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <motion.button
                   type="submit"
                   className="btn-primary"
                   disabled={updateProfileMutation.isPending}
-                  style={{ 
+                  style={{
                     flex: '1 1 auto',
                     minWidth: '120px',
                     padding: 'clamp(0.6rem, 2vw, 0.75rem)',
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {updateProfileMutation.isPending ? 'Kaydediliyor...' : '💾 Kaydet'}
+                  {updateProfileMutation.isPending ? t('common:states.saving') : `💾 ${t('common:actions.save')}`}
                 </motion.button>
                 <motion.button
                   type="button"
@@ -489,16 +561,16 @@ export default function UserPage() {
                     setConfirmPassword('');
                   }}
                   className="btn-secondary"
-                  style={{ 
+                  style={{
                     flex: '1 1 auto',
                     minWidth: '120px',
                     padding: 'clamp(0.6rem, 2vw, 0.75rem)',
-                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  ❌ İptal
+                  ❌ {t('common:actions.cancel')}
                 </motion.button>
               </div>
             </div>
@@ -515,7 +587,7 @@ export default function UserPage() {
           className="card"
         >
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>
-            🏢 Şirket Bilgileri
+            🏢 {t('users:profile.companyInfo')}
           </h3>
           {isLoadingCompany ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -535,32 +607,56 @@ export default function UserPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {companyInfo.naam && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    Şirket Adı
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('users:profile.companyName')}
                   </p>
                   <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{companyInfo.naam}</p>
                 </div>
               )}
               {companyInfo.kvkNummer && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    KVK Numarası
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('users:profile.kvkNumber')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>{companyInfo.kvkNummer}</p>
                 </div>
               )}
               {companyInfo.btwNummer && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    BTW Numarası
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('users:profile.btwNumber')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>{companyInfo.btwNummer}</p>
                 </div>
               )}
               {(companyInfo.adres || companyInfo.postcode || companyInfo.plaats) && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    Adres
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('common:forms.address')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>
                     {[companyInfo.adres, companyInfo.postcode, companyInfo.plaats]
@@ -571,24 +667,42 @@ export default function UserPage() {
               )}
               {companyInfo.telefoon && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    Telefon
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('common:forms.phone')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>{companyInfo.telefoon}</p>
                 </div>
               )}
               {companyInfo.email && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    E-posta
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('common:forms.email')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>{companyInfo.email}</p>
                 </div>
               )}
               {companyInfo.website && (
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                    Website
+                  <p
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    {t('users:profile.website')}
                   </p>
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>
                     <a
@@ -605,7 +719,7 @@ export default function UserPage() {
             </div>
           ) : (
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-              Şirket bilgileri alınamadı
+              {t('users:profile.companyInfoUnavailable')}
             </p>
           )}
         </motion.div>

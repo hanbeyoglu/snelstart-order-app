@@ -1,0 +1,76 @@
+import type { ReactNode } from 'react';
+
+export const PERMISSION_LABELS: Record<string, string> = {
+  'dashboard.view': 'Ana Dashboard',
+  'products.view': 'Ürünleri Görüntüleme',
+  'products.detail': 'Ürün Detayı',
+  'products.manage': 'Ürünleri Yönetme',
+  'cart.use': 'Sepet Kullanımı',
+  'customers.view': 'Müşterileri Görüntüleme',
+  'customers.wholesalers.view': 'Toptancıları Görüntüleme',
+  'customers.manage': 'Müşterileri Yönetme',
+  'orders.view': 'Siparişleri Görüntüleme',
+  'orders.create': 'Sipariş Oluşturma',
+  'orders.my.view': 'Kendi Siparişlerini Görüntüleme',
+  'orders.manage': 'Siparişleri Yönetme',
+  'profile.view': 'Profil Görüntüleme',
+  'pricing.manage': 'Fiyat Yönetimi',
+  'reports.view': 'Raporları Görüntüleme',
+  'audit.view': 'Audit Log Görüntüleme',
+  'users.manage': 'Kullanıcı Yönetimi',
+  'snelstart.settings.manage': 'SnelStart Ayarları',
+};
+
+export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
+  'dashboard.view': 'Ana paneldeki özet metrikleri ve hızlı genel durumu görür.',
+  'products.view': 'Ürün, kategori ve ürün detay sayfalarını görüntüler.',
+  'products.detail': 'Ürün detay sayfasını görüntüler.',
+  'products.manage': 'Ürün/kategori görünürlüğünü ve ürün görsellerini yönetir.',
+  'cart.use': 'Sepete ürün ekler ve sepeti görüntüler.',
+  'customers.view': 'Müşteri listesini ve müşteri detaylarını görüntüler.',
+  'customers.wholesalers.view': 'Müşteri listesinde toptancı kayıtlarını da görüntüler.',
+  'customers.manage': 'Yeni müşteri oluşturur ve mevcut müşteri bilgilerini düzenler.',
+  'orders.view': 'Sipariş listesini ve sipariş detaylarını görüntüler.',
+  'orders.create': 'Sepeti kullanır ve müşteri adına sipariş oluşturur.',
+  'orders.my.view': 'Sadece kendi müşteri kaydına ait siparişleri görüntüler.',
+  'orders.manage': 'Sipariş süreçlerinde yönetim seviyesindeki işlemleri yapar.',
+  'profile.view': 'Kendi profil sayfasını görüntüler.',
+  'pricing.manage': 'Fiyat yönetimi ekranlarını ve fiyat uyarılarını kullanır.',
+  'reports.view': 'Raporlama ekranındaki satış ve ürün analizlerini görüntüler.',
+  'audit.view': 'Sistemdeki audit log kayıtlarını görüntüler.',
+  'users.manage': 'Kullanıcı oluşturur, düzenler ve izin ataması yapar.',
+  'snelstart.settings.manage': 'SnelStart bağlantı ayarlarını ve entegrasyon işlemlerini yönetir.',
+};
+
+export type PermissionUser = {
+  role: 'customer' | 'sales_rep' | 'admin' | 'super_admin';
+  permissions?: string[];
+} | null | undefined;
+
+export function hasPermission(user: PermissionUser, permission: string) {
+  if (user?.role === 'super_admin') return true;
+  return user?.permissions?.includes(permission) || false;
+}
+
+export function hasAnyPermission(user: PermissionUser, permissions: string[]) {
+  if (user?.role === 'super_admin') return true;
+  return permissions.some((permission) => hasPermission(user, permission));
+}
+
+export function canManagePermissions(user: PermissionUser) {
+  return user?.role === 'super_admin' || (user?.role === 'admin' && hasPermission(user, 'users.manage'));
+}
+
+export function PermissionRoute({
+  user,
+  permission,
+  children,
+  fallback,
+}: {
+  user: PermissionUser;
+  permission: string;
+  children: ReactNode;
+  fallback: ReactNode;
+}) {
+  return hasPermission(user, permission) ? children : fallback;
+}

@@ -3,15 +3,36 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from '../auth/schemas/user.schema';
+import {
+  ALL_PERMISSIONS,
+  CUSTOMER_DEFAULT_PERMISSIONS,
+  CUSTOMER_FORBIDDEN_PERMISSIONS,
+  ROLE_RANK,
+  getEffectivePermissions,
+  normalizePermissions,
+} from '../auth/permissions';
+import { Customer, CustomerDocument } from '../customers/schemas/customer.schema';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Customer.name) private customerModel?: Model<CustomerDocument>,
   ) {}
 
-  async getAllUsers(requesterRole: UserRole) {
-    const filter = requesterRole === 'super_admin' ? {} : { role: { $ne: 'super_admin' } };
+  async getAllUsers(requesterRole: UserRole, filters: { customerId?: string; role?: 'customer' | 'staff' } = {}) {
+    const filter: any = requesterRole === 'super_admin' ? {} : { role: { $ne: 'super_admin' } };
+    if (filters.role === 'customer') {
+      filter.role = 'customer';
+    } else if (filters.role === 'staff') {
+      filter.role = requesterRole === 'super_admin'
+        ? { $ne: 'customer' }
+        : { $nin: ['customer', 'super_admin'] };
+    }
+    if (filters.customerId) {
+      filter.customerId = filters.customerId;
+      filter.role = 'customer';
+    }
     const users = await this.userModel
       .find(filter)
       .select('-passwordHash')
@@ -30,7 +51,33 @@ export class UsersService {
     return user;
   }
 
-  async createUser(username: string, email: string | undefined, password: string, role: UserRole = 'sales_rep', firstName?: string, lastName?: string, requesterRole: UserRole = 'admin') {
+  async getManageablePermissions(requesterId: string, requesterRole: UserRole) {
+    if (requesterRole === 'super_admin') {
+      return [...ALL_PERMISSIONS];
+    }
+
+    const requester = await this.userModel.findById(requesterId).select('role permissions').exec();
+    if (!requester || requester.role !== 'admin') {
+      throw new ForbiddenException('Permission management sayfasına erişim yetkiniz yok');
+    }
+
+    return getEffectivePermissions(requester.role, requester.permissions);
+  }
+
+  async createUser(
+    username: string,
+    email: string | undefined,
+    password: string,
+    role: UserRole = 'sales_rep',
+    firstName?: string,
+    lastName?: string,
+    requesterRole: UserRole = 'admin',
+    requesterId?: string,
+    permissions?: string[],
+    customerId?: string,
+    isActive: boolean = true,
+    preferredLanguage?: string,
+  ) {
     try {
       // Username validation
       const trimmedUsername = String(username).trim();
@@ -50,13 +97,29 @@ export class UsersService {
       }
 
       // Role validation
-      const validRole: UserRole = ['sales_rep', 'admin', 'super_admin'].includes(role) ? role : 'sales_rep';
+      const validRole: UserRole = ['customer', 'sales_rep', 'admin', 'super_admin'].includes(role) ? role : 'sales_rep';
       if (validRole === 'super_admin' && requesterRole !== 'super_admin') {
         throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
       }
+      if (permissions !== undefined) {
+        this.assertValidPermissionsList(permissions);
+      }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const userData: any = { username: trimmedUsername, passwordHash, role: validRole };
+      const normalizedPermissions = validRole === 'super_admin'
+        ? []
+        : await this.getAssignablePermissions(
+            validRole === 'customer' && permissions === undefined ? CUSTOMER_DEFAULT_PERMISSIONS : permissions || [],
+            requesterRole,
+            requesterId,
+            validRole,
+          );
+      const userData: any = { username: trimmedUsername, passwordHash, role: validRole, permissions: normalizedPermissions };
+      userData.isActive = isActive !== false;
+      if (preferredLanguage?.trim()) userData.preferredLanguage = preferredLanguage.trim();
+      if (validRole === 'customer') {
+        userData.customerId = await this.validateCustomerId(customerId);
+      }
       if (firstName?.trim()) userData.firstName = firstName.trim();
       if (lastName?.trim()) userData.lastName = lastName.trim();
 
@@ -131,18 +194,24 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: string, data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: UserRole }, allowRoleChange: boolean = true, requesterRole?: UserRole) {
+  async updateUser(
+    id: string,
+    data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: UserRole; customerId?: string | null; isActive?: boolean; preferredLanguage?: string },
+    allowRoleChange: boolean = true,
+    requesterRole?: UserRole,
+  ) {
     try {
       const user = await this.userModel.findById(id).exec();
       if (!user) {
         throw new NotFoundException('User not found');
       }
 
-      if (requesterRole === 'admin' && user.role === 'super_admin') {
-        throw new ForbiddenException('super_admin kullanıcıları sadece super_admin yönetebilir');
-      }
+      this.assertCanManageUser(requesterRole, user.role);
       if (data.role === 'super_admin' && requesterRole !== 'super_admin') {
         throw new ForbiddenException('super_admin rolünü sadece super_admin atayabilir');
+      }
+      if (data.role && requesterRole === 'admin' && ROLE_RANK[data.role] >= ROLE_RANK.admin) {
+        throw new ForbiddenException('Admin sadece alt seviye kullanıcı rolleri atayabilir');
       }
 
       // Rol değişikliği sadece admin tarafından yapılabilir
@@ -203,9 +272,25 @@ export class UsersService {
         user.passwordHash = await bcrypt.hash(data.password, 10);
       }
 
+      if (data.isActive !== undefined) {
+        user.isActive = data.isActive === true;
+      }
+      if (data.preferredLanguage !== undefined) {
+        user.preferredLanguage = data.preferredLanguage?.trim() || undefined;
+      }
+
       // Rol değişikliği sadece allowRoleChange true ise yapılabilir
       if (data.role && allowRoleChange) {
         user.role = data.role;
+      }
+
+      const nextRole = data.role && allowRoleChange ? data.role : user.role;
+      if (nextRole === 'customer') {
+        const nextCustomerId = data.customerId !== undefined ? data.customerId : user.customerId;
+        user.customerId = await this.validateCustomerId(nextCustomerId);
+        user.permissions = this.filterCustomerPermissions(user.permissions);
+      } else if (data.customerId !== undefined) {
+        user.customerId = undefined;
       }
 
       await user.save();
@@ -232,13 +317,138 @@ export class UsersService {
     if (!existingUser) {
       throw new NotFoundException('User not found');
     }
-    if (requesterRole === 'admin' && existingUser.role === 'super_admin') {
-      throw new ForbiddenException('super_admin kullanıcıları sadece super_admin yönetebilir');
-    }
+    this.assertCanManageUser(requesterRole, existingUser.role);
     const user = await this.userModel.findByIdAndDelete(id).exec();
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return { success: true };
+  }
+
+  async updateUserPermissions(
+    targetUserId: string,
+    requestedPermissions: string[],
+    requester: { userId: string; role: UserRole },
+  ) {
+    const targetUser = await this.userModel.findById(targetUserId).exec();
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    this.assertCanManageUser(requester.role, targetUser.role);
+    if (targetUser.role === 'super_admin') {
+      throw new ForbiddenException('super_admin izinleri değiştirilemez');
+    }
+
+    this.assertValidPermissionsList(requestedPermissions);
+    const nextPermissions = await this.getAssignablePermissions(
+      requestedPermissions,
+      requester.role,
+      requester.userId,
+      targetUser.role,
+    );
+
+    const previousPermissions = getEffectivePermissions(targetUser.role, targetUser.permissions);
+    targetUser.permissions = nextPermissions;
+    await targetUser.save();
+
+    const { passwordHash: _, ...result } = targetUser.toObject();
+    return {
+      user: result,
+      previousPermissions,
+      newPermissions: nextPermissions,
+    };
+  }
+
+  private assertCanManageUser(requesterRole?: UserRole, targetRole?: UserRole) {
+    if (!requesterRole || !targetRole) {
+      return;
+    }
+
+    if (requesterRole === 'super_admin') {
+      return;
+    }
+
+    if (targetRole === 'super_admin') {
+      throw new ForbiddenException('super_admin kullanıcıları sadece super_admin yönetebilir');
+    }
+
+    if ((ROLE_RANK[targetRole] || 0) >= (ROLE_RANK[requesterRole] || 0)) {
+      throw new ForbiddenException('Sadece alt seviye kullanıcılar yönetilebilir');
+    }
+  }
+
+  private assertValidPermissionsList(permissions: unknown) {
+    if (!Array.isArray(permissions)) {
+      throw new BadRequestException('permissions listesi zorunludur');
+    }
+    const unknownPermission = permissions.find(
+      (permission) => typeof permission !== 'string' || !ALL_PERMISSIONS.includes(permission as any),
+    );
+    if (unknownPermission) {
+      throw new BadRequestException(`Geçersiz izin: ${String(unknownPermission)}`);
+    }
+  }
+
+  private async getAssignablePermissions(
+    requestedPermissions: string[],
+    requesterRole: UserRole,
+    requesterId?: string,
+    targetRole?: UserRole,
+  ) {
+    const nextPermissions = targetRole === 'customer'
+      ? this.filterCustomerPermissions(requestedPermissions)
+      : normalizePermissions(requestedPermissions);
+
+    if (requesterRole === 'super_admin') {
+      return nextPermissions;
+    }
+
+    if (!requesterId) {
+      throw new ForbiddenException('Permission yönetimi için kullanıcı bilgisi gerekir');
+    }
+
+    const requesterUser = await this.userModel.findById(requesterId).select('role permissions').exec();
+    if (!requesterUser || requesterUser.role !== 'admin') {
+      throw new ForbiddenException('Permission yönetimi için admin yetkisi gerekir');
+    }
+
+    const requesterPermissions = new Set(getEffectivePermissions(requesterUser.role, requesterUser.permissions));
+    const targetRoleDefaults = targetRole === 'customer'
+      ? new Set<string>(CUSTOMER_DEFAULT_PERMISSIONS)
+      : new Set<string>();
+    const forbiddenPermission = nextPermissions.find(
+      (permission) => !targetRoleDefaults.has(permission) && !requesterPermissions.has(permission),
+    );
+    if (forbiddenPermission) {
+      throw new ForbiddenException(`Bu izni verme yetkiniz yok: ${forbiddenPermission}`);
+    }
+
+    return nextPermissions;
+  }
+
+  private filterCustomerPermissions(permissions: unknown): typeof CUSTOMER_DEFAULT_PERMISSIONS {
+    const forbidden = new Set<string>(CUSTOMER_FORBIDDEN_PERMISSIONS);
+    return Array.from(
+      new Set([
+        ...CUSTOMER_DEFAULT_PERMISSIONS,
+        ...normalizePermissions(permissions).filter((permission) => !forbidden.has(permission)),
+      ]),
+    ) as typeof CUSTOMER_DEFAULT_PERMISSIONS;
+  }
+
+  private async validateCustomerId(customerId?: string | null): Promise<string> {
+    const normalizedCustomerId = String(customerId || '').trim();
+    if (!normalizedCustomerId) {
+      throw new BadRequestException('Customer rolü için müşteri seçimi zorunludur');
+    }
+    if (!this.customerModel) {
+      throw new BadRequestException('Müşteri doğrulama modeli hazır değil');
+    }
+    const customer = await this.customerModel.findOne({ snelstartId: normalizedCustomerId }).select('snelstartId').lean().exec();
+    if (!customer) {
+      throw new BadRequestException('Seçilen müşteri kaydı bulunamadı');
+    }
+    return normalizedCustomerId;
   }
 }
