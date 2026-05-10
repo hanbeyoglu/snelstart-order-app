@@ -75,8 +75,8 @@ export class ReportsController {
    * SECURITY: Only super_admin can access.
    */
   @Get('orders')
-  @Roles('admin')
-  @ApiOperation({ summary: 'Get orders or top products report (admin only)' })
+  @Roles('super_admin')
+  @ApiOperation({ summary: 'Get orders or top products report (super_admin only)' })
   async getReport(
     @Query('type') type: ReportType = 'orders',
     @Query('tenantId') tenantId?: string,
