@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject, forwardRef, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SnelStartService } from '../snelstart/snelstart.service';
@@ -20,35 +20,6 @@ export class ProductsService {
     @Inject(forwardRef(() => ImagesService))
     private imagesService: ImagesService,
   ) {}
-
-  private mapVatTypeToRate(vatType?: string | null): number {
-    switch ((vatType || '').toLowerCase()) {
-      case 'laag':
-        return 9;
-      case 'hoog':
-        return 21;
-      case 'geen':
-      case 'vrijgesteld':
-      default:
-        return 0;
-    }
-  }
-
-  private buildVatGroupLookup(groups: any[]) {
-    return new Map((groups || []).map((group) => [group.id, group]));
-  }
-
-  private getProductVatFields(artikelomzetgroepId?: string, vatGroups?: Map<string, any>) {
-    const group = artikelomzetgroepId ? vatGroups?.get(artikelomzetgroepId) : null;
-    const vatType = group?.verkoopNederlandBtwSoort ?? null;
-
-    return {
-      vatType,
-      vatRate: this.mapVatTypeToRate(vatType),
-      vatGroupId: artikelomzetgroepId,
-      vatGroupName: group?.omschrijving,
-    };
-  }
 
   /**
    * Full sync: Retrieve all products using dynamic pagination
@@ -73,7 +44,7 @@ export class ProductsService {
 
       console.log(`[ProductsService] Retrieved ${allProducts.length} products from API. Starting upsert...`);
       console.log(`[ProductsService] Total products to process: ${allProducts.length}`);
-      const vatGroups = this.buildVatGroupLookup(await this.snelStartService.getArtikelOmzetGroepen().catch(() => []));
+      const vatGroupsById = await this.getVatGroupsById();
 
       // Track duplicates and errors
       const duplicateSnelstartIds = new Set<string>();
@@ -111,7 +82,7 @@ export class ProductsService {
           // Extract artikelomzetgroepId from nested object if available
           const artikelomzetgroepId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
           const artikelomzetgroepOmschrijving = product.artikelOmzetgroep?.omschrijving || product.artikelomzetgroepOmschrijving;
-          const vatFields = this.getProductVatFields(artikelomzetgroepId, vatGroups);
+          const vatFields = this.getVatFields(product, vatGroupsById);
           
               // Check if product exists - ONLY by snelstartId
               const existingProduct = await this.productModel.findOne({
@@ -135,15 +106,12 @@ export class ProductsService {
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
                 artikelomzetgroepId: artikelomzetgroepId,
                 artikelomzetgroepOmschrijving: artikelomzetgroepOmschrijving,
+                ...vatFields,
                 voorraad: product.voorraad,
                 verkoopprijs: product.verkoopprijs,
                 contentQuantity,
                 inkoopprijs: product.inkoopprijs,
-                btwPercentage: product.btwPercentage,
-                vatType: vatFields.vatType,
-                vatRate: vatFields.vatRate,
-                vatGroupId: vatFields.vatGroupId,
-                vatGroupName: vatFields.vatGroupName || artikelomzetgroepOmschrijving,
+                btwPercentage: vatFields.vatRate,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
                 isParentArticle,
@@ -280,7 +248,7 @@ export class ProductsService {
       );
 
       console.log(`[ProductsService] Retrieved ${modifiedProducts.length} modified products. Starting upsert...`);
-      const vatGroups = this.buildVatGroupLookup(await this.snelStartService.getArtikelOmzetGroepen().catch(() => []));
+      const vatGroupsById = await this.getVatGroupsById();
 
       // Track duplicates and errors
       const duplicateSnelstartIds = new Set<string>();
@@ -316,7 +284,7 @@ export class ProductsService {
 
               const artikelomzetgroepId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
               const artikelomzetgroepOmschrijving = product.artikelOmzetgroep?.omschrijving || product.artikelomzetgroepOmschrijving;
-              const vatFields = this.getProductVatFields(artikelomzetgroepId, vatGroups);
+              const vatFields = this.getVatFields(product, vatGroupsById);
               
               // Check if product exists - ONLY by snelstartId
               const existingProduct = await this.productModel.findOne({
@@ -340,15 +308,12 @@ export class ProductsService {
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
                 artikelomzetgroepId: artikelomzetgroepId,
                 artikelomzetgroepOmschrijving: artikelomzetgroepOmschrijving,
+                ...vatFields,
                 voorraad: product.voorraad,
                 verkoopprijs: product.verkoopprijs,
                 contentQuantity,
                 inkoopprijs: product.inkoopprijs,
-                btwPercentage: product.btwPercentage,
-                vatType: vatFields.vatType,
-                vatRate: vatFields.vatRate,
-                vatGroupId: vatFields.vatGroupId,
-                vatGroupName: vatFields.vatGroupName || artikelomzetgroepOmschrijving,
+                btwPercentage: vatFields.vatRate,
                 eenheid: product.eenheid,
                 barcode: product.barcode,
                 isParentArticle,
@@ -532,6 +497,48 @@ export class ProductsService {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
+  private mapVatTypeToRate(vatType?: string | null): number {
+    switch (vatType) {
+      case 'Laag':
+        return 9;
+      case 'Hoog':
+        return 21;
+      case 'Geen':
+      case 'Vrijgesteld':
+      case null:
+      case undefined:
+      default:
+        return 0;
+    }
+  }
+
+  private async getVatGroupsById(): Promise<Map<string, any>> {
+    try {
+      const groups = await this.snelStartService.getArtikelOmzetGroepen();
+      return new Map((groups || []).map((group: any) => [group.id, group]));
+    } catch (error: any) {
+      console.warn(`[ProductsService] Could not fetch artikel omzetgroepen for VAT mapping: ${error?.message || error}`);
+      return new Map();
+    }
+  }
+
+  private getVatFields(product: any, vatGroupsById: Map<string, any>) {
+    const vatGroupId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
+    const vatGroup = vatGroupId ? vatGroupsById.get(vatGroupId) : undefined;
+    const vatType = vatGroup?.verkoopNederlandBtwSoort ?? product.vatType ?? null;
+    const vatRate = this.mapVatTypeToRate(vatType);
+
+    return {
+      vatType,
+      vatRate,
+      vatGroupId,
+      vatGroupName:
+        vatGroup?.omschrijving ||
+        product.artikelOmzetgroep?.omschrijving ||
+        product.artikelomzetgroepOmschrijving,
+    };
+  }
+
   private calculateUnitPrice(price?: number | null, contentQuantity?: number | null): number | null {
     const numericPrice = Number(price);
     const numericContentQuantity = Number(contentQuantity);
@@ -585,8 +592,8 @@ export class ProductsService {
                 voorraad: childProduct.voorraad,
                 verkoopprijs: childProduct.verkoopprijs,
                 inkoopprijs: childProduct.inkoopprijs,
-                vatType: childProduct.vatType ?? null,
-                vatRate: childProduct.vatRate ?? 0,
+                vatType: childProduct.vatType,
+                vatRate: childProduct.vatRate,
                 vatGroupId: childProduct.vatGroupId,
                 vatGroupName: childProduct.vatGroupName,
                 eenheid: childProduct.eenheid,
@@ -684,7 +691,7 @@ export class ProductsService {
     inStockOnly: boolean = false,
   ) {
     const groupIdsKey = groupIds?.length ? groupIds.slice().sort().join(',') : 'all';
-    const cacheKey = `products:v3:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
+    const cacheKey = `products:v4:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
 
     // First check Redis cache
     const cached = await this.cacheService.get(cacheKey);
@@ -788,9 +795,9 @@ export class ProductsService {
               verkoopprijs: product.verkoopprijs,
               ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
               inkoopprijs: product.inkoopprijs,
-              btwPercentage: product.btwPercentage,
-              vatType: product.vatType ?? null,
-              vatRate: product.vatRate ?? 0,
+              btwPercentage: product.vatRate ?? product.btwPercentage ?? 0,
+              vatType: product.vatType,
+              vatRate: product.vatRate ?? product.btwPercentage ?? 0,
               vatGroupId: product.vatGroupId,
               vatGroupName: product.vatGroupName,
               eenheid: product.eenheid,
@@ -949,9 +956,9 @@ export class ProductsService {
           basePrice,
           finalPrice,
           ...this.getPackagePricingFields(finalPrice, product.contentQuantity),
-          btwPercentage: product.btwPercentage,
-          vatType: product.vatType ?? null,
-          vatRate: product.vatRate ?? 0,
+          btwPercentage: product.vatRate ?? product.btwPercentage ?? 0,
+          vatType: product.vatType,
+          vatRate: product.vatRate ?? product.btwPercentage ?? 0,
           vatGroupId: product.vatGroupId,
           vatGroupName: product.vatGroupName,
           eenheid: product.eenheid,
@@ -1053,25 +1060,39 @@ export class ProductsService {
     };
   }
 
-  async getProductById(id: string, customerId?: string) {
-    const cacheKey = `product:${id}:${customerId || 'none'}`;
+  async getProductById(id: string, customerId?: string, enforceActive: boolean = false) {
+    const cacheKey = `product:${id}:${customerId || 'none'}:${enforceActive ? 'active' : 'all'}`;
     const cached = await this.cacheService.get(cacheKey);
     if (cached) {
       return cached;
     }
 
+    const dbProduct = await this.productModel.findOne({ snelstartId: id }).exec();
+    if (enforceActive) {
+      if (dbProduct?.isActive === false) {
+        throw new NotFoundException('Product not found');
+      }
+      if (dbProduct?.artikelomzetgroepId) {
+        const activeCategoryIds = await this.categoriesService.getActiveCategoryIds();
+        if (!activeCategoryIds.includes(dbProduct.artikelomzetgroepId)) {
+          throw new NotFoundException('Product not found');
+        }
+      }
+    }
+
     const product: any = await this.snelStartService.getProductById(id);
+    const vatGroupsById = await this.getVatGroupsById();
     
     // Extract artikelomzetgroepId from nested object if available
     const artikelomzetgroepId = product.artikelOmzetgroep?.id || product.artikelomzetgroepId;
     const artikelomzetgroepOmschrijving = product.artikelOmzetgroep?.omschrijving || product.artikelomzetgroepOmschrijving;
+    const vatFields = this.getVatFields(product, vatGroupsById);
     
     // Get category name if artikelomzetgroepId exists
     let categoryName = artikelomzetgroepOmschrijving;
-    let category: any = null;
     if (artikelomzetgroepId && !categoryName) {
       try {
-        category = await this.categoriesService.getCategoryById(artikelomzetgroepId);
+        const category = await this.categoriesService.getCategoryById(artikelomzetgroepId);
         if (category) {
           categoryName = category.omschrijving;
         }
@@ -1083,7 +1104,6 @@ export class ProductsService {
     
     // Get cover image URL from Product schema or ImagesService
     let coverImageUrl: string | null = null;
-    const dbProduct = await this.productModel.findOne({ snelstartId: product.id }).exec();
     if (dbProduct?.imageUrl) {
       coverImageUrl = dbProduct.imageUrl;
     } else {
@@ -1098,12 +1118,15 @@ export class ProductsService {
     // Fallback mapping: artikelnummer -> artikelcode if missing, artikelgroepId -> null if missing
     const artikelnummer = product.artikelnummer || product.artikelcode || undefined;
     const artikelgroepId = product.artikelgroepId || undefined;
+    if (enforceActive && artikelomzetgroepId) {
+      const activeCategoryIds = await this.categoriesService.getActiveCategoryIds();
+      if (!activeCategoryIds.includes(artikelomzetgroepId)) {
+        throw new NotFoundException('Product not found');
+      }
+    }
     const isParentArticle = product.isHoofdartikel === true;
     const subArticles = this.mapSubArticles(product);
     const contentQuantity = this.parseContentQuantity(product) ?? dbProduct?.contentQuantity ?? null;
-    const vatType = product.verkoopNederlandBtwSoort ?? dbProduct?.vatType ?? category?.verkoopNederlandBtwSoort ?? null;
-    const vatRate = this.mapVatTypeToRate(vatType);
-    const vatGroupName = categoryName || dbProduct?.vatGroupName || artikelomzetgroepOmschrijving;
 
     // Save to database
     await this.productModel.findOneAndUpdate(
@@ -1117,15 +1140,12 @@ export class ProductsService {
         artikelgroepOmschrijving: product.artikelgroepOmschrijving,
         artikelomzetgroepId: artikelomzetgroepId,
         artikelomzetgroepOmschrijving: categoryName || artikelomzetgroepOmschrijving,
+        ...vatFields,
         voorraad: product.voorraad,
         verkoopprijs: product.verkoopprijs,
         contentQuantity,
         inkoopprijs: product.inkoopprijs,
-        btwPercentage: product.btwPercentage,
-        vatType,
-        vatRate,
-        vatGroupId: artikelomzetgroepId,
-        vatGroupName,
+        btwPercentage: vatFields.vatRate,
         eenheid: product.eenheid,
         barcode: product.barcode,
         isParentArticle,
@@ -1153,10 +1173,8 @@ export class ProductsService {
       basePrice,
       finalPrice,
       ...this.getPackagePricingFields(finalPrice, contentQuantity),
-      vatType,
-      vatRate,
-      vatGroupId: artikelomzetgroepId,
-      vatGroupName,
+      ...vatFields,
+      btwPercentage: vatFields.vatRate,
       // Ensure artikelcode is included (use artikelcode or artikelnummer)
       artikelcode: product.artikelcode || product.artikelnummer,
       // Include category name

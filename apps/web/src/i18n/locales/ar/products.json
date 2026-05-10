@@ -32,6 +32,7 @@
     "category": "الفئة",
     "barcode": "الباركود",
     "stock": "المخزون",
+    "inStock": "متوفر",
     "unit": "الوحدة",
     "unitFallback": "قطعة",
     "quantity": "الكمية",

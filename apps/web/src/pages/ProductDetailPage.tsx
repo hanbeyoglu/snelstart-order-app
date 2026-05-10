@@ -137,7 +137,6 @@ export default function ProductDetailPage() {
       ...(product.eenheid && { eenheid: product.eenheid }),
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
-      ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
       isParentArticle: product.isParentArticle === true,
       ...(product.subArticles?.length && { subArticles: product.subArticles }),
     };
@@ -308,8 +307,8 @@ export default function ProductDetailPage() {
             )}
             <p style={{ marginBottom: 'clamp(0.5rem, 2vw, 0.75rem)', fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
               <strong>{t('products:fields.stock')}:</strong>{' '}
-              <span style={{ color: product.voorraad > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                {product.voorraad ?? t('states.notAvailable')}
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                {t('products:fields.inStock')}
               </span>
             </p>
             <p style={{ fontSize: 'clamp(0.85rem, 3vw, 0.95rem)' }}>
@@ -450,7 +449,10 @@ export default function ProductDetailPage() {
                     margin: 0,
                   }}
                 >
-                  {formatCurrency(finalPrice)} {t('products:fields.exclVat')}
+                  {formatCurrency(finalPrice)}
+                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, margin: '0.2rem 0 0' }}>
+                  {t('products:fields.exclVat')}
                 </p>
               </div>
               {/* Alış fiyatı sadece admin için görünür */}
@@ -534,7 +536,6 @@ export default function ProductDetailPage() {
                 className="quantity-input"
                 value={quantity}
                 onCommit={setQuantity}
-                max={product?.voorraad}
                 ariaLabel={t('products:fields.quantity')}
                 style={{ 
                   width: '100%',

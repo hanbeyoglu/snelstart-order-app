@@ -247,7 +247,8 @@ export interface User {
   _id?: string;
   email: string;
   passwordHash: string;
-  role: 'sales_rep' | 'admin' | 'super_admin';
+  role: 'customer' | 'sales_rep' | 'admin' | 'super_admin';
+  customerId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

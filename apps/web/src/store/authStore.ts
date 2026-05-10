@@ -9,7 +9,8 @@ interface User {
   email?: string;
   firstName?: string;
   lastName?: string;
-  role: 'sales_rep' | 'admin' | 'super_admin';
+  role: 'customer' | 'sales_rep' | 'admin' | 'super_admin';
+  customerId?: string | null;
 }
 
 interface AuthState {

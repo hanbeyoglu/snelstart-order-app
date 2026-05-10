@@ -30,6 +30,13 @@ function isCaseUnit(product: any): boolean {
   return String(product?.eenheid || '').trim().toUpperCase() === 'COL';
 }
 
+function formatProductUnit(unit?: string | null, fallback = ''): string {
+  const normalized = String(unit || '').trim().toUpperCase();
+  if (normalized === 'COL') return 'Koli';
+  if (normalized === 'U') return 'Adet';
+  return unit || fallback;
+}
+
 export default function ProductsPage() {
   const { t } = useAppTranslation(['common', 'products']);
   const { formatCurrency } = useLocaleFormat();
@@ -44,7 +51,6 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('name_asc');
-  const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
@@ -65,6 +71,7 @@ export default function ProductsPage() {
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isCustomer = user?.role === 'customer';
   const { confirmPriceOverride } = useAdminPriceOverride();
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -82,20 +89,19 @@ export default function ProductsPage() {
   // Filtre veya sıralama değişince sayfayı sıfırla
   useEffect(() => {
     setPage(1);
-  }, [sortBy, inStockOnly, selectedCategoryIds]);
+  }, [sortBy, selectedCategoryIds]);
 
   const { data: productsResponse, isLoading } = useQuery({
-    queryKey: ['products', groupIds, debouncedSearch, customerId, page, sortBy, inStockOnly],
+    queryKey: ['products', groupIds, debouncedSearch, customerId, page, sortBy, isCustomer],
     queryFn: async () => {
       const params: any = {
         page: page.toString(),
-        limit: '20',
+        limit: isCustomer ? '32' : '20',
       };
       if (groupIds?.length) params.groupIds = groupIds.join(',');
       if (debouncedSearch && debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (customerId) params.customerId = customerId;
       if (sortBy) params.sortBy = sortBy;
-      if (inStockOnly) params.inStockOnly = 'true';
       const response = await api.get('/products', { params });
       return response.data;
     },
@@ -160,16 +166,6 @@ export default function ProductsPage() {
     syncMutation.mutate();
   };
 
-  const getStockLimit = (product: any) => {
-    const stock = Number(product.voorraad);
-    return Number.isFinite(stock) ? Math.max(0, stock) : Infinity;
-  };
-
-  const isOutOfStock = (product: any) => {
-    const stock = Number(product.voorraad);
-    return Number.isFinite(stock) && stock <= 0;
-  };
-
   const getCartItem = (productId: string) =>
     cartItems.find((item) => item.productId === productId);
 
@@ -177,18 +173,6 @@ export default function ProductsPage() {
 
   const handleAddToCart = async (product: any, event?: any) => {
     event?.stopPropagation();
-    const currentQuantity = getCartQuantity(product.id);
-    const stockLimit = getStockLimit(product);
-
-    if (isOutOfStock(product)) {
-      showToast(t('products:messages.outOfStock'), 'error');
-      return;
-    }
-
-    if (currentQuantity >= stockLimit) {
-      showToast(t('products:messages.stockLimit', { count: stockLimit }), 'error');
-      return;
-    }
 
     const unitPrice = product.finalPrice || product.basePrice || 0;
     const basePrice = product.basePrice || unitPrice;
@@ -252,7 +236,6 @@ export default function ProductsPage() {
       ...(product.eenheid && { eenheid: product.eenheid }),
       // Kapak resmi URL'ini ekle
       ...(product.coverImageUrl && { coverImageUrl: product.coverImageUrl }),
-      ...(product.voorraad !== undefined && product.voorraad !== null && { voorraad: product.voorraad }),
       isParentArticle: product.isParentArticle === true,
       ...(product.subArticles?.length && { subArticles: product.subArticles }),
     });
@@ -261,13 +244,6 @@ export default function ProductsPage() {
 
   const handleCartQuantityChange = (product: any, nextQuantity: number, event: any) => {
     event.stopPropagation();
-    const stockLimit = getStockLimit(product);
-
-    if (nextQuantity > stockLimit) {
-      showToast(t('products:messages.stockLimit', { count: stockLimit }), 'error');
-      return;
-    }
-
     updateQuantity(product.id, Math.max(0, nextQuantity));
   };
 
@@ -601,30 +577,10 @@ export default function ProductsPage() {
             <option value="name_desc">{t('products:sort.nameDesc')}</option>
             <option value="price_asc">{t('products:sort.priceAsc')}</option>
             <option value="price_desc">{t('products:sort.priceDesc')}</option>
-            <option value="stock_desc">{t('products:sort.stockDesc')}</option>
           </select>
-          {/* <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              color: 'var(--text-primary)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(e) => setInStockOnly(e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-              aria-label={t('products:inStockOnly')}
-            />
-            {t('products:inStockOnly')}
-          </label> */}
         </motion.div>
 
+        {!isCustomer && (
         <motion.button
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -666,14 +622,12 @@ export default function ProductsPage() {
             <>🔄 {t('actions.sync')}</>
           )}
         </motion.button>
+        )}
       </motion.div>
 
-      <div className="responsive-grid">
+      <div className={isCustomer ? 'customer-products-grid' : 'responsive-grid'}>
         {products?.map((product: any, index: number) => {
           const cartQuantity = getCartQuantity(product.id);
-          const outOfStock = isOutOfStock(product);
-          const stockLimit = getStockLimit(product);
-          const isAtStockLimit = Number.isFinite(stockLimit) && cartQuantity >= stockLimit;
           const caseUnit = isCaseUnit(product);
           const contentQuantity = getValidContentQuantity(product);
           const calculatedUnitPrice = getBackendCalculatedUnitPrice(product);
@@ -804,17 +758,17 @@ export default function ProductsPage() {
               }}
             >
               <p style={{ margin: '0.25rem 0' }}>
-                {t('products:fields.unit')}: <strong>{product.eenheid || t('products:fields.unitFallback')}</strong>
+                {t('products:fields.unit')}: <strong>{formatProductUnit(product.eenheid, t('products:fields.unitFallback'))}</strong>
               </p>
               <p style={{ margin: '0.25rem 0' }}>
                 {t('products:fields.stock')}:{' '}
                 <span
                   style={{
-                    color: product.voorraad > 0 ? 'var(--success)' : 'var(--danger)',
+                    color: 'var(--success)',
                     fontWeight: 600,
                   }}
                 >
-                  {product.voorraad ?? 'N/A'}
+                  {t('products:fields.inStock')}
                 </span>
               </p>
             </div>
@@ -851,7 +805,10 @@ export default function ProductsPage() {
                   color: 'var(--text-primary)',
                 }}
               >
-                {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}: {formatCurrency(displayPrice)} {t('products:fields.exclVat')}
+                {caseUnit ? t('products:fields.casePrice') : t('products:fields.unitPrice')}: {formatCurrency(displayPrice)}{' '}
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>
+                  ({t('products:fields.exclVat')})
+                </span>
               </p>
               {caseUnit && contentQuantity && calculatedUnitPrice !== null && (
                 <div
@@ -919,7 +876,6 @@ export default function ProductsPage() {
                       className="quantity-input"
                       value={cartQuantity}
                       onCommit={(newQuantity) => updateQuantity(product.id, newQuantity)}
-                      max={Number.isFinite(stockLimit) ? stockLimit : undefined}
                       ariaLabel={t('products:cartQuantity', { name: product.omschrijving })}
                       style={{
                         minHeight: '44px',
@@ -939,10 +895,9 @@ export default function ProductsPage() {
                       onClick={(event) =>
                         handleCartQuantityChange(product, cartQuantity + 1, event)
                       }
-                      disabled={isAtStockLimit}
                       className="btn-primary"
                       aria-label={t('products:increaseQuantity', { name: product.omschrijving })}
-                      title={isAtStockLimit ? t('products:stockLimitTitle') : t('products:increaseTitle')}
+                      title={t('products:increaseTitle')}
                       style={{
                         minWidth: '44px',
                         minHeight: '44px',
@@ -951,7 +906,7 @@ export default function ProductsPage() {
                         fontSize: '1.2rem',
                         fontWeight: 800,
                       }}
-                      whileTap={!isAtStockLimit ? { scale: 0.96 } : {}}
+                      whileTap={{ scale: 0.96 }}
                     >
                       +
                     </motion.button>
@@ -971,18 +926,16 @@ export default function ProductsPage() {
               ) : (
                 <motion.button
                   type="button"
-                  onClick={(event) => handleAddToCart(product, event)}
-                  disabled={outOfStock}
-                  className="btn-primary"
+	                  onClick={(event) => handleAddToCart(product, event)}
+	                  className="btn-primary"
                   style={{
                     width: '100%',
                     padding: 'clamp(0.75rem, 2vw, 0.875rem)',
                     fontSize: 'clamp(0.8rem, 3vw, 0.85rem)',
                     minHeight: '44px',
-                    opacity: outOfStock ? 0.55 : 1,
-                    cursor: outOfStock ? 'not-allowed' : 'pointer',
-                  }}
-                  whileTap={!outOfStock ? { scale: 0.98 } : {}}
+	                    cursor: 'pointer',
+	                  }}
+	                  whileTap={{ scale: 0.98 }}
                 >
                   🛒 {t('actions.addToCart')}
                 </motion.button>
