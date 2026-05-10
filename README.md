@@ -1,223 +1,603 @@
-# SnelStart Order App
+<div align="center">
 
-Production-ready monorepo for a mobile/tablet-first B2B wholesale ordering app that integrates with SnelStart B2B API.
+# DHY Order Platform
 
-## 🏗️ Architecture
+### Enterprise-grade B2B ordering platform with SnelStart ERP integration, customer portal, advanced reporting, and resilient sync architecture.
 
-- **Frontend**: React.js + TypeScript, PWA, mobile/tablet responsive UI
-- **Backend**: NestJS (Node.js + TypeScript)
-- **Worker**: BullMQ (Redis-backed job queue)
-- **Database**: MongoDB
-- **Cache**: Redis
-- **Storage**: MinIO (S3-compatible)
+[![CI](https://github.com/hanbeyoglu/snelstart-order-app/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/hanbeyoglu/snelstart-order-app/actions/workflows/deploy.yml)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-339933.svg)](package.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178c6.svg)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/backend-NestJS-e0234e.svg)](https://nestjs.com/)
+[![React](https://img.shields.io/badge/frontend-React_18-61dafb.svg)](https://react.dev/)
+[![MongoDB](https://img.shields.io/badge/database-MongoDB-47A248.svg)](https://www.mongodb.com/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg)](docker-compose.yml)
+[![pnpm](https://img.shields.io/badge/pnpm-9.15-f69220.svg)](https://pnpm.io/)
+[![Turbo](https://img.shields.io/badge/monorepo-Turborepo-black.svg)](https://turbo.build/)
+[![License](https://img.shields.io/badge/license-Proprietary-lightgrey.svg)](#license)
 
-## 📁 Project Structure
+</div>
 
+---
+
+# Overview
+
+DHY Order Platform is a modern **B2B wholesale ordering system** built for distributors and internal sales operations.
+
+The platform integrates directly with **SnelStart ERP**, enabling:
+
+- Product synchronization
+- Customer-specific pricing
+- Order creation
+- Operational reporting
+- Customer self-service ordering portal
+- Role-based administration
+- VAT transparency
+- Advanced auditability
+
+The application is designed for real operational environments where multiple staff roles, customer accounts, and ERP synchronization workflows must coexist reliably.
+
+---
+
+# Core Features
+
+## B2B Ordering System
+
+- Product catalog synced from SnelStart
+- Category management
+- Customer-specific pricing context
+- Cart & checkout workflows
+- ERP-connected order creation
+- VAT-aware totals
+- Delivery type selection
+- Delivery date scheduling
+- Order notes & metadata
+- Automatic child/sub-product handling
+- Customer scoped ordering
+
+---
+
+## Customer Portal
+
+Dedicated portal experience for customers.
+
+Customers can:
+
+- Login securely
+- Browse allowed products
+- Create orders
+- View their own order history
+- Manage cart
+- See VAT transparency
+- Access responsive mobile-friendly ordering flows
+
+Portal users are isolated from internal administration modules.
+
+---
+
+## Staff Backoffice
+
+Internal operational dashboard for:
+
+- Admins
+- Sales representatives
+- Managers
+- Super admins
+
+Includes:
+
+- Customer management
+- Product visibility management
+- Portal account management
+- Reporting
+- Analytics
+- Audit logs
+- Order management
+- User & permission management
+
+---
+
+## Advanced Reports & Analytics
+
+Includes operational and financial insights:
+
+- Top-selling products
+- Sales trends
+- Profit & margin analysis
+- VAT reporting
+- Best customers
+- Order analytics
+- Excel export
+- Responsive charts & visualizations
+
+---
+
+## Audit Logs
+
+Full operational visibility for sensitive actions:
+
+- User actions
+- Order events
+- Portal account changes
+- Security-sensitive operations
+- Authentication events
+- Permission changes
+- Sync actions
+
+Includes:
+
+- Filtering
+- Search
+- Timeline-style visualization
+- Statistics dashboard
+
+---
+
+## Role & Permission System
+
+### Roles
+
+| Role          | Description                       |
+| ------------- | --------------------------------- |
+| `super_admin` | Full unrestricted platform access |
+| `admin`       | Administrative management access  |
+| `sales_rep`   | Sales-focused workflows           |
+| `customer`    | Customer portal access only       |
+
+### Capabilities
+
+Permission-based architecture layered on top of roles:
+
+- Product visibility permissions
+- Customer visibility restrictions
+- Report access
+- Portal account management
+- Audit access
+- User management restrictions
+
+---
+
+# Screenshots
+
+> Replace placeholders inside `docs/screenshots/`
+
+|              Dashboard              |              Products              |
+| :---------------------------------: | :--------------------------------: |
+| ![](docs/screenshots/dashboard.png) | ![](docs/screenshots/products.png) |
+
+|              Cart              |              Reports              |
+| :----------------------------: | :-------------------------------: |
+| ![](docs/screenshots/cart.png) | ![](docs/screenshots/reports.png) |
+
+|              Customer Portal              |              Audit Logs              |
+| :---------------------------------------: | :----------------------------------: |
+| ![](docs/screenshots/customer-portal.png) | ![](docs/screenshots/audit-logs.png) |
+
+|           Mobile Responsive           |
+| :-----------------------------------: |
+| ![](docs/screenshots/mobile-view.png) |
+
+---
+
+# Tech Stack
+
+## Frontend (`apps/web`)
+
+| Area          | Technology                         |
+| ------------- | ---------------------------------- |
+| Framework     | React 18                           |
+| Language      | TypeScript                         |
+| Build Tool    | Vite                               |
+| State         | Zustand                            |
+| Data Fetching | TanStack Query                     |
+| Motion        | Framer Motion                      |
+| Charts        | Recharts                           |
+| i18n          | react-i18next                      |
+| PWA           | vite-plugin-pwa                    |
+| Export        | xlsx                               |
+| Styling       | Custom responsive CSS architecture |
+
+---
+
+## Backend (`apps/api`)
+
+| Area                  | Technology                 |
+| --------------------- | -------------------------- |
+| Framework             | NestJS 10                  |
+| Database              | MongoDB                    |
+| ODM                   | Mongoose 8                 |
+| Auth                  | JWT + Passport             |
+| Validation            | class-validator            |
+| Queue System          | BullMQ                     |
+| Cache / Queue Backend | Redis                      |
+| Storage               | MinIO / S3 / Cloudflare R2 |
+| Monitoring            | Sentry                     |
+| API Docs              | Swagger                    |
+
+---
+
+## Worker (`apps/worker`)
+
+Handles asynchronous workloads:
+
+- ERP retry operations
+- Queue processing
+- Image processing
+- Background synchronization jobs
+- Heavy async operations
+
+---
+
+## Shared Package (`packages/shared`)
+
+Shared schemas and types:
+
+- Zod schemas
+- Shared DTO contracts
+- Shared validation utilities
+- Shared types between frontend/backend/worker
+
+---
+
+# Architecture
+
+```txt
+Browser (React SPA)
+        │
+        ▼
+ NestJS API
+        │
+ ├──────────────► MongoDB
+ │
+ ├──────────────► Redis / BullMQ
+ │                     │
+ │                     ▼
+ │                 Worker Service
+ │                     │
+ │                     ▼
+ │               SnelStart API
+ │
+ └──────────────► Object Storage
+                  (MinIO / R2)
 ```
+
+---
+
+# Monorepo Structure
+
+```txt
 snelstart-order-app/
 ├── apps/
-│   ├── api/          # NestJS backend API
-│   ├── web/          # React frontend
-│   └── worker/       # BullMQ worker
+│   ├── api/
+│   ├── web/
+│   └── worker/
 ├── packages/
-│   └── shared/       # Shared types and validators
-└── infra/
-    └── docker-compose.yml
+│   └── shared/
+├── tests/
+│   └── e2e/
+├── infra/
+├── docker-compose.yml
+└── README.md
 ```
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
+# Security
 
-- Node.js 18+
-- Docker & Docker Compose
-- MongoDB, Redis, MinIO (or use Docker Compose)
+## Authentication
 
-### Local Development
+- JWT authentication
+- bcrypt password hashing
+- Role-based authorization
+- Permission guards
 
-1. **Clone and install dependencies:**
+---
+
+## Data Protection
+
+- AES-GCM encryption for sensitive integration keys
+- Secure environment-based secrets
+- DTO validation
+- Guard-protected routes
+
+---
+
+## Operational Security
+
+- Audit logging
+- Rate limiting
+- Permission hierarchy restrictions
+- Super admin isolation
+- Customer scope enforcement
+
+---
+
+# VAT Transparency
+
+The platform supports transparent VAT calculations.
+
+Per line item:
+
+- VAT percentage
+- VAT amount
+- Net amount
+- Gross amount
+
+Totals:
+
+- Total excluding VAT
+- Total VAT
+- Grand total including VAT
+
+Designed specifically for B2B operational transparency.
+
+---
+
+# Responsive Design
+
+The platform is designed mobile-first and tablet-friendly.
+
+Optimized for:
+
+- Desktop
+- Tablet
+- Mobile devices
+- Touch-first workflows
+
+Special focus was placed on warehouse, operational, and sales-team usability.
+
+---
+
+# Internationalization
+
+Built-in multilingual architecture.
+
+Current languages:
+
+- English
+- Turkish
+- Dutch
+- German
+- Arabic
+
+---
+
+# Installation
+
+## Requirements
+
+| Tool    | Version     |
+| ------- | ----------- |
+| Node.js | >= 20       |
+| pnpm    | 9.x         |
+| Docker  | Recommended |
+
+---
+
+## Local Development
 
 ```bash
+git clone https://github.com/hanbeyoglu/snelstart-order-app.git
+
+cd snelstart-order-app
+
 pnpm install
-```
 
-2. **Set up environment variables:**
-
-Copy `env.example` to `.env` in the root directory and configure:
-
-```bash
 cp env.example .env
 ```
 
-3. **Start infrastructure services:**
+---
+
+## Start Infrastructure
 
 ```bash
-docker-compose up -d mongodb redis minio
+docker compose up -d mongodb redis
 ```
 
-4. **Start development servers:**
+---
+
+## Start API
 
 ```bash
-# Terminal 1: API
-cd apps/api
-pnpm run dev
-
-# Terminal 2: Worker
-cd apps/worker
-pnpm run dev
-
-# Terminal 3: Web
-cd apps/web
-pnpm run dev
+pnpm --filter @snelstart-order-app/api dev
 ```
 
-5. **Access the application:**
+---
 
-- Frontend: http://localhost:3000
-- API: http://localhost:3001
-- API Docs: http://localhost:3001/api/docs
-- MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
-
-### Docker Compose (Production-like)
+## Start Worker
 
 ```bash
-docker-compose up -d
+pnpm --filter @snelstart-order-app/worker dev
 ```
 
-This starts all services:
+---
 
-- Web (port 3000)
-- API (port 3001)
-- Worker
-- MongoDB (port 27017)
-- Redis (port 6379)
-- MinIO (ports 9000, 9001)
-
-## 🔧 Configuration
-
-### SnelStart API Integration
-
-1. **Mock Mode (Development):**
-
-Set `SNELSTART_MOCK=true` in `.env` to use mock data without real API keys.
-
-2. **Production Mode:**
-
-1. Get your SnelStart API keys:
-   - Subscription Key
-   - Integration Key
-
-1. Login as admin and navigate to **Admin > SnelStart Connection Settings**
-
-1. Enter your keys and test the connection
-
-### Environment Variables
-
-See `env.example` for all available environment variables.
-
-**Important:**
-
-- `JWT_SECRET`: Change in production
-- `ENCRYPTION_MASTER_KEY`: Change in production (used to encrypt SnelStart keys)
-- `SNELSTART_MOCK`: Set to `false` in production
-
-## 📋 Features
-
-### ✅ Implemented
-
-- ✅ Dynamic categories menu from SnelStart product groups
-- ✅ Product listing with search (name, SKU, barcode)
-- ✅ Product images with MinIO storage
-- ✅ Price override engine (multiple rule types)
-- ✅ Customer management (list, search, create)
-- ✅ Shopping cart
-- ✅ Order creation with SnelStart sync
-- ✅ Resilient order sync with retry logic
-- ✅ Redis caching
-- ✅ API rate limiting and concurrency control
-- ✅ Admin settings for SnelStart connection
-- ✅ Audit logging
-- ✅ PWA support
-
-### 🔄 Order Sync Flow
-
-1. User creates order → Stored locally as `PENDING_SYNC`
-2. API attempts immediate sync to SnelStart
-3. If sync fails → Job enqueued in BullMQ
-4. Worker retries with exponential backoff
-5. After max retries → Order marked as `FAILED`
-6. Admin can manually retry failed orders
-
-## 🧪 Testing
-
-### Unit Tests
+## Start Frontend
 
 ```bash
-cd apps/api
-pnpm test
+pnpm --filter @snelstart-order-app/web dev
 ```
 
-### Integration Tests
+---
 
-See `INTEGRATION_CHECKLIST.md` for SnelStart API integration details.
-
-## 📚 API Documentation
-
-Swagger/OpenAPI docs available at:
-
-- Development: http://localhost:3001/api/docs
-
-## 🔐 Security
-
-- JWT authentication
-- Encrypted storage of SnelStart API keys (AES-256-GCM)
-- Role-based access control (admin, sales_rep)
-- Input validation (Zod/class-validator)
-
-## 📦 Deployment
-
-### Build
+## Full Docker Stack
 
 ```bash
-pnpm run build
+docker compose up -d --build
 ```
 
-### Docker
+---
+
+# API Documentation
+
+Swagger UI:
+
+```txt
+http://localhost:3001/api/docs
+```
+
+---
+
+# Environment Variables
+
+## Core
+
+| Variable                | Purpose            |
+| ----------------------- | ------------------ |
+| `PORT`                  | API port           |
+| `NODE_ENV`              | Environment        |
+| `JWT_SECRET`            | JWT signing secret |
+| `ENCRYPTION_MASTER_KEY` | AES encryption key |
+
+---
+
+## Database
+
+| Variable      | Purpose            |
+| ------------- | ------------------ |
+| `MONGODB_URI` | MongoDB connection |
+| `REDIS_HOST`  | Redis host         |
+| `REDIS_PORT`  | Redis port         |
+
+---
+
+## SnelStart
+
+| Variable                 | Purpose          |
+| ------------------------ | ---------------- |
+| `SNELSTART_API_BASE_URL` | SnelStart API    |
+| `SNELSTART_API_AUTH_URL` | Auth endpoint    |
+| `SNELSTART_CLIENTKEY`    | Client key       |
+| `SNELSTART_API_SUB_KEY`  | Subscription key |
+| `SNELSTART_MOCK`         | Mock mode        |
+
+---
+
+## Storage
+
+| Variable          | Purpose              |
+| ----------------- | -------------------- |
+| `MINIO_*`         | MinIO config         |
+| `CLOUDFLARE_R2_*` | Cloudflare R2 config |
+
+---
+
+## Monitoring
+
+| Variable               | Purpose              |
+| ---------------------- | -------------------- |
+| `SENTRY_DSN`           | Error tracking       |
+| `UPTIME_KUMA_PUSH_URL` | Heartbeat monitoring |
+
+---
+
+## SMTP
+
+| Variable                    | Purpose                       |
+| --------------------------- | ----------------------------- |
+| `SMTP_HOST`                 | SMTP server                   |
+| `SMTP_PORT`                 | SMTP port                     |
+| `SMTP_USER`                 | SMTP username                 |
+| `SMTP_PASS`                 | SMTP password                 |
+| `SMTP_FROM`                 | Sender address                |
+| `ORDER_NOTIFICATION_EMAILS` | Order notification recipients |
+
+---
+
+# Testing
+
+## Unit Tests
 
 ```bash
-cd infra
-docker-compose build
-docker-compose up -d
+pnpm --filter @snelstart-order-app/api test
 ```
 
-## 🐛 Troubleshooting
+---
 
-### MongoDB Connection Issues
-
-Ensure MongoDB is running:
+## Coverage
 
 ```bash
-docker-compose ps mongodb
+pnpm --filter @snelstart-order-app/api test:cov
 ```
 
-### Redis Connection Issues
+---
 
-Check Redis:
+## E2E Tests
 
 ```bash
-docker-compose ps redis
-redis-cli ping
+pnpm test:e2e
 ```
 
-### MinIO Access
+---
 
-- Console: http://localhost:9001
-- Credentials: minioadmin/minioadmin (change in production)
+# CI/CD
 
-## 📝 License
+GitHub Actions pipeline:
 
-Proprietary
+1. Install dependencies
+2. Build shared package
+3. Build API
+4. Run tests
+5. Build frontend
+6. Run Playwright E2E tests
+7. Build worker
+8. Deploy via SSH + Docker Compose
 
-## 👥 Support
+Deployment flow:
 
-For issues and questions, contact the development team.
+```bash
+git fetch origin main
+git reset --hard origin/main
+
+docker compose down --remove-orphans
+
+docker compose up -d --build
+```
+
+---
+
+# Health Endpoints
+
+```txt
+GET /api/health
+GET /api/health/live
+GET /api/health/ready
+```
+
+---
+
+# Monitoring
+
+| Tool             | Purpose                 |
+| ---------------- | ----------------------- |
+| Sentry           | Error monitoring        |
+| Uptime Kuma      | Uptime monitoring       |
+| Health endpoints | Container health checks |
+
+---
+
+# Roadmap
+
+- Payment integrations
+- Invoice PDF generation
+- Warehouse management
+- Multi-tenant support
+- Push notifications
+- Advanced inventory tracking
+- AI-assisted analytics
+- Forecasting & purchasing insights
+
+---
+
+# License
+
+This repository is licensed as **Proprietary**.
+
+The source code is publicly visible for portfolio and demonstration purposes, but copying, redistribution, or commercial reuse is prohibited without explicit permission.
+
+---
+
+<div align="center">
+
+### Built for modern B2B wholesale operations.
+
+</div>
