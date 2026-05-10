@@ -6,7 +6,13 @@
   "customerSearchPlaceholder": "ابحث عن عميل أو اختره...",
   "selectedCustomer": "العميل المحدد",
   "subtotal": "المجموع الفرعي:",
-  "total": "الإجمالي:",
+  "total": "الإجمالي العام:",
+  "amount": "المبلغ:",
+  "vat": "الضريبة:",
+  "exclVat": "بدون الضريبة",
+  "inclVat": "شامل الضريبة",
+  "totalAmount": "المبلغ الإجمالي:",
+  "vatRate": "ضريبة {{rate}}%:",
   "createOrder": "إنشاء طلب",
   "creatingOrder": "جار إنشاء الطلب...",
   "clearCart": "مسح السلة",
@@ -18,6 +24,21 @@
   "articleCode": "رمز المقال",
   "confirmRemoveTitle": "إزالة المنتج من السلة؟",
   "confirmRemoveDescription": "سيتم إزالة هذا المنتج من سلتك.",
+  "delivery": {
+    "title": "قرار التسليم *",
+    "requiredDescription": "اختر طريقة التسليم قبل إنشاء الطلب.",
+    "timeTitle": "وقت التسليم *",
+    "timeDescription": "اختر التسليم الفوري أو تاريخا محددا.",
+    "dateLabel": "تاريخ التسليم",
+    "options": {
+      "marketDelivery": "تسليم إلى المتجر",
+      "warehousePickup": "استلام من المستودع"
+    },
+    "timeOptions": {
+      "asap": "فورا",
+      "scheduled": "اختيار تاريخ"
+    }
+  },
   "adminPriceOverride": {
     "title": "أقل من معايير السعر",
     "description": "هذا السعر أقل من معايير البيع المحددة. هل أنت متأكد من أنك تريد تغييره؟",
@@ -27,6 +48,8 @@
   },
   "messages": {
     "selectCustomer": "يرجى اختيار عميل",
+    "selectDelivery": "يرجى اختيار طريقة التسليم",
+    "selectDeliveryTime": "يرجى اختيار وقت التسليم",
     "orderCreated": "تم إنشاء الطلب بنجاح!",
     "orderCreateError": "حدث خطأ أثناء إنشاء الطلب",
     "cartCleared": "تم مسح السلة",

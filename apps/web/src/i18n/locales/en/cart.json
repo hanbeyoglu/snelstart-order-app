@@ -6,7 +6,13 @@
   "customerSearchPlaceholder": "Search or select a customer...",
   "selectedCustomer": "Selected Customer",
   "subtotal": "Subtotal:",
-  "total": "Total:",
+  "total": "Grand total:",
+  "amount": "Amount:",
+  "vat": "VAT:",
+  "exclVat": "excl. VAT",
+  "inclVat": "incl. VAT",
+  "totalAmount": "Total Amount:",
+  "vatRate": "VAT {{rate}}%:",
   "createOrder": "Create Order",
   "creatingOrder": "Creating order...",
   "clearCart": "Clear Cart",
@@ -18,6 +24,21 @@
   "articleCode": "Article code",
   "confirmRemoveTitle": "Remove product from cart?",
   "confirmRemoveDescription": "This product will be removed from your cart.",
+  "delivery": {
+    "title": "Delivery decision *",
+    "requiredDescription": "Select the delivery option before creating the order.",
+    "timeTitle": "Delivery time *",
+    "timeDescription": "Choose immediate delivery or a specific date.",
+    "dateLabel": "Delivery date",
+    "options": {
+      "marketDelivery": "Deliver to market",
+      "warehousePickup": "Pick up from warehouse"
+    },
+    "timeOptions": {
+      "asap": "Immediately",
+      "scheduled": "Select date"
+    }
+  },
   "adminPriceOverride": {
     "title": "Below price criteria",
     "description": "This price is below the defined sales criteria. Are you sure you want to change it?",
@@ -27,6 +48,8 @@
   },
   "messages": {
     "selectCustomer": "Please select a customer",
+    "selectDelivery": "Please select a delivery option",
+    "selectDeliveryTime": "Please select a delivery time",
     "orderCreated": "Order created successfully!",
     "orderCreateError": "An error occurred while creating the order",
     "cartCleared": "Cart cleared",

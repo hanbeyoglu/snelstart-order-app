@@ -5,21 +5,26 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { useAuthStore } from '../store/authStore';
 
 export default function OrdersPage() {
   const { t } = useAppTranslation(['common', 'orders']);
   const { formatCurrency, locale } = useLocaleFormat();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const isCustomer = user?.role === 'customer';
+  const ordersScope = user ? `${user.role}:${user.id}` : 'anonymous';
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['orders', statusFilter],
+    queryKey: ['orders', ordersScope, statusFilter],
     queryFn: async () => {
       const params: any = {};
       if (statusFilter) params.status = statusFilter;
       const response = await api.get('/orders', { params });
       return response.data;
     },
+    enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 dakika
     gcTime: 10 * 60 * 1000, // 10 dakika
     refetchOnWindowFocus: false,
@@ -124,6 +129,13 @@ export default function OrdersPage() {
     }
   };
 
+  const getCreatedByName = (order: any) => {
+    if (order.createdByRole === 'customer') {
+      return order.createdByCustomerName || order.createdByUsername || '-';
+    }
+    return order.createdByFullName || order.createdByUsername || '-';
+  };
+
   return (
     <div className="container">
       <motion.div
@@ -142,7 +154,7 @@ export default function OrdersPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          {t('orders:title')}
+          {isCustomer ? 'My Orders' : t('orders:title')}
         </h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <label style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
@@ -201,7 +213,7 @@ export default function OrdersPage() {
             style={{
               width: '100%',
               borderCollapse: 'collapse',
-              minWidth: '800px',
+              minWidth: '950px',
             }}
           >
             <thead>
@@ -269,6 +281,18 @@ export default function OrdersPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
+                  {t('orders:fields.createdBy')}
+                </th>
+                <th
+                  style={{
+                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                    textAlign: 'left',
+                    fontWeight: 700,
+                    fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {t('orders:fields.itemCount')}
                 </th>
                 <th
@@ -301,8 +325,8 @@ export default function OrdersPage() {
               {orders?.map((order: any, index: number) => {
                 const statusConfig = getStatusConfig(order.status);
                 const orderDate = new Date(order.createdAt || order.updatedAt);
-                const itemCount = order.items?.length || 0;
-                const totalAmount = order.total || order.subtotal || 0;
+                const itemCount = order.items?.filter((item: any) => item.isChildItem !== true).length || 0;
+                const totalAmount = order.totalInclVat ?? order.total ?? order.subtotal ?? 0;
                 const customer = order.customerId ? customersMap[order.customerId] : null;
 
                 return (
@@ -345,13 +369,13 @@ export default function OrdersPage() {
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/customers/${order.customerId}`);
+                            if (!isCustomer) navigate(`/customers/${order.customerId}`);
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            cursor: 'pointer',
+                            cursor: isCustomer ? 'default' : 'pointer',
                             padding: '0.25rem 0.5rem',
                             borderRadius: '6px',
                             transition: 'background 0.2s',
@@ -412,6 +436,25 @@ export default function OrdersPage() {
                       >
                         <span>{statusConfig.icon}</span>
                         <span>{statusConfig.text}</span>
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontWeight: 600 }}>{getCreatedByName(order)}</span>
+                        <span style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', color: 'var(--text-secondary)' }}>
+                          {order.createdByRole || '-'}
+                        </span>
+                        {order.createdByRole === 'customer' && order.createdByCustomerName && (
+                          <span style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', color: 'var(--text-secondary)' }}>
+                            {order.createdByCustomerName}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td

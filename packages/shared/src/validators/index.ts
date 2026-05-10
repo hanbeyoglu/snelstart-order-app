@@ -64,9 +64,20 @@ export const cartItemSchema = z.object({
   categoryId: z.string().optional(),
   quantity: z.number().positive(),
   unitPrice: z.number().nonnegative(),
+  unitPriceExclVat: z.number().nonnegative().optional(),
   basePrice: z.number().nonnegative(),
   totalPrice: z.number().nonnegative(),
   vatPercentage: z.number().nonnegative(),
+  vatType: z.string().nullable().optional(),
+  vatRate: z.number().nonnegative().optional(),
+  vatGroupId: z.string().optional(),
+  vatGroupName: z.string().optional(),
+  subtotalExclVat: z.number().nonnegative().optional(),
+  vatAmount: z.number().nonnegative().optional(),
+  lineSubtotalExclVat: z.number().nonnegative().optional(),
+  lineVatAmount: z.number().nonnegative().optional(),
+  lineTotalInclVat: z.number().nonnegative().optional(),
+  totalInclVat: z.number().nonnegative().optional(),
   customUnitPrice: z.number().nonnegative().optional(),
   adminOverride: z.boolean().optional(),
   adminPriceOverrideConfirmed: z.boolean().optional(),
@@ -80,6 +91,7 @@ export const createOrderSchema = z.object({
   idempotencyKey: z.string().uuid(),
   customerId: z.string(),
   items: z.array(cartItemSchema),
+  memo: z.string().trim().min(1).max(1000).optional(),
 });
 
 export const createOrderRequestSchema = z.object({

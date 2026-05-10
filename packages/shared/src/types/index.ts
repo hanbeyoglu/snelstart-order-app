@@ -35,6 +35,10 @@ export interface SnelStartProduct {
   voorraad?: number; // Stock
   verkoopprijs?: number; // Base price
   btwPercentage?: number; // VAT
+  vatType?: string | null;
+  vatRate?: number;
+  vatGroupId?: string;
+  vatGroupName?: string;
   eenheid?: string; // Unit
   barcode?: string;
   prijsafspraak?: SnelStartPrijsafspraak;
@@ -69,6 +73,10 @@ export interface ResolvedProductSubArticle extends ProductSubArticle {
     voorraad?: number;
     verkoopprijs?: number;
     inkoopprijs?: number;
+    vatType?: string | null;
+    vatRate?: number;
+    vatGroupId?: string;
+    vatGroupName?: string;
     eenheid?: string;
     coverImageUrl?: string | null;
   } | null;
@@ -168,9 +176,21 @@ export interface LocalOrder {
   _id?: string;
   idempotencyKey: string; // Client-generated UUID
   customerId: string;
+  createdByUserId?: string;
+  createdByUsername?: string;
+  createdByFullName?: string;
+  createdByRole?: 'customer' | 'sales_rep' | 'admin' | 'super_admin' | string;
+  createdByCustomerId?: string;
+  createdByCustomerName?: string;
+  memo?: string;
   items: CartItem[];
   subtotal: number;
   total: number;
+  subtotalExclVat?: number;
+  vatAmount?: number;
+  vatTotal?: number;
+  totalInclVat?: number;
+  vatBreakdown?: VatBreakdownItem[];
   status: OrderStatus;
   snelstartOrderId?: string;
   errorMessage?: string;
@@ -189,9 +209,20 @@ export interface CartItem {
   categoryId?: string;
   quantity: number;
   unitPrice: number;
+  unitPriceExclVat?: number;
   basePrice: number;
   totalPrice: number;
   vatPercentage: number;
+  vatType?: string | null;
+  vatRate?: number;
+  vatGroupId?: string;
+  vatGroupName?: string;
+  subtotalExclVat?: number;
+  vatAmount?: number;
+  lineSubtotalExclVat?: number;
+  lineVatAmount?: number;
+  lineTotalInclVat?: number;
+  totalInclVat?: number;
   customUnitPrice?: number; // Manuel olarak düzenlenmiş birim fiyat
   adminOverride?: boolean; // Admin düşük fiyat onayı verdi mi?
   adminPriceOverrideConfirmed?: boolean; // Ürün bazlı admin override onayı
@@ -210,6 +241,13 @@ export interface CartItem {
   quantityPerParent?: number;
   childUri?: string;
   isMissingChild?: boolean;
+}
+
+export interface VatBreakdownItem {
+  vatRate: number;
+  subtotalExclVat: number;
+  vatAmount: number;
+  totalInclVat: number;
 }
 
 export interface User {

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Inject, forwardRef, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -11,6 +11,7 @@ import { createOrderSchema } from '@snelstart-order-app/shared';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
+import { OrderNotificationService } from './order-notification.service';
 
 @Injectable()
 export class OrdersService {
@@ -24,6 +25,7 @@ export class OrdersService {
     private auditService: AuditService,
     @Inject(forwardRef(() => CustomersService)) private customersService: CustomersService,
     private productsService: ProductsService,
+    private orderNotificationService?: OrderNotificationService,
   ) {}
 
   private getMinimumAllowedPrice(basePrice: number, purchasePrice?: number | null) {
@@ -36,6 +38,144 @@ export class OrdersService {
   private positiveNumber(value: unknown, fallback: number): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private money(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private getUserFullName(user?: any): string | undefined {
+    const fullName = [user?.firstName, user?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    return fullName || user?.username || user?.email || undefined;
+  }
+
+  private async buildOrderCreatorSnapshot(user: any, customerId: string) {
+    const snapshot: Record<string, any> = {
+      createdByUserId: user?.userId,
+      createdByUsername: user?.username,
+      createdByFullName: this.getUserFullName(user),
+      createdByRole: user?.role,
+    };
+
+    if (user?.role === 'customer') {
+      const userCustomerId = this.requireCustomerId(user);
+      const customer = await this.customersService.getCustomerById(userCustomerId);
+      if (!customer) {
+        throw new NotFoundException('Customer kullanıcı bağlı müşteri kaydı bulunamadı');
+      }
+
+      snapshot.createdByCustomerId = userCustomerId;
+      snapshot.createdByCustomerName =
+        customer.storeName ||
+        customer.companyName ||
+        customer.naam ||
+        customer.name ||
+        customerId;
+    }
+
+    return snapshot;
+  }
+
+  private getCreatorNoteLine(order: Partial<LocalOrder> | Record<string, any>): string | undefined {
+    if (order.createdByRole === 'customer') {
+      const customerName = order.createdByCustomerName || order.createdByCustomerId;
+      return customerName ? `Oluşturan müşteri: ${customerName}` : undefined;
+    }
+
+    const creatorName = order.createdByFullName || order.createdByUsername;
+    return creatorName ? `Oluşturan: ${creatorName}` : undefined;
+  }
+
+  private appendCreatorNote(existingNote: string | undefined, order: Partial<LocalOrder> | Record<string, any>) {
+    const baseNote = (existingNote || '').trim();
+    const creatorLine = this.getCreatorNoteLine(order);
+
+    if (!creatorLine) {
+      return baseNote;
+    }
+
+    return baseNote ? `${baseNote}\n${creatorLine}` : creatorLine;
+  }
+
+  private buildSnelStartPayload(order: Partial<LocalOrder> | Record<string, any>, date: Date = new Date()) {
+    const dateOnly = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    ).toISOString().split('T')[0];
+
+    return {
+      relatie: {
+        id: order.customerId,
+      },
+      datum: `${dateOnly}T00:00:00`,
+      verkooporderBtwIngaveModel: 'Exclusief',
+      regels: (order.items || []).map((item: any) => ({
+        artikel: {
+          id: item.productId,
+        },
+        aantal: item.quantity,
+        stuksprijs: item.unitPrice,
+      })),
+      memo: this.appendCreatorNote(
+        (order as any).memo || 'Özel yazılımdan gelen sipariş',
+        order,
+      ),
+    };
+  }
+
+  private getVatRate(source: any): number {
+    const parsed = Number(source?.vatRate ?? source?.btwPercentage ?? source?.vatPercentage ?? 0);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  private calculateOrderTotals(items: any[]) {
+    const breakdownByRate = new Map<number, { vatRate: number; subtotalExclVat: number; vatAmount: number; totalInclVat: number }>();
+    const enrichedItems = items.map((item) => {
+      const lineSubtotal = this.money(Number(item.unitPrice || 0) * Number(item.quantity || 0));
+      const vatRate = this.getVatRate(item);
+      const vatAmount = this.money((lineSubtotal * vatRate) / 100);
+      const totalInclVat = this.money(lineSubtotal + vatAmount);
+      const current = breakdownByRate.get(vatRate) || {
+        vatRate,
+        subtotalExclVat: 0,
+        vatAmount: 0,
+        totalInclVat: 0,
+      };
+      current.subtotalExclVat = this.money(current.subtotalExclVat + lineSubtotal);
+      current.vatAmount = this.money(current.vatAmount + vatAmount);
+      current.totalInclVat = this.money(current.totalInclVat + totalInclVat);
+      breakdownByRate.set(vatRate, current);
+
+      return {
+        ...item,
+        unitPriceExclVat: this.money(Number(item.unitPrice || 0)),
+        totalPrice: lineSubtotal,
+        vatPercentage: vatRate,
+        vatRate,
+        subtotalExclVat: lineSubtotal,
+        vatAmount,
+        lineSubtotalExclVat: lineSubtotal,
+        lineVatAmount: vatAmount,
+        lineTotalInclVat: totalInclVat,
+        totalInclVat,
+      };
+    });
+    const subtotalExclVat = this.money(enrichedItems.reduce((sum, item) => sum + item.subtotalExclVat, 0));
+    const vatAmount = this.money(Array.from(breakdownByRate.values()).reduce((sum, item) => sum + item.vatAmount, 0));
+    const totalInclVat = this.money(subtotalExclVat + vatAmount);
+
+    return {
+      items: enrichedItems,
+      subtotalExclVat,
+      vatAmount,
+      vatTotal: vatAmount,
+      totalInclVat,
+      vatBreakdown: Array.from(breakdownByRate.values()).sort((a, b) => a.vatRate - b.vatRate),
+    };
   }
 
   private async validateOrderPrices(items: any[], user?: any) {
@@ -76,7 +216,8 @@ export class OrdersService {
   }
 
   async createOrder(orderData: any, user?: any) {
-    const requested = parseOrBadRequest(createOrderSchema, orderData);
+    const requested = parseOrBadRequest(createOrderSchema, orderData) as any;
+    const effectiveCustomerId = this.resolveOrderCustomerId(requested.customerId, user);
 
     // Check idempotency
     const existing = await this.orderModel
@@ -86,57 +227,51 @@ export class OrdersService {
       return existing;
     }
 
+    const creatorSnapshot = await this.buildOrderCreatorSnapshot(user, effectiveCustomerId);
+
     const trustedItems = await this.buildTrustedOrderItems(
       requested.items,
-      requested.customerId,
+      effectiveCustomerId,
       user,
     );
+    const totals = this.calculateOrderTotals(trustedItems);
     const validated = {
       idempotencyKey: requested.idempotencyKey,
-      customerId: requested.customerId,
-      items: trustedItems,
+      customerId: effectiveCustomerId,
+      memo: requested.memo,
+      items: totals.items,
+      ...creatorSnapshot,
     };
-
-    // Calculate subtotal and total from items
-    const subtotal = validated.items.reduce((sum, item) => {
-      return sum + (item.unitPrice * item.quantity);
-    }, 0);
-    const total = subtotal; // VAT is already included in unitPrice or handled separately
 
     // Create local order
     const order = new this.orderModel({
       ...validated,
-      subtotal,
-      total,
+      subtotal: totals.subtotalExclVat,
+      total: totals.totalInclVat,
+      subtotalExclVat: totals.subtotalExclVat,
+      vatAmount: totals.vatAmount,
+      vatTotal: totals.vatTotal,
+      totalInclVat: totals.totalInclVat,
+      vatBreakdown: totals.vatBreakdown,
       status: 'PENDING_SYNC',
     });
     await order.save();
 
+    if (user?.role === 'customer') {
+      await this.auditService.log({
+        action: 'CUSTOMER_ORDER_CREATED',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        userId: user?.userId,
+        metadata: { customerId: effectiveCustomerId, total: totals.totalInclVat, createdBy: creatorSnapshot },
+      });
+      void this.notifyCustomerOrder(order, user, effectiveCustomerId);
+    }
+
     // Try to sync immediately
     try {
       // SnelStart sipariş formatını oluştur
-      const today = new Date();
-      const dateOnly = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-      ).toISOString().split('T')[0];
-
-      const snelStartPayload: any = {
-        relatie: {
-          id: validated.customerId,
-        },
-        datum: `${dateOnly}T00:00:00`,
-        verkooporderBtwIngaveModel: 'Exclusief',
-        regels: validated.items.map((item) => ({
-          artikel: {
-            id: item.productId,
-          },
-          aantal: item.quantity,
-          stuksprijs: item.unitPrice,
-        })),
-        memo: 'Özel yazılımdan gelen sipariş',
-      };
+      const snelStartPayload = this.buildSnelStartPayload(order);
 
       const snelStartOrder = await this.snelStartService.createSalesOrder(snelStartPayload);
 
@@ -180,8 +315,13 @@ export class OrdersService {
     }
   }
 
-  async getOrders(filters?: any) {
-    return this.orderModel.find(filters || {}).sort({ createdAt: -1 }).exec();
+  async getOrders(filters?: any, user?: any) {
+    const effectiveFilters = { ...(filters || {}) };
+    if (user?.role === 'customer') {
+      effectiveFilters.customerId = this.requireCustomerId(user);
+      effectiveFilters.createdByUserId = this.requireCustomerUserId(user);
+    }
+    return this.orderModel.find(effectiveFilters).sort({ createdAt: -1 }).exec();
   }
 
   private async buildTrustedOrderItems(
@@ -195,7 +335,7 @@ export class OrdersService {
       const product: any = await this.productsService.getProductById(item.productId, customerId);
       const basePrice = Number(product.basePrice || product.verkoopprijs || 0);
       const trustedUnitPrice = Number(product.finalPrice ?? basePrice);
-      const vatPercentage = Number(product.btwPercentage || 0);
+      const vatRate = this.getVatRate(product);
       const requestedUnitPrice = Number(item.unitPrice);
       const hasRequestedPrice = Number.isFinite(requestedUnitPrice);
       const priceChanged = hasRequestedPrice && requestedUnitPrice !== trustedUnitPrice;
@@ -233,7 +373,11 @@ export class OrdersService {
         unitPrice,
         basePrice,
         totalPrice: unitPrice * this.positiveNumber(item.quantity, 1),
-        vatPercentage,
+        vatPercentage: vatRate,
+        vatType: product.vatType ?? null,
+        vatRate,
+        vatGroupId: product.vatGroupId,
+        vatGroupName: product.vatGroupName,
         lineType: 'product',
         ...(priceChanged
           ? {
@@ -249,7 +393,7 @@ export class OrdersService {
         const dbChild = subArticle.childProduct
           ? await this.productModel
               .findOne({ snelstartId: subArticle.childSnelstartId })
-              .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs eenheid voorraad')
+              .select('snelstartId omschrijving artikelnummer artikelcode verkoopprijs inkoopprijs vatType vatRate vatGroupId vatGroupName eenheid voorraad')
               .lean()
               .exec()
           : null;
@@ -258,6 +402,7 @@ export class OrdersService {
         const parentQuantity = this.positiveNumber(item.quantity, 1);
         const childQuantity = parentQuantity * quantityPerParent;
         const childUnitPrice = this.positiveNumber(child?.verkoopprijs, 0);
+        const childVatRate = this.getVatRate(child);
 
         trustedItems.push({
           productId: subArticle.childSnelstartId,
@@ -267,7 +412,11 @@ export class OrdersService {
           unitPrice: childUnitPrice,
           basePrice: childUnitPrice,
           totalPrice: childUnitPrice * childQuantity,
-          vatPercentage: 0,
+          vatPercentage: childVatRate,
+          vatType: child?.vatType ?? null,
+          vatRate: childVatRate,
+          vatGroupId: child?.vatGroupId,
+          vatGroupName: child?.vatGroupName,
           isChildItem: true,
           lineType: 'recipe_child',
           parentProductId: product.id || item.productId,
@@ -284,11 +433,17 @@ export class OrdersService {
     return trustedItems;
   }
 
-  async getOrderById(id: string) {
-    return this.orderModel.findById(id).exec();
+  async getOrderById(id: string, user?: any) {
+    const order = await this.orderModel.findById(id).exec();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    this.assertCanAccessOrder(order, user);
+    return order;
   }
 
-  async retryOrder(orderId: string, userId?: string) {
+  async retryOrder(orderId: string, user?: any) {
+    this.assertManageOrderAccess(user);
     const order = await this.orderModel.findById(orderId).exec();
     if (!order) {
       throw new Error('Order not found');
@@ -318,7 +473,7 @@ export class OrdersService {
       action: 'ORDER_RETRY',
       entityType: 'LocalOrder',
       entityId: orderId,
-      userId,
+      userId: user?.userId,
     });
 
     return order;
@@ -336,27 +491,7 @@ export class OrdersService {
 
     try {
       const createdAt: Date = (order as any).createdAt || new Date();
-      const dateOnly = new Date(
-        createdAt.getFullYear(),
-        createdAt.getMonth(),
-        createdAt.getDate(),
-      ).toISOString().split('T')[0];
-
-      const snelStartPayload: any = {
-        relatie: {
-          id: order.customerId,
-        },
-        datum: `${dateOnly}T00:00:00`,
-        verkooporderBtwIngaveModel: 'Exclusief',
-        regels: order.items.map((item: any) => ({
-          artikel: {
-            id: item.productId,
-          },
-          aantal: item.quantity,
-          stuksprijs: item.unitPrice,
-        })),
-        memo: 'Özel yazılımdan gelen sipariş',
-      };
+      const snelStartPayload = this.buildSnelStartPayload(order, createdAt);
 
       const snelStartOrder = await this.snelStartService.createSalesOrder(snelStartPayload);
 
@@ -378,7 +513,8 @@ export class OrdersService {
     }
   }
 
-  async deleteOrder(id: string, userId?: string) {
+  async deleteOrder(id: string, user?: any) {
+    this.assertManageOrderAccess(user);
     const order = await this.orderModel.findById(id).exec();
     if (!order) {
       throw new Error('Order not found');
@@ -409,13 +545,14 @@ export class OrdersService {
       action: 'ORDER_DELETED',
       entityType: 'LocalOrder',
       entityId: id,
-      userId,
+      userId: user?.userId,
     });
 
     return { success: true };
   }
 
   async updateOrder(id: string, orderData: any, user?: any) {
+    this.assertManageOrderAccess(user);
     const order = await this.orderModel.findById(id).exec();
     if (!order) {
       throw new Error('Order not found');
@@ -440,17 +577,23 @@ export class OrdersService {
       }
     }
 
+    const safeOrderData = this.stripProtectedOrderFields(orderData);
+
     // Update order fields
-    if (orderData.items) {
-      await this.validateOrderPrices(orderData.items, user);
-      const subtotal = orderData.items.reduce((sum: number, item: any) => {
-        return sum + (item.unitPrice * item.quantity);
-      }, 0);
-      orderData.subtotal = subtotal;
-      orderData.total = subtotal;
+    if (safeOrderData.items) {
+      await this.validateOrderPrices(safeOrderData.items, user);
+      const totals = this.calculateOrderTotals(safeOrderData.items);
+      safeOrderData.items = totals.items;
+      safeOrderData.subtotal = totals.subtotalExclVat;
+      safeOrderData.total = totals.totalInclVat;
+      safeOrderData.subtotalExclVat = totals.subtotalExclVat;
+      safeOrderData.vatAmount = totals.vatAmount;
+      safeOrderData.vatTotal = totals.vatTotal;
+      safeOrderData.totalInclVat = totals.totalInclVat;
+      safeOrderData.vatBreakdown = totals.vatBreakdown;
     }
 
-    Object.assign(order, orderData);
+    Object.assign(order, safeOrderData);
     await order.save();
 
     await this.auditService.log({
@@ -463,7 +606,10 @@ export class OrdersService {
     return order;
   }
 
-  async getDashboardStats(period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+  async getDashboardStats(period: 'daily' | 'weekly' | 'monthly' = 'daily', user?: any) {
+    if (user?.role === 'customer') {
+      throw new ForbiddenException('Dashboard erişimi yok');
+    }
     const now = new Date();
     let startDate: Date;
 
@@ -548,5 +694,77 @@ export class OrdersService {
       totalOrders: orders.length,
       totalRevenue: orders.reduce((sum, o) => sum + (o.total || 0), 0),
     };
+  }
+
+  private resolveOrderCustomerId(requestedCustomerId: string, user?: any): string {
+    if (user?.role === 'customer') {
+      return this.requireCustomerId(user);
+    }
+    return requestedCustomerId;
+  }
+
+  private stripProtectedOrderFields(orderData: any) {
+    const {
+      createdByUserId: _createdByUserId,
+      createdByUsername: _createdByUsername,
+      createdByFullName: _createdByFullName,
+      createdByRole: _createdByRole,
+      createdByCustomerId: _createdByCustomerId,
+      createdByCustomerName: _createdByCustomerName,
+      ...safeOrderData
+    } = orderData || {};
+    return safeOrderData;
+  }
+
+  private requireCustomerId(user?: any): string {
+    const customerId = String(user?.customerId || '').trim();
+    if (!customerId) {
+      throw new ForbiddenException('Customer kullanıcı müşteri kaydına bağlı değil');
+    }
+    return customerId;
+  }
+
+  private requireCustomerUserId(user?: any): string {
+    const userId = String(user?.userId || '').trim();
+    if (!userId) {
+      throw new ForbiddenException('Customer kullanıcı kimliği doğrulanamadı');
+    }
+    return userId;
+  }
+
+  private assertCanAccessOrder(order: LocalOrderDocument, user?: any) {
+    if (user?.role !== 'customer') {
+      return;
+    }
+    const userId = this.requireCustomerUserId(user);
+    if (order.customerId !== this.requireCustomerId(user) || order.createdByUserId !== userId) {
+      throw new NotFoundException('Order not found');
+    }
+  }
+
+  private assertManageOrderAccess(user?: any) {
+    if (user?.role === 'customer') {
+      throw new ForbiddenException('Customer kullanıcı sipariş yönetimi yapamaz');
+    }
+  }
+
+  private async notifyCustomerOrder(order: LocalOrderDocument, user: any, customerId: string) {
+    let success = false;
+    try {
+      const customer = await this.customersService.getCustomerById(customerId);
+      success = this.orderNotificationService
+        ? await this.orderNotificationService.sendCustomerOrderNotification(order, user, customer)
+        : false;
+    } catch (error: any) {
+      this.logger.error(`Customer order notification failed: ${error?.message || error}`);
+    } finally {
+      await this.auditService.log({
+        action: success ? 'CUSTOMER_ORDER_NOTIFICATION_EMAIL_SENT' : 'CUSTOMER_ORDER_NOTIFICATION_EMAIL_FAILED',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        userId: user?.userId,
+        metadata: { customerId },
+      });
+    }
   }
 }

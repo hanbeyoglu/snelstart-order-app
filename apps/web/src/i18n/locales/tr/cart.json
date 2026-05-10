@@ -6,7 +6,13 @@
   "customerSearchPlaceholder": "Müşteri ara veya seç...",
   "selectedCustomer": "Seçilen Müşteri",
   "subtotal": "Ara Toplam:",
-  "total": "Toplam:",
+  "total": "Genel Toplam:",
+  "amount": "Tutar:",
+  "vat": "KDV:",
+  "exclVat": "KDV hariç",
+  "inclVat": "KDV dahil",
+  "totalAmount": "Toplam Tutar:",
+  "vatRate": "KDV %{{rate}}:",
   "createOrder": "Sipariş Oluştur",
   "creatingOrder": "Sipariş oluşturuluyor...",
   "clearCart": "Sepeti Temizle",
@@ -18,6 +24,21 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Ürün sepetten çıkarılsın mı?",
   "confirmRemoveDescription": "Bu ürün sepetinizden kaldırılacak.",
+  "delivery": {
+    "title": "Teslimat kararı *",
+    "requiredDescription": "Sipariş oluşturmadan önce teslimat şeklini seçmelisiniz.",
+    "timeTitle": "Teslimat zamanı *",
+    "timeDescription": "Hemen teslimat ya da belirli bir tarih seçin.",
+    "dateLabel": "Teslimat tarihi",
+    "options": {
+      "marketDelivery": "Markete Teslim",
+      "warehousePickup": "Depodan Teslim Alınacak"
+    },
+    "timeOptions": {
+      "asap": "Hemen",
+      "scheduled": "Tarih seç"
+    }
+  },
   "adminPriceOverride": {
     "title": "Fiyat kriterlerinin altında",
     "description": "Bu fiyat belirlenen satış kriterlerinin altında. Değiştirmek istediğinize emin misiniz?",
@@ -27,6 +48,8 @@
   },
   "messages": {
     "selectCustomer": "Lütfen bir müşteri seçin",
+    "selectDelivery": "Lütfen teslimat kararını seçin",
+    "selectDeliveryTime": "Lütfen teslimat zamanını seçin",
     "orderCreated": "Sipariş başarıyla oluşturuldu!",
     "orderCreateError": "Sipariş oluşturulurken bir hata oluştu",
     "cartCleared": "Sepet temizlendi",

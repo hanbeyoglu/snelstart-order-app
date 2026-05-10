@@ -9,6 +9,7 @@ import { AuditModule } from '../audit/audit.module';
 import { CustomersModule } from '../customers/customers.module';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { ProductsModule } from '../products/products.module';
+import { OrderNotificationService } from './order-notification.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { ProductsModule } from '../products/products.module';
     ProductsModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrderNotificationService],
   exports: [OrdersService],
 })
 export class OrdersModule {}

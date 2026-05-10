@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CartService } from './cart.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,8 +18,9 @@ export class CartController {
       items: Array<{ productId: string; quantity: number }>;
       customerId?: string;
     },
+    @Req() req: any,
   ) {
-    return this.cartService.calculateCart(body.items, body.customerId);
+    const effectiveCustomerId = req.user?.role === 'customer' ? req.user.customerId : body.customerId;
+    return this.cartService.calculateCart(body.items, effectiveCustomerId, req.user);
   }
 }
-
