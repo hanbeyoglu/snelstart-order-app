@@ -6,6 +6,13 @@ import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import {
+  CUSTOMER_DEFAULT_PERMISSIONS,
+  PERMISSION_DESCRIPTIONS,
+  PERMISSION_LABELS,
+  getPortalAssignablePermissions,
+  normalizePortalPermissionSelection,
+} from '../utils/permissions';
 
 type PortalUser = {
   _id: string;
@@ -17,6 +24,7 @@ type PortalUser = {
   preferredLanguage?: string;
   lastLoginAt?: string;
   createdAt?: string;
+  permissions?: string[];
 };
 
 type CustomerOption = {
@@ -28,13 +36,14 @@ type CustomerOption = {
   plaats?: string;
 };
 
-const emptyForm = {
+const emptyForm = () => ({
   customerId: '',
   username: '',
   email: '',
   password: '',
   isActive: true,
-};
+  permissions: [...CUSTOMER_DEFAULT_PERMISSIONS],
+});
 
 export default function PortalAccountsPage() {
   const { t } = useAppTranslation(['common']);
@@ -47,7 +56,7 @@ export default function PortalAccountsPage() {
   const [createdFrom, setCreatedFrom] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => emptyForm());
   const [resetTarget, setResetTarget] = useState<PortalUser | null>(null);
   const [resetPassword, setResetPassword] = useState('');
   const [editTarget, setEditTarget] = useState<PortalUser | null>(null);
@@ -58,7 +67,24 @@ export default function PortalAccountsPage() {
     isActive: true,
   });
   const [editCustomerSearch, setEditCustomerSearch] = useState('');
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [editPermissionBaseline, setEditPermissionBaseline] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
+
+  const { data: permissionCatalog } = useQuery({
+    queryKey: ['permission-catalog'],
+    queryFn: async () => {
+      const response = await api.get('/users/permissions/catalog');
+      return response.data.permissions as string[];
+    },
+  });
+
+  const portalPermissionOptions = useMemo(
+    () => getPortalAssignablePermissions(permissionCatalog ?? []),
+    [permissionCatalog],
+  );
+
+  const defaultPermissionSet = useMemo(() => new Set(CUSTOMER_DEFAULT_PERMISSIONS), []);
 
   const { data: portalUsers = [], isLoading } = useQuery({
     queryKey: ['portal-accounts'],
@@ -123,21 +149,50 @@ export default function PortalAccountsPage() {
     });
   }, [createdFrom, customersById, portalUsers, search, status]);
 
+  function sortedPermissionListsEqual(a: string[], b: string[]) {
+    if (a.length !== b.length) return false;
+    const sa = [...a].sort();
+    const sb = [...b].sort();
+    return sa.every((permission, index) => permission === sb[index]);
+  }
+
   const updateMutation = useMutation({
-    mutationFn: async ({ user, data }: { user: PortalUser; data: Partial<PortalUser> & { password?: string; email?: string | null } }) => {
+    mutationFn: async ({
+      user,
+      data,
+      syncPermissions,
+    }: {
+      user: PortalUser;
+      data: Partial<PortalUser> & { password?: string; email?: string | null };
+      syncPermissions?: { next: string[]; baseline: string[] };
+    }) => {
       const { customerId, ...rest } = data;
       const response = await api.put(`/users/${user._id}`, {
         ...rest,
         role: 'customer',
         customerId: customerId ?? user.customerId,
       });
+      if (syncPermissions) {
+        const normalized = normalizePortalPermissionSelection(syncPermissions.next, portalPermissionOptions);
+        const baselineNorm = normalizePortalPermissionSelection(syncPermissions.baseline, portalPermissionOptions);
+        if (!sortedPermissionListsEqual(normalized, baselineNorm)) {
+          await api.put(`/users/${user._id}/permissions`, { permissions: normalized });
+        }
+      }
       return response.data;
     },
-    onMutate: async ({ user, data }) => {
+    onMutate: async ({ user, data, syncPermissions }) => {
       await queryClient.cancelQueries({ queryKey: ['portal-accounts'] });
       const previous = queryClient.getQueryData<PortalUser[]>(['portal-accounts']);
       queryClient.setQueryData<PortalUser[]>(['portal-accounts'], (current = []) =>
-        current.map((item) => item._id === user._id ? { ...item, ...data } : item),
+        current.map((item) => {
+          if (item._id !== user._id) return item;
+          const merged = { ...item, ...data };
+          if (syncPermissions) {
+            merged.permissions = normalizePortalPermissionSelection(syncPermissions.next, portalPermissionOptions);
+          }
+          return merged;
+        }),
       );
       return { previous };
     },
@@ -156,6 +211,7 @@ export default function PortalAccountsPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      const permissions = normalizePortalPermissionSelection(form.permissions, portalPermissionOptions);
       const response = await api.post('/users', {
         username: form.username.trim(),
         email: form.email.trim() || undefined,
@@ -163,6 +219,7 @@ export default function PortalAccountsPage() {
         role: 'customer',
         customerId: form.customerId,
         isActive: form.isActive,
+        permissions,
       });
       return response.data;
     },
@@ -170,7 +227,7 @@ export default function PortalAccountsPage() {
       queryClient.invalidateQueries({ queryKey: ['portal-accounts'] });
       showToast(t('common:portalAccounts.created'), 'success');
       setShowCreateModal(false);
-      setForm(emptyForm);
+      setForm(emptyForm());
       setCustomerSearch('');
     },
     onError: (error: any) => {
@@ -198,6 +255,10 @@ export default function PortalAccountsPage() {
       email: user.email || '',
       isActive: user.isActive !== false,
     });
+    const initialPerms =
+      user.permissions?.length ? [...user.permissions] : [...CUSTOMER_DEFAULT_PERMISSIONS];
+    setEditPermissions(initialPerms);
+    setEditPermissionBaseline([...initialPerms]);
     setEditCustomerSearch('');
   };
 
@@ -260,6 +321,10 @@ export default function PortalAccountsPage() {
                     </label>
                   </div>
                   <div className="portal-account-field">
+                    <span>{t('common:portalAccounts.permissions')}</span>
+                    <strong>{user.permissions?.length ?? CUSTOMER_DEFAULT_PERMISSIONS.length}</strong>
+                  </div>
+                  <div className="portal-account-field">
                     <span>{t('common:portalAccounts.lastLogin')}</span>
                     <strong>{user.lastLoginAt ? formatDate(user.lastLoginAt) : '-'}</strong>
                   </div>
@@ -295,6 +360,8 @@ export default function PortalAccountsPage() {
             customerSearch={customerSearch}
             setCustomerSearch={setCustomerSearch}
             customers={customerOptions}
+            permissionOptions={portalPermissionOptions}
+            defaultPermissionSet={defaultPermissionSet}
             pending={createMutation.isPending}
             onClose={() => setShowCreateModal(false)}
             onSubmit={() => createMutation.mutate()}
@@ -337,6 +404,10 @@ export default function PortalAccountsPage() {
                     username: editForm.username.trim(),
                     email: editForm.email.trim() || null,
                   },
+                  syncPermissions: {
+                    next: editPermissions,
+                    baseline: editPermissionBaseline,
+                  },
                 });
               }}
             >
@@ -359,6 +430,15 @@ export default function PortalAccountsPage() {
                 <input type="checkbox" checked={editForm.isActive} onChange={(event) => setEditForm({ ...editForm, isActive: event.target.checked })} />
                 {editForm.isActive ? t('common:states.active') : t('common:states.inactive')}
               </label>
+              {portalPermissionOptions.length > 0 && (
+                <PortalPermissionFields
+                  t={t}
+                  options={portalPermissionOptions}
+                  value={editPermissions}
+                  onChange={setEditPermissions}
+                  defaultPermissionSet={defaultPermissionSet}
+                />
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button type="button" className="btn-secondary" onClick={() => setEditTarget(null)}>{t('common:actions.cancel')}</button>
                 <button type="submit" className="btn-primary" disabled={updateMutation.isPending}>{updateMutation.isPending ? t('common:states.saving') : t('common:actions.save')}</button>
@@ -386,6 +466,93 @@ export default function PortalAccountsPage() {
   );
 }
 
+type PortalAccountFormState = ReturnType<typeof emptyForm>;
+
+function PortalPermissionFields({
+  t,
+  options,
+  value,
+  onChange,
+  defaultPermissionSet,
+}: {
+  t: (key: string) => string;
+  options: string[];
+  value: string[];
+  onChange: (next: string[]) => void;
+  defaultPermissionSet: Set<string>;
+}) {
+  return (
+    <div style={{ marginTop: '0.25rem' }}>
+      <div style={{ fontWeight: 700, marginBottom: '0.35rem' }}>{t('common:portalAccounts.permissions')}</div>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+        {t('common:portalAccounts.permissionsHint')}
+      </p>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '0.6rem',
+          maxHeight: 'min(50vh, 320px)',
+          overflowY: 'auto',
+        }}
+      >
+        {options.map((permission) => {
+          const locked = defaultPermissionSet.has(permission);
+          const checked = locked || value.includes(permission);
+          return (
+            <label
+              key={permission}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.55rem',
+                minHeight: 44,
+                padding: '0.65rem 0.75rem',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                background: 'var(--surface)',
+                cursor: locked ? 'default' : 'pointer',
+                opacity: locked ? 0.9 : 1,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={locked}
+                onChange={(event) => {
+                  if (locked) return;
+                  onChange(
+                    event.target.checked
+                      ? [...new Set([...value, permission])]
+                      : value.filter((item) => item !== permission),
+                  );
+                }}
+                style={{
+                  width: 18,
+                  height: 18,
+                  marginTop: 2,
+                  flexShrink: 0,
+                  accentColor: 'var(--primary)',
+                  cursor: locked ? 'not-allowed' : 'pointer',
+                }}
+              />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.92rem', fontWeight: 600 }}>
+                  {PERMISSION_LABELS[permission] || permission}
+                  {locked ? ` (${t('common:portalAccounts.permissionDefault')})` : ''}
+                </span>
+                <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.35 }}>
+                  {PERMISSION_DESCRIPTIONS[permission] || permission}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PortalAccountModal({
   t,
   form,
@@ -393,16 +560,20 @@ function PortalAccountModal({
   customerSearch,
   setCustomerSearch,
   customers,
+  permissionOptions,
+  defaultPermissionSet,
   pending,
   onClose,
   onSubmit,
 }: {
   t: (key: string) => string;
-  form: typeof emptyForm;
-  setForm: (form: typeof emptyForm) => void;
+  form: PortalAccountFormState;
+  setForm: (form: PortalAccountFormState) => void;
   customerSearch: string;
   setCustomerSearch: (value: string) => void;
   customers: CustomerOption[];
+  permissionOptions: string[];
+  defaultPermissionSet: Set<string>;
   pending: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -437,6 +608,15 @@ function PortalAccountModal({
           <input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />
           {form.isActive ? t('common:states.active') : t('common:states.inactive')}
         </label>
+        {permissionOptions.length > 0 && (
+          <PortalPermissionFields
+            t={t}
+            options={permissionOptions}
+            value={form.permissions}
+            onChange={(permissions) => setForm({ ...form, permissions })}
+            defaultPermissionSet={defaultPermissionSet}
+          />
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button type="button" className="btn-secondary" onClick={onClose}>{t('common:actions.cancel')}</button>
           <button type="submit" className="btn-primary" disabled={pending}>{pending ? t('common:states.saving') : t('common:portalAccounts.newAccount')}</button>

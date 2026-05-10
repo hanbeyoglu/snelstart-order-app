@@ -68,7 +68,10 @@
     "deleted": "Portal account deleted",
     "createError": "Could not create portal account",
     "updateError": "Could not update portal account",
-    "deleteError": "Could not delete portal account"
+    "deleteError": "Could not delete portal account",
+    "permissions": "Portal permissions",
+    "permissionsHint": "Default permissions are always enabled and cannot be removed. You can grant additional portal permissions as needed.",
+    "permissionDefault": "default"
   },
   "actions": {
     "add": "Add",

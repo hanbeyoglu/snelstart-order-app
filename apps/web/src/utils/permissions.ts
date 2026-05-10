@@ -1,5 +1,72 @@
 import type { ReactNode } from 'react';
 
+/** Sıralı liste — backend `ALL_PERMISSIONS` ile aynı tutulmalı */
+export const ALL_PERMISSIONS_ORDER = [
+  'dashboard.view',
+  'products.view',
+  'products.detail',
+  'products.manage',
+  'cart.use',
+  'customers.view',
+  'customers.wholesalers.view',
+  'customers.manage',
+  'orders.view',
+  'orders.create',
+  'orders.my.view',
+  'orders.manage',
+  'profile.view',
+  'pricing.manage',
+  'reports.view',
+  'audit.view',
+  'users.manage',
+  'snelstart.settings.manage',
+] as const;
+
+/** Portal (customer) hesapları için sunucunun her zaman eklediği varsayılanlar */
+export const CUSTOMER_DEFAULT_PERMISSIONS: readonly string[] = [
+  'products.view',
+  'products.detail',
+  'cart.use',
+  'orders.create',
+  'orders.my.view',
+  'profile.view',
+];
+
+/** Müşteri rolüne asla verilemeyen izinler (backend `CUSTOMER_FORBIDDEN` ile aynı) */
+export const CUSTOMER_FORBIDDEN_PERMISSIONS: readonly string[] = [
+  'dashboard.view',
+  'products.manage',
+  'customers.view',
+  'customers.wholesalers.view',
+  'customers.manage',
+  'orders.view',
+  'orders.manage',
+  'pricing.manage',
+  'reports.view',
+  'audit.view',
+  'users.manage',
+  'snelstart.settings.manage',
+];
+
+const PERMISSION_ORDER_MAP = new Map<string, number>(
+  ALL_PERMISSIONS_ORDER.map((permission, index) => [permission, index]),
+);
+
+/** Yöneticinin atayabileceği katalogdan portal için gösterilecek izinler */
+export function getPortalAssignablePermissions(catalog: string[]): string[] {
+  const forbidden = new Set(CUSTOMER_FORBIDDEN_PERMISSIONS);
+  return catalog
+    .filter((permission) => !forbidden.has(permission))
+    .sort((a, b) => (PERMISSION_ORDER_MAP.get(a) ?? 999) - (PERMISSION_ORDER_MAP.get(b) ?? 999));
+}
+
+export function normalizePortalPermissionSelection(selected: string[], catalog: string[]): string[] {
+  const allowed = new Set(catalog);
+  return [
+    ...new Set([...CUSTOMER_DEFAULT_PERMISSIONS, ...selected.filter((permission) => allowed.has(permission))]),
+  ];
+}
+
 export const PERMISSION_LABELS: Record<string, string> = {
   'dashboard.view': 'Ana Dashboard',
   'products.view': 'Ürünleri Görüntüleme',

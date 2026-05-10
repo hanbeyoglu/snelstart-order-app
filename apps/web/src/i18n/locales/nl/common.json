@@ -34,7 +34,10 @@
     "deleted": "Portalaccount verwijderd",
     "createError": "Portalaccount kon niet worden aangemaakt",
     "updateError": "Portalaccount kon niet worden bijgewerkt",
-    "deleteError": "Portalaccount kon niet worden verwijderd"
+    "deleteError": "Portalaccount kon niet worden verwijderd",
+    "permissions": "Portalrechten",
+    "permissionsHint": "Standaardrechten staan altijd aan en kunnen niet worden uitgeschakeld. U kunt extra portalrechten toewijzen.",
+    "permissionDefault": "standaard"
   },
   "actions": {
     "add": "Toevoegen", "addToCart": "Toevoegen aan winkelwagen", "back": "Terug", "cancel": "Annuleren", "clear": "Wissen", "close": "Sluiten",

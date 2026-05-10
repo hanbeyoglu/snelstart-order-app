@@ -68,7 +68,10 @@
     "deleted": "Portal hesabı silindi",
     "createError": "Portal hesabı oluşturulamadı",
     "updateError": "Portal hesabı güncellenemedi",
-    "deleteError": "Portal hesabı silinemedi"
+    "deleteError": "Portal hesabı silinemedi",
+    "permissions": "Portal izinleri",
+    "permissionsHint": "Varsayılan izinler her zaman açıktır ve kaldırılamaz. İsterseniz ek portal izinleri seçebilirsiniz.",
+    "permissionDefault": "varsayılan"
   },
   "actions": {
     "add": "Ekle",
