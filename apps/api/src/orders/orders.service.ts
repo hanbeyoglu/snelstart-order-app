@@ -266,8 +266,8 @@ export class OrdersService {
         actorRole: user?.role,
         metadata: { customerId: effectiveCustomerId, total: totals.totalInclVat, createdBy: creatorSnapshot },
       });
-      void this.notifyCustomerOrder(order, user, effectiveCustomerId);
     }
+    void this.notifyOrderCreated(order, user, effectiveCustomerId);
 
     // Try to sync immediately
     try {
@@ -754,18 +754,18 @@ export class OrdersService {
     }
   }
 
-  private async notifyCustomerOrder(order: LocalOrderDocument, user: any, customerId: string) {
+  private async notifyOrderCreated(order: LocalOrderDocument, user: any, customerId: string) {
     let success = false;
     try {
       const customer = await this.customersService.getCustomerById(customerId);
       success = this.orderNotificationService
-        ? await this.orderNotificationService.sendCustomerOrderNotification(order, user, customer)
+        ? await this.orderNotificationService.sendOrderCreatedNotification(order, user, customer)
         : false;
     } catch (error: any) {
-      this.logger.error(`Customer order notification failed: ${error?.message || error}`);
+      this.logger.error(`Order notification email failed: ${error?.message || error}`);
     } finally {
       await this.auditService.log({
-        action: success ? 'CUSTOMER_ORDER_NOTIFICATION_EMAIL_SENT' : 'CUSTOMER_ORDER_NOTIFICATION_EMAIL_FAILED',
+        action: success ? 'ORDER_NOTIFICATION_EMAIL_SENT' : 'ORDER_NOTIFICATION_EMAIL_FAILED',
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
         userId: user?.userId,
