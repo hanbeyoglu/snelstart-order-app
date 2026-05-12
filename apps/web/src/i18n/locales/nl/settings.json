@@ -36,6 +36,8 @@
   "mailSmtpSaved": "SMTP-instellingen opgeslagen",
   "mailSaveFailed": "Instellingen konden niet worden opgeslagen",
   "mailNotificationsTitle": "Bestelnotificaties",
+  "mailNotificationLanguage": "Taal van notificatie-e-mails",
+  "mailNotificationLanguageHint": "Nieuwe bestel-e-mails worden in deze taal verstuurd. Zonder opgeslagen waarde wordt ORDER_NOTIFICATION_LOCALE op de server gebruikt.",
   "mailNotificationTo": "Ontvangers (Aan)",
   "mailNotificationCc": "CC",
   "mailEmailsHint": "Meerdere adressen scheiden met een komma",

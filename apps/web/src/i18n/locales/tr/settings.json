@@ -36,6 +36,8 @@
   "mailSmtpSaved": "SMTP ayarları kaydedildi",
   "mailSaveFailed": "Ayarlar kaydedilemedi",
   "mailNotificationsTitle": "Sipariş Bildirimleri",
+  "mailNotificationLanguage": "Bildirim e-postası dili",
+  "mailNotificationLanguageHint": "Yeni sipariş e-postaları bu dilde gönderilir. Kayıt yoksa ORDER_NOTIFICATION_LOCALE ortam değişkeni kullanılır.",
   "mailNotificationTo": "Alıcılar (To)",
   "mailNotificationCc": "CC",
   "mailEmailsHint": "Birden fazla adres için virgülle ayırın",

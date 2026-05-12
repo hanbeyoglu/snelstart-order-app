@@ -3,7 +3,6 @@ import { MailSettingsService } from '../mail-settings/mail-settings.service';
 import {
   ORDER_NOTIFICATION_EMAIL_STRINGS,
   intlLocaleTagForEmail,
-  normalizeOrderNotificationLocale,
   type OrderNotificationEmailLocale,
   type OrderNotificationEmailStrings,
 } from '@snelstart-order-app/shared';
@@ -23,10 +22,6 @@ export class OrderNotificationService {
 
   constructor(private mailSettingsService: MailSettingsService) {}
 
-  private resolveEmailLocale(): OrderNotificationEmailLocale {
-    return normalizeOrderNotificationLocale(process.env.ORDER_NOTIFICATION_LOCALE);
-  }
-
   async sendOrderCreatedNotification(order: any, user?: any, customer?: any): Promise<boolean> {
     const settings = await this.mailSettingsService.getActiveSettings();
 
@@ -34,7 +29,7 @@ export class OrderNotificationService {
       return false;
     }
 
-    const locale = this.resolveEmailLocale();
+    const locale = settings.orderNotificationLocale;
     const t = ORDER_NOTIFICATION_EMAIL_STRINGS[locale];
     const intlTag = intlLocaleTagForEmail(locale);
 

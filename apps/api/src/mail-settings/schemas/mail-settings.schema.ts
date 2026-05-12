@@ -30,6 +30,10 @@ export class MailSettings extends Document {
   @Prop({ type: [String], default: [] })
   orderNotificationCcEmails: string[];
 
+  /** Sipariş bildirimi e-postası dili (tr | en | nl | de | ar). */
+  @Prop()
+  orderNotificationLocale?: string;
+
   @Prop({ default: true })
   isActive: boolean;
 }

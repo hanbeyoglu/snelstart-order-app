@@ -4,6 +4,10 @@ import { Model } from 'mongoose';
 import * as nodemailer from 'nodemailer';
 import { MailSettings, MailSettingsDocument } from './schemas/mail-settings.schema';
 import { EncryptionService } from '../connection-settings/encryption.service';
+import {
+  normalizeOrderNotificationLocale,
+  type OrderNotificationEmailLocale,
+} from '@snelstart-order-app/shared';
 
 export interface ResolvedMailConfig {
   smtpHost: string;
@@ -15,6 +19,7 @@ export interface ResolvedMailConfig {
   smtpFromEmail?: string;
   orderNotificationToEmails: string[];
   orderNotificationCcEmails: string[];
+  orderNotificationLocale: OrderNotificationEmailLocale;
 }
 
 export interface MailMessage {
@@ -58,6 +63,12 @@ export class MailSettingsService {
     private encryption: EncryptionService,
   ) {}
 
+  private resolveOrderNotificationLocale(doc?: { orderNotificationLocale?: string | null } | null): OrderNotificationEmailLocale {
+    return normalizeOrderNotificationLocale(
+      doc?.orderNotificationLocale ?? process.env.ORDER_NOTIFICATION_LOCALE,
+    );
+  }
+
   // ── Settings resolution ───────────────────────────────────────────────────
 
   async getActiveSettings(): Promise<ResolvedMailConfig | null> {
@@ -94,6 +105,7 @@ export class MailSettingsService {
         orderNotificationToEmails:
           doc.orderNotificationToEmails.length > 0 ? doc.orderNotificationToEmails : envToEmails,
         orderNotificationCcEmails: doc.orderNotificationCcEmails,
+        orderNotificationLocale: this.resolveOrderNotificationLocale(doc),
       };
     }
 
@@ -109,6 +121,7 @@ export class MailSettingsService {
       smtpFromEmail: process.env.SMTP_FROM,
       orderNotificationToEmails: envToEmails,
       orderNotificationCcEmails: [],
+      orderNotificationLocale: this.resolveOrderNotificationLocale(null),
     };
   }
 
@@ -130,6 +143,7 @@ export class MailSettingsService {
         smtpFromEmail: process.env.SMTP_FROM || '',
         orderNotificationToEmails: envToEmails,
         orderNotificationCcEmails: [] as string[],
+        orderNotificationLocale: this.resolveOrderNotificationLocale(null),
       };
     }
 
@@ -143,6 +157,7 @@ export class MailSettingsService {
       smtpFromEmail: doc.smtpFromEmail || '',
       orderNotificationToEmails: doc.orderNotificationToEmails,
       orderNotificationCcEmails: doc.orderNotificationCcEmails,
+      orderNotificationLocale: this.resolveOrderNotificationLocale(doc),
     };
   }
 
@@ -176,12 +191,14 @@ export class MailSettingsService {
   async saveNotificationSettings(data: {
     orderNotificationToEmails: string[];
     orderNotificationCcEmails: string[];
+    orderNotificationLocale: OrderNotificationEmailLocale;
   }): Promise<void> {
     let doc = await this.model.findOne({ isActive: true }).exec();
     if (!doc) doc = new this.model({ isActive: true });
 
     doc.orderNotificationToEmails = data.orderNotificationToEmails;
     doc.orderNotificationCcEmails = data.orderNotificationCcEmails;
+    doc.orderNotificationLocale = data.orderNotificationLocale;
 
     await doc.save();
   }
