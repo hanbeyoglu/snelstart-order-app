@@ -20,6 +20,10 @@ export const ALL_PERMISSIONS_ORDER = [
   'audit.view',
   'users.manage',
   'snelstart.settings.manage',
+  'mail.settings.view',
+  'mail.settings.manage',
+  'mail.test.send',
+  'order.notifications.manage',
 ] as const;
 
 /** Portal (customer) hesapları için sunucunun her zaman eklediği varsayılanlar */
@@ -46,6 +50,10 @@ export const CUSTOMER_FORBIDDEN_PERMISSIONS: readonly string[] = [
   'audit.view',
   'users.manage',
   'snelstart.settings.manage',
+  'mail.settings.view',
+  'mail.settings.manage',
+  'mail.test.send',
+  'order.notifications.manage',
 ];
 
 const PERMISSION_ORDER_MAP = new Map<string, number>(
@@ -86,6 +94,10 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'audit.view': 'Audit Log Görüntüleme',
   'users.manage': 'Kullanıcı Yönetimi',
   'snelstart.settings.manage': 'SnelStart Ayarları',
+  'mail.settings.view': 'Mail Ayarlarını Görüntüleme',
+  'mail.settings.manage': 'Mail Ayarlarını Yönetme',
+  'mail.test.send': 'Test Mail Gönderme',
+  'order.notifications.manage': 'Sipariş Bildirimlerini Yönetme',
 };
 
 export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
@@ -107,6 +119,10 @@ export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'audit.view': 'Sistemdeki audit log kayıtlarını görüntüler.',
   'users.manage': 'Kullanıcı oluşturur, düzenler ve izin ataması yapar.',
   'snelstart.settings.manage': 'SnelStart bağlantı ayarlarını ve entegrasyon işlemlerini yönetir.',
+  'mail.settings.view': 'SMTP ve bildirim mail ayarlarını görüntüler.',
+  'mail.settings.manage': 'SMTP sunucu yapılandırmasını düzenler.',
+  'mail.test.send': 'SMTP ayarlarını doğrulamak için test maili gönderir.',
+  'order.notifications.manage': 'Sipariş bildirimlerinin gönderileceği To/CC adreslerini yönetir.',
 };
 
 export type PermissionUser = {

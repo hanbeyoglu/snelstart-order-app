@@ -17,6 +17,10 @@ export const ALL_PERMISSIONS = [
   'audit.view',
   'users.manage',
   'snelstart.settings.manage',
+  'mail.settings.view',
+  'mail.settings.manage',
+  'mail.test.send',
+  'order.notifications.manage',
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
@@ -50,6 +54,10 @@ export const CUSTOMER_FORBIDDEN_PERMISSIONS: Permission[] = [
   'audit.view',
   'users.manage',
   'snelstart.settings.manage',
+  'mail.settings.view',
+  'mail.settings.manage',
+  'mail.test.send',
+  'order.notifications.manage',
 ];
 
 export function normalizePermissions(permissions: unknown): Permission[] {
