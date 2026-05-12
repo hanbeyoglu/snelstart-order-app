@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
 
 interface Category {
   id: string;
@@ -213,6 +214,8 @@ function CategoryCard({ category, level = 0 }: { category: Category; level?: num
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
+  const user = useAuthStore((state) => state.user);
+  const isCustomer = user?.role === 'customer';
   const [isSyncing, setIsSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -335,42 +338,44 @@ export default function CategoriesPage() {
               İstediğiniz kategoriyi seçerek ürünlere göz atın
             </p>
           </div>
-          <motion.button
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="btn-primary"
-            whileHover={!isSyncing ? { scale: 1.05 } : {}}
-            whileTap={!isSyncing ? { scale: 0.95 } : {}}
-            style={{
-              opacity: isSyncing ? 0.6 : 1,
-              cursor: isSyncing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.5rem',
-            }}
-          >
-            {isSyncing ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderTopColor: 'white',
-                    borderRadius: '50%',
-                  }}
-                />
-                Senkronize Ediliyor...
-              </>
-            ) : (
-              <>
-                🔄 Senkronize Et
-              </>
-            )}
-          </motion.button>
+          {!isCustomer && (
+            <motion.button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="btn-primary"
+              whileHover={!isSyncing ? { scale: 1.05 } : {}}
+              whileTap={!isSyncing ? { scale: 0.95 } : {}}
+              style={{
+                opacity: isSyncing ? 0.6 : 1,
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1.5rem',
+              }}
+            >
+              {isSyncing ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      borderTopColor: 'white',
+                      borderRadius: '50%',
+                    }}
+                  />
+                  Senkronize Ediliyor...
+                </>
+              ) : (
+                <>
+                  🔄 Senkronize Et
+                </>
+              )}
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
