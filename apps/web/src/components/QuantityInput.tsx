@@ -1,4 +1,7 @@
-import { CSSProperties, KeyboardEvent, useEffect, useState } from 'react';
+import { CSSProperties, ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+
+/** Sepet / ürün listesinde miktar değişince toplamların gecikmemesi için kısa debounce ile store’a yazılır. */
+const QUANTITY_COMMIT_DEBOUNCE_MS = 400;
 
 interface QuantityInputProps {
   value: number;
@@ -20,28 +23,73 @@ export default function QuantityInput({
   disabled = false,
 }: QuantityInputProps) {
   const [draftValue, setDraftValue] = useState(String(value));
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setDraftValue(String(value));
   }, [value]);
 
-  const normalize = () => {
-    const parsed = Number.parseInt(draftValue, 10);
-    const maxQuantity = typeof max === 'number' && Number.isFinite(max) ? Math.max(1, max) : null;
-    let nextQuantity = Number.isFinite(parsed) ? parsed : 1;
+  useEffect(
+    () => () => {
+      if (commitTimerRef.current) {
+        clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
+  const flushPendingCommit = () => {
+    if (commitTimerRef.current) {
+      clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
+  };
+
+  const clampQuantity = (raw: number) => {
+    const maxQuantity = typeof max === 'number' && Number.isFinite(max) ? Math.max(1, max) : null;
+    let nextQuantity = Number.isFinite(raw) ? raw : 1;
     if (nextQuantity < 1) {
       nextQuantity = 1;
     }
-
     if (maxQuantity !== null && nextQuantity > maxQuantity) {
       nextQuantity = maxQuantity;
     }
+    return nextQuantity;
+  };
 
-    setDraftValue(String(nextQuantity));
+  const commitIfNeeded = (nextQuantity: number) => {
     if (nextQuantity !== value) {
       onCommit(nextQuantity);
     }
+  };
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    const rawString = event.target.value;
+    setDraftValue(rawString);
+    flushPendingCommit();
+    if (rawString.trim() === '') {
+      return;
+    }
+    const parsed = Number.parseInt(rawString, 10);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+    const nextQuantity = clampQuantity(parsed);
+    commitTimerRef.current = setTimeout(() => {
+      commitTimerRef.current = null;
+      commitIfNeeded(nextQuantity);
+    }, QUANTITY_COMMIT_DEBOUNCE_MS);
+  };
+
+  const normalize = () => {
+    flushPendingCommit();
+    const parsed = Number.parseInt(draftValue, 10);
+    let nextQuantity = Number.isFinite(parsed) ? parsed : 1;
+    nextQuantity = clampQuantity(nextQuantity);
+    setDraftValue(String(nextQuantity));
+    commitIfNeeded(nextQuantity);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -57,7 +105,7 @@ export default function QuantityInput({
       min="1"
       max={typeof max === 'number' && Number.isFinite(max) ? max : undefined}
       value={draftValue}
-      onChange={(event) => setDraftValue(event.target.value)}
+      onChange={handleChange}
       onBlur={normalize}
       onKeyDown={handleKeyDown}
       aria-label={ariaLabel}

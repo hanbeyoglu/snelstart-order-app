@@ -96,7 +96,7 @@ export default function ProductsPage() {
     queryFn: async () => {
       const params: any = {
         page: page.toString(),
-        limit: isCustomer ? '32' : '20',
+        limit: isCustomer ? '35' : '20',
       };
       if (groupIds?.length) params.groupIds = groupIds.join(',');
       if (debouncedSearch && debouncedSearch.trim()) params.search = debouncedSearch.trim();

@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPasswordPopup, setShowForgotPasswordPopup] = useState(false);
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
   const showToast = useToastStore((state) => state.showToast);
@@ -273,6 +274,23 @@ export default function LoginPage() {
                   marginTop: '0.5rem',
                 }}
               />
+              <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordPopup(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: '#667eea',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Şifremi unuttum
+                </button>
+              </div>
             </motion.div>
 
             <motion.button
@@ -307,6 +325,47 @@ export default function LoginPage() {
           </form>
         </motion.div>
       </motion.div>
+
+      {showForgotPasswordPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+          onClick={() => setShowForgotPasswordPopup(false)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginBottom: '0.75rem', color: '#111827' }}>Uyarı</h3>
+            <p style={{ marginBottom: '1rem', color: '#374151' }}>
+              Lütfen Yetkiliniz ile görüşün
+            </p>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setShowForgotPasswordPopup(false)}
+              style={{ width: '100%' }}
+            >
+              Tamam
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

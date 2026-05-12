@@ -1000,7 +1000,16 @@ export default function Layout() {
               }}
             >
               <div
-                style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+                style={{
+                  padding: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  maxHeight: 'calc(100dvh - 92px)',
+                  overflowY: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: 'contain',
+                }}
               >
                 {navLinks.map((link) => {
                   const isActive = isActiveLink(link.to);
