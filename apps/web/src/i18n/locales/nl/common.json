@@ -6,7 +6,7 @@
     "catalog": "CATALOGUS", "system": "SYSTEEM", "analysis": "ANALYSE", "account": "ACCOUNT", "productVisibility": "Productzichtbaarheid",
     "categoryVisibility": "Categoriezichtbaarheid", "productImages": "Productafbeeldingen", "priceWarnings": "Prijswaarschuwingen",
     "connectionSettings": "Verbindingsinstellingen", "users": "Gebruikers", "portalAccounts": "Portalaccounts", "reports": "Rapporten", "userInfo": "Gebruikersinformatie",
-    "logout": "Uitloggen", "openMenu": "Menu openen", "closeMenu": "Menu sluiten"
+    "upcomingOrders": "Aankomende bestellingen", "logout": "Uitloggen", "openMenu": "Menu openen", "closeMenu": "Menu sluiten"
   },
   "customerPortal": { "title": "Klantenportaal", "companyFallback": "Bedrijf", "createFromCustomer": "Portalaccount vanuit klant aanmaken", "goToCustomers": "Ga naar klanten" },
   "portalAccounts": {

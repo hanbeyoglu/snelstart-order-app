@@ -26,6 +26,7 @@ import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { MailSettingsModule } from './mail-settings/mail-settings.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { MailSettingsModule } from './mail-settings/mail-settings.module';
     ReportsModule,
     MonitoringModule,
     MailSettingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

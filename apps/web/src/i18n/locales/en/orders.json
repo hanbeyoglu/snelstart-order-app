@@ -100,6 +100,22 @@
     "next": "Next",
     "showing": "{{from}}–{{to}} of {{total}}"
   },
+  "upcomingTitle": "Upcoming Orders",
+  "upcomingSubtitle": "Future-dated scheduled orders that have not been delivered yet",
+  "upcomingEmpty": "No upcoming orders",
+  "upcomingEmptyDesc": "No scheduled orders match the selected filters",
+  "upcomingFilters": {
+    "all": "All",
+    "tomorrow": "Tomorrow",
+    "next3days": "Next 3 days",
+    "next7days": "Next 7 days",
+    "thisweek": "This week"
+  },
+  "upcomingDays": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "inDays": "In {{count}} days"
+  },
   "emailDelivery": {
     "sectionTitle": "Delivery information",
     "deliveryType": "Delivery type",

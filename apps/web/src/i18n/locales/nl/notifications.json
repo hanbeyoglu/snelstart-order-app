@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Meldingen",
+  "unreadCount": "{{count}} ongelezen",
+  "markAllRead": "Alles als gelezen markeren",
+  "viewAll": "Alle meldingen bekijken",
+  "loading": "Laden...",
+  "empty": "Nog geen meldingen",
+  "types": {
+    "new_order": "Nieuwe bestelling",
+    "upcoming_reminder": "Aankomende levering",
+    "order_cancelled": "Bestelling geannuleerd",
+    "order_updated": "Bestelling bijgewerkt",
+    "system": "Systeem"
+  },
+  "time": {
+    "justNow": "Zojuist",
+    "minutesAgo": "{{count}} min geleden",
+    "hoursAgo": "{{count}} uur geleden",
+    "yesterday": "Gisteren",
+    "daysAgo": "{{count}} dagen geleden"
+  }
+}

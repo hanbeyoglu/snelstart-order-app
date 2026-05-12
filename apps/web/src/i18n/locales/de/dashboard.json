@@ -30,5 +30,13 @@
     "orders_one": "{{count}} Bestellung",
     "orders_other": "{{count}} Bestellungen",
     "pieces": "{{count}} Stk."
+  },
+  "upcoming": {
+    "title": "Bevorstehende Lieferungen",
+    "viewAll": "Bevorstehende anzeigen",
+    "today": "Heute geplant",
+    "tomorrow": "Morgen",
+    "next7days": "Nächste 7 Tage",
+    "overdue": "Überfällig"
   }
 }

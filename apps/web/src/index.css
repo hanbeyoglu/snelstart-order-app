@@ -507,8 +507,40 @@ header {
   border-bottom: 1px solid rgba(99, 102, 241, 0.1) !important;
 }
 
-header .container {
+header .container,
+header .header-toolbar {
   padding: 0 1rem !important;
+}
+
+/* Üst bar: sayfa içeriğinden daha geniş (uzun menü + bildirim sığsın) */
+header .container.header-toolbar {
+  max-width: min(1720px, calc(100vw - 2rem)) !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Masaüstü: menü linkleri tek satır; dar pencerede yatay kaydırma */
+@media (min-width: 1024px) {
+  header .desktop-nav {
+    min-width: 0;
+  }
+
+  header .desktop-nav-scroll::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  header .desktop-nav-scroll::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.35);
+    border-radius: 4px;
+  }
+
+  header .nav-link {
+    white-space: nowrap !important;
+  }
+
+  header .header-notification-slot {
+    margin-inline-start: 0.35rem;
+  }
 }
 
 /* Active Navigation Link */
@@ -523,7 +555,8 @@ header .container {
 
 /* Mobile Menu Improvements */
 @media (max-width: 767px) {
-  header .container {
+  header .container,
+  header .header-toolbar {
     padding: 0 0.75rem !important;
     gap: 0.5rem !important;
   }
@@ -539,7 +572,8 @@ header .container {
 
 /* Compact Header for Tablet */
 @media (min-width: 768px) and (max-width: 1024px) {
-  header .container {
+  header .container,
+  header .header-toolbar {
     padding: 0 1rem !important;
     gap: 0.5rem !important;
   }

@@ -30,5 +30,13 @@
     "orders_one": "{{count}} طلب",
     "orders_other": "{{count}} طلبات",
     "pieces": "{{count}} قطعة"
+  },
+  "upcoming": {
+    "title": "التسليمات القادمة",
+    "viewAll": "عرض القادمة",
+    "today": "المجدول اليوم",
+    "tomorrow": "غداً",
+    "next7days": "الأيام الـ 7 القادمة",
+    "overdue": "متأخر"
   }
 }

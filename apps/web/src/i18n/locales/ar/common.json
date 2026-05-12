@@ -6,7 +6,7 @@
     "catalog": "الكتالوج", "system": "النظام", "analysis": "التحليل", "account": "الحساب", "productVisibility": "ظهور المنتجات",
     "categoryVisibility": "ظهور الفئات", "productImages": "صور المنتجات", "priceWarnings": "تنبيهات الأسعار",
     "connectionSettings": "إعدادات الاتصال", "users": "المستخدمون", "portalAccounts": "حسابات البوابة", "reports": "التقارير", "userInfo": "معلومات المستخدم",
-    "logout": "تسجيل الخروج", "openMenu": "فتح القائمة", "closeMenu": "إغلاق القائمة"
+    "upcomingOrders": "الطلبات القادمة", "logout": "تسجيل الخروج", "openMenu": "فتح القائمة", "closeMenu": "إغلاق القائمة"
   },
   "customerPortal": { "title": "بوابة العملاء", "companyFallback": "الشركة", "createFromCustomer": "إنشاء حساب بوابة من العميل", "goToCustomers": "الانتقال إلى العملاء" },
   "portalAccounts": {

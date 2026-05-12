@@ -30,5 +30,13 @@
     "orders_one": "{{count}} order",
     "orders_other": "{{count}} orders",
     "pieces": "{{count}} pcs"
+  },
+  "upcoming": {
+    "title": "Upcoming Deliveries",
+    "viewAll": "View upcoming",
+    "today": "Today's scheduled",
+    "tomorrow": "Tomorrow",
+    "next7days": "Next 7 days",
+    "overdue": "Overdue"
   }
 }

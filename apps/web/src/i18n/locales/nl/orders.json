@@ -100,6 +100,22 @@
     "next": "Volgende",
     "showing": "{{from}}–{{to}} van {{total}}"
   },
+  "upcomingTitle": "Aankomende bestellingen",
+  "upcomingSubtitle": "Geplande bestellingen met een toekomstige leverdatum die nog niet geleverd zijn",
+  "upcomingEmpty": "Geen aankomende bestellingen",
+  "upcomingEmptyDesc": "Geen geplande bestellingen gevonden voor de geselecteerde filters",
+  "upcomingFilters": {
+    "all": "Alle",
+    "tomorrow": "Morgen",
+    "next3days": "Volgende 3 dagen",
+    "next7days": "Volgende 7 dagen",
+    "thisweek": "Deze week"
+  },
+  "upcomingDays": {
+    "today": "Vandaag",
+    "tomorrow": "Morgen",
+    "inDays": "Over {{count}} dagen"
+  },
   "emailDelivery": {
     "sectionTitle": "Leveringsinformatie",
     "deliveryType": "Leveringstype",

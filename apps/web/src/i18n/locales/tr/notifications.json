@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Bildirimler",
+  "unreadCount": "{{count}} okunmamış",
+  "markAllRead": "Tümünü okundu işaretle",
+  "viewAll": "Tüm bildirimleri görüntüle",
+  "loading": "Yükleniyor...",
+  "empty": "Henüz bildirim yok",
+  "types": {
+    "new_order": "Yeni Sipariş",
+    "upcoming_reminder": "Yaklaşan Teslimat",
+    "order_cancelled": "Sipariş İptal",
+    "order_updated": "Sipariş Güncellendi",
+    "system": "Sistem"
+  },
+  "time": {
+    "justNow": "Az önce",
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} sa önce",
+    "yesterday": "Dün",
+    "daysAgo": "{{count}} gün önce"
+  }
+}

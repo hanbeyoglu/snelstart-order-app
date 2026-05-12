@@ -100,6 +100,22 @@
     "next": "التالي",
     "showing": "{{from}}–{{to}} من {{total}}"
   },
+  "upcomingTitle": "الطلبات القادمة",
+  "upcomingSubtitle": "الطلبات المجدولة بتاريخ تسليم مستقبلي ولم يتم تسليمها بعد",
+  "upcomingEmpty": "لا توجد طلبات قادمة",
+  "upcomingEmptyDesc": "لم يتم العثور على طلبات مجدولة تطابق الفلاتر المحددة",
+  "upcomingFilters": {
+    "all": "الكل",
+    "tomorrow": "غداً",
+    "next3days": "الأيام الـ 3 القادمة",
+    "next7days": "الأيام الـ 7 القادمة",
+    "thisweek": "هذا الأسبوع"
+  },
+  "upcomingDays": {
+    "today": "اليوم",
+    "tomorrow": "غداً",
+    "inDays": "خلال {{count}} أيام"
+  },
   "emailDelivery": {
     "sectionTitle": "معلومات التسليم",
     "deliveryType": "نوع التسليم",

@@ -1,3 +1,34 @@
+// Notification Types
+export type NotificationType =
+  | 'new_order'
+  | 'upcoming_reminder'
+  | 'order_cancelled'
+  | 'order_updated'
+  | 'system';
+
+export interface AppNotification {
+  _id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  targetDate?: string;
+  relatedOrderId?: string;
+  relatedOrderNumber?: string;
+  targetRoles: string[];
+  targetUserId?: string;
+  reminderKey?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationsResponse {
+  data: AppNotification[];
+  total: number;
+  unreadCount: number;
+}
+
 // SnelStart API Types
 export interface SnelStartPrijsafspraak {
   relatie?: {

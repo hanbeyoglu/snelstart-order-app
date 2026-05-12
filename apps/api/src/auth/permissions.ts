@@ -21,6 +21,7 @@ export const ALL_PERMISSIONS = [
   'mail.settings.manage',
   'mail.test.send',
   'order.notifications.manage',
+  'notifications.view',
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

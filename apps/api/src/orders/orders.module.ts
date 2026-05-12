@@ -13,6 +13,7 @@ import { PricingModule } from '../pricing/pricing.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { OrderNotificationService } from './order-notification.service';
 import { MailSettingsModule } from '../mail-settings/mail-settings.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MailSettingsModule } from '../mail-settings/mail-settings.module';
     PricingModule,
     forwardRef(() => CategoriesModule),
     MailSettingsModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrderNotificationService],

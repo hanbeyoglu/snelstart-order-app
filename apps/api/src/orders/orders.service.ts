@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Inject, forwardRef, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Inject, Optional, forwardRef, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,6 +14,7 @@ import { ProductsService } from '../products/products.service';
 import { PricingService } from '../pricing/pricing.service';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
 import { OrderNotificationService } from './order-notification.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { randomUUID } from 'node:crypto';
 
 export interface OrderListFilters {
@@ -50,7 +51,8 @@ export class OrdersService {
     private productsService: ProductsService,
     private pricingService: PricingService,
     private categoriesService: CategoriesService,
-    private orderNotificationService?: OrderNotificationService,
+    @Optional() private orderNotificationService?: OrderNotificationService,
+    @Optional() private notificationsService?: NotificationsService,
   ) {}
 
   private getMinimumAllowedPrice(basePrice: number, purchasePrice?: number | null) {
@@ -361,6 +363,7 @@ export class OrdersService {
       });
     }
     void this.notifyOrderCreated(order, user, effectiveCustomerId);
+    void this.notificationsService?.createOrderNotification(order, user);
 
     // Try to sync immediately
     try {
@@ -1025,6 +1028,113 @@ export class OrdersService {
     return order;
   }
 
+  async getUpcomingOrders(filters: Record<string, any> = {}, user?: any) {
+    if (user?.role === 'customer') {
+      throw new ForbiddenException('Erişim reddedildi');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const query: FilterQuery<LocalOrderDocument> = {
+      deliveryTiming: 'scheduled',
+      deliveryDate: { $gt: today },
+    };
+
+    if (user?.role === 'sales_rep') {
+      query.createdByUserId = user.userId;
+    }
+
+    // Quick filter overrides date range
+    if (filters.quickFilter) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayAfterTomorrow = new Date(tomorrow);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+      switch (filters.quickFilter) {
+        case 'tomorrow':
+          query.deliveryDate = { $gte: tomorrow, $lt: dayAfterTomorrow };
+          break;
+        case 'next3days': {
+          const end3 = new Date(today);
+          end3.setDate(end3.getDate() + 4);
+          query.deliveryDate = { $gt: today, $lt: end3 };
+          break;
+        }
+        case 'next7days': {
+          const end7 = new Date(today);
+          end7.setDate(end7.getDate() + 8);
+          query.deliveryDate = { $gt: today, $lt: end7 };
+          break;
+        }
+        case 'thisweek': {
+          const endOfWeek = new Date(today);
+          const daysUntilSunday = 7 - today.getDay();
+          endOfWeek.setDate(today.getDate() + daysUntilSunday);
+          endOfWeek.setHours(23, 59, 59, 999);
+          query.deliveryDate = { $gt: today, $lte: endOfWeek };
+          break;
+        }
+      }
+    } else {
+      if (filters.deliveryDateFrom) {
+        const from = this.parseDateBoundary(filters.deliveryDateFrom, 'start');
+        if (from && from > today) {
+          (query.deliveryDate as any).$gte = from;
+        }
+      }
+      if (filters.deliveryDateTo) {
+        const to = this.parseDateBoundary(filters.deliveryDateTo, 'end');
+        if (to) {
+          (query.deliveryDate as any).$lte = to;
+        }
+      }
+    }
+
+    if (filters.customerId) query.customerId = String(filters.customerId);
+    if (filters.deliveryType) query.deliveryType = String(filters.deliveryType);
+    if (filters.status) query.status = String(filters.status);
+
+    if (filters.search) {
+      const term = String(filters.search).trim();
+      if (term) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escaped, 'i');
+        query.$or = [{ orderNumber: regex }, { 'items.productName': regex }];
+      }
+    }
+
+    const limit = Math.min(Math.max(Number(filters.limit) || 20, 1), 100);
+    const page = Math.max(Number(filters.page) || 1, 1);
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.orderModel.find(query).sort({ deliveryDate: 1 }).skip(skip).limit(limit).lean().exec(),
+      this.orderModel.countDocuments(query),
+    ]);
+
+    const todayMs = today.getTime();
+    const enriched = data.map((order: any) => ({
+      ...order,
+      daysUntilDelivery: order.deliveryDate
+        ? Math.ceil((new Date(order.deliveryDate).getTime() - todayMs) / (1000 * 60 * 60 * 24))
+        : null,
+    }));
+
+    return {
+      data: enriched,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+        hasNext: skip + enriched.length < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
   async getDashboardStats(period: 'daily' | 'weekly' | 'monthly' = 'daily', user?: any) {
     if (user?.role === 'customer') {
       throw new ForbiddenException('Dashboard erişimi yok');
@@ -1102,6 +1212,35 @@ export class OrdersService {
       .sort((a, b) => b.totalQuantity - a.totalQuantity)
       .slice(0, 10);
 
+    // Upcoming order counts for dashboard widgets
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const dayAfterTomorrow = new Date(tomorrowStart);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+    const next7DaysEnd = new Date(todayStart);
+    next7DaysEnd.setDate(next7DaysEnd.getDate() + 8);
+
+    const [todayScheduledCount, tomorrowCount, next7DaysCount, overdueCount] = await Promise.all([
+      this.orderModel.countDocuments({
+        deliveryTiming: 'scheduled',
+        deliveryDate: { $gte: todayStart, $lt: tomorrowStart },
+      }),
+      this.orderModel.countDocuments({
+        deliveryTiming: 'scheduled',
+        deliveryDate: { $gte: tomorrowStart, $lt: dayAfterTomorrow },
+      }),
+      this.orderModel.countDocuments({
+        deliveryTiming: 'scheduled',
+        deliveryDate: { $gt: todayStart, $lt: next7DaysEnd },
+      }),
+      this.orderModel.countDocuments({
+        deliveryTiming: 'scheduled',
+        deliveryDate: { $lt: todayStart },
+        status: { $ne: 'SYNCED' },
+      }),
+    ]);
+
     return {
       period,
       startDate: startDate.toISOString(),
@@ -1112,6 +1251,12 @@ export class OrdersService {
       topProducts,
       totalOrders: orders.length,
       totalRevenue: orders.reduce((sum, o) => sum + (o.total || 0), 0),
+      upcoming: {
+        todayScheduled: todayScheduledCount,
+        tomorrow: tomorrowCount,
+        next7Days: next7DaysCount,
+        overdue: overdueCount,
+      },
     };
   }
 
