@@ -110,6 +110,7 @@ export class ProductsController {
       entityType: 'Product',
       entityId: id,
       userId: req.user.userId,
+      actorRole: req.user.role,
       ...this.auditService.requestContext(req),
       changes: { isActive: body.isActive === true },
     });
@@ -143,6 +144,7 @@ export class ProductsController {
         entityType: 'Product',
         entityId: 'bulk',
         userId: req.user.userId,
+        actorRole: req.user.role,
         ...this.auditService.requestContext(req),
         metadata: result,
       });
@@ -186,6 +188,7 @@ export class ProductsController {
         entityType: 'Product',
         entityId: 'bulk',
         userId: req?.user?.userId,
+        actorRole: req?.user?.role,
         ...this.auditService.requestContext(req),
         metadata: { since: lastSyncTimestamp.toISOString(), ...result },
       });

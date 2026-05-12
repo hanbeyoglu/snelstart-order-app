@@ -79,6 +79,7 @@ export class CategoriesController {
       entityType: 'Category',
       entityId: id,
       userId: req.user.userId,
+      actorRole: req.user.role,
       ...this.auditService.requestContext(req),
       changes: { isActive: body.isActive === true },
     });
@@ -107,6 +108,7 @@ export class CategoriesController {
         entityType: 'Category',
         entityId: 'bulk',
         userId: req.user.userId,
+        actorRole: req.user.role,
         ...this.auditService.requestContext(req),
       });
 

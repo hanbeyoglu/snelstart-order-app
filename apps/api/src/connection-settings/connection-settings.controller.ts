@@ -83,6 +83,7 @@ export class ConnectionSettingsController {
       entityType: 'ConnectionSettings',
       entityId: 'active',
       userId: req.user.userId,
+      actorRole: req.user.role,
       ...this.auditService.requestContext(req),
       changes: validated,
     });
@@ -113,6 +114,7 @@ export class ConnectionSettingsController {
         entityType: 'ConnectionSettings',
         entityId: 'active',
         userId: req.user.userId,
+        actorRole: req.user.role,
         ...this.auditService.requestContext(req),
         metadata: { success },
       });
@@ -136,6 +138,7 @@ export class ConnectionSettingsController {
         entityType: 'ConnectionSettings',
         entityId: 'active',
         userId: req.user.userId,
+        actorRole: req.user.role,
         ...this.auditService.requestContext(req),
         metadata: { success: false },
       });
@@ -179,6 +182,7 @@ export class ConnectionSettingsController {
           entityType: 'ConnectionSettings',
           entityId: 'active',
           userId: req.user.userId,
+          actorRole: req.user.role,
           ...this.auditService.requestContext(req),
           metadata: { tokenExpiresAt: updatedSettings?.tokenExpiresAt },
         });
