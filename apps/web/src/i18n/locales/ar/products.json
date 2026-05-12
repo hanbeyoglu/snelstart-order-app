@@ -74,6 +74,13 @@
       "genericError": "حدث خطأ."
     }
   },
+  "search": {
+    "searching": "جارٍ البحث...",
+    "noResults": "لا توجد منتجات",
+    "noResultsFor": "لا توجد نتائج لـ \"{{query}}\".",
+    "noResultsHint": "جرّب اسم منتج أو باركود أو رمز مقال مختلفاً.",
+    "clearSearch": "مسح البحث"
+  },
   "messages": {
     "syncSuccess": "تمت مزامنة المنتجات والفئات بنجاح",
     "syncFailed": "فشلت المزامنة",

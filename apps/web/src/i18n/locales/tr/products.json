@@ -74,6 +74,13 @@
       "genericError": "Bir hata oluştu."
     }
   },
+  "search": {
+    "searching": "Aranıyor...",
+    "noResults": "Ürün bulunamadı",
+    "noResultsFor": "\"{{query}}\" için sonuç bulunamadı.",
+    "noResultsHint": "Farklı bir ürün adı, barkod veya artikel kodu deneyin.",
+    "clearSearch": "Aramayı temizle"
+  },
   "messages": {
     "syncSuccess": "Ürünler ve kategoriler başarıyla senkronize edildi",
     "syncFailed": "Senkronizasyon başarısız",
