@@ -59,6 +59,7 @@ export class ReportsController {
       entityType: 'Report',
       entityId: body?.reportType || 'advanced',
       userId: req.user?.userId,
+      actorRole: req.user?.role,
       ...this.auditService.requestContext(req),
       metadata: {
         format: body?.format,

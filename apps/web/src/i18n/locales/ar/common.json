@@ -19,6 +19,16 @@
     "username": "اسم مستخدم البوابة",
     "languagePreference": "تفضيل اللغة",
     "lastLogin": "آخر تسجيل دخول",
+    "lastLoginNever": "لم يسجّل الدخول بعد",
+    "lastLoginRelative": {
+      "justNow": "الآن",
+      "minutesAgo_one": "منذ دقيقة",
+      "minutesAgo_other": "منذ {{count}} دقائق",
+      "hoursAgo_one": "منذ ساعة",
+      "hoursAgo_other": "منذ {{count}} ساعات",
+      "daysAgo_one": "منذ يوم",
+      "daysAgo_other": "منذ {{count}} أيام"
+    },
     "createdAt": "تاريخ الإنشاء",
     "actions": "الإجراءات",
     "resetPassword": "إعادة تعيين كلمة المرور",
@@ -37,7 +47,15 @@
     "deleteError": "تعذر حذف حساب البوابة",
     "permissions": "أذونات البوابة",
     "permissionsHint": "الأذونات الافتراضية مفعّلة دائماً ولا يمكن إلغاؤها. يمكنك منح أذونات إضافية لبوابة العملاء عند الحاجة.",
-    "permissionDefault": "افتراضي"
+    "permissionDefault": "افتراضي",
+    "sortLabel": "الترتيب",
+    "sortNameAsc": "الاسم أ-ي",
+    "sortNameDesc": "الاسم ي-أ",
+    "sortCreatedDesc": "الأحدث إنشاءً أولاً",
+    "sortCreatedAsc": "الأقدم إنشاءً أولاً",
+    "sortLastLoginDesc": "آخر تسجيل دخول",
+    "sortLastLoginAsc": "الأطول منذ آخر تسجيل دخول",
+    "sortRefreshing": "جارٍ تحديث القائمة…"
   },
   "actions": {
     "add": "إضافة", "addToCart": "إضافة إلى السلة", "back": "رجوع", "cancel": "إلغاء", "clear": "مسح", "close": "إغلاق",

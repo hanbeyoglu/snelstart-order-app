@@ -263,6 +263,7 @@ export class OrdersService {
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
         userId: user?.userId,
+        actorRole: user?.role,
         metadata: { customerId: effectiveCustomerId, total: totals.totalInclVat, createdBy: creatorSnapshot },
       });
       void this.notifyCustomerOrder(order, user, effectiveCustomerId);
@@ -285,6 +286,7 @@ export class OrdersService {
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
         userId: user?.userId,
+        actorRole: user?.role,
         metadata: { snelstartOrderId: snelStartOrder.id },
       });
 
@@ -308,6 +310,7 @@ export class OrdersService {
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
         userId: user?.userId,
+        actorRole: user?.role,
         metadata: { error: error.message },
       });
 
@@ -474,6 +477,7 @@ export class OrdersService {
       entityType: 'LocalOrder',
       entityId: orderId,
       userId: user?.userId,
+      actorRole: user?.role,
     });
 
     return order;
@@ -546,6 +550,7 @@ export class OrdersService {
       entityType: 'LocalOrder',
       entityId: id,
       userId: user?.userId,
+      actorRole: user?.role,
     });
 
     return { success: true };
@@ -601,6 +606,7 @@ export class OrdersService {
       entityType: 'LocalOrder',
       entityId: id,
       userId: user?.userId,
+      actorRole: user?.role,
     });
 
     return order;
@@ -763,6 +769,7 @@ export class OrdersService {
         entityType: 'LocalOrder',
         entityId: order._id.toString(),
         userId: user?.userId,
+        actorRole: user?.role,
         metadata: { customerId },
       });
     }

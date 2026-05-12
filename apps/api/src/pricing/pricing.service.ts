@@ -91,7 +91,7 @@ export class PricingService {
     }
   }
 
-  async createRule(ruleData: any, userId?: string) {
+  async createRule(ruleData: any, userId?: string, actorRole?: string) {
     const rule = new this.priceRuleModel(ruleData);
     await rule.save();
 
@@ -100,13 +100,14 @@ export class PricingService {
       entityType: 'PriceOverrideRule',
       entityId: rule._id.toString(),
       userId,
+      actorRole,
       changes: ruleData,
     });
 
     return rule;
   }
 
-  async updateRule(id: string, ruleData: any, userId?: string) {
+  async updateRule(id: string, ruleData: any, userId?: string, actorRole?: string) {
     const rule = await this.priceRuleModel.findById(id).exec();
     if (!rule) {
       throw new Error('Price rule not found');
@@ -121,18 +122,20 @@ export class PricingService {
       entityType: 'PriceOverrideRule',
       entityId: id,
       userId,
+      actorRole,
       changes: { old: oldData, new: ruleData },
     });
 
     return rule;
   }
 
-  async deleteRule(id: string, userId?: string) {
+  async deleteRule(id: string, userId?: string, actorRole?: string) {
     await this.auditService.log({
       action: 'PRICE_RULE_DELETED',
       entityType: 'PriceOverrideRule',
       entityId: id,
       userId,
+      actorRole,
     });
 
     return this.priceRuleModel.findByIdAndDelete(id).exec();

@@ -36,6 +36,8 @@ export class UsersController {
       entityType: 'User',
       entityId: req.user.userId,
       userId: req.user.userId,
+      actorRole: req.user.role,
+      targetRole: req.user.role,
       ...this.auditService.requestContext(req),
       changes: body,
     });
@@ -49,8 +51,10 @@ export class UsersController {
     @Request() req: any,
     @Query('customerId') customerId?: string,
     @Query('role') role?: 'customer' | 'staff',
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
   ) {
-    return this.usersService.getAllUsers(req.user.role, { customerId, role });
+    return this.usersService.getAllUsers(req.user.role, { customerId, role, sortBy, sortOrder });
   }
 
   @Get('permissions/catalog')
@@ -92,6 +96,8 @@ export class UsersController {
       entityType: 'User',
       entityId: String((created as any)._id || (created as any).id),
       userId: req.user.userId,
+      actorRole: req.user.role,
+      targetRole: body.role,
       ...this.auditService.requestContext(req),
       changes: body,
     });
@@ -101,6 +107,8 @@ export class UsersController {
         entityType: 'User',
         entityId: String((created as any)._id || (created as any).id),
         userId: req.user.userId,
+        actorRole: req.user.role,
+        targetRole: body.role,
         ...this.auditService.requestContext(req),
         changes: { customerId: body.customerId },
       });
@@ -130,6 +138,8 @@ export class UsersController {
       entityType: 'User',
       entityId: id,
       userId: req.user.userId,
+      actorRole: req.user.role,
+      targetRole: (before as any).role,
       ...this.auditService.requestContext(req),
       changes: body,
     });
@@ -154,6 +164,8 @@ export class UsersController {
       entityType: 'User',
       entityId: id,
       userId: req.user.userId,
+      actorRole: req.user.role,
+      targetRole: (result.user as any).role,
       ...this.auditService.requestContext(req),
       changes: {
         actor: {
@@ -185,6 +197,8 @@ export class UsersController {
       entityType: 'User',
       entityId: id,
       userId: req.user.userId,
+      actorRole: req.user.role,
+      targetRole: (before as any).role,
       ...this.auditService.requestContext(req),
     });
     return deleted;

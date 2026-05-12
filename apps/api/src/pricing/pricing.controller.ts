@@ -38,7 +38,7 @@ export class PricingController {
   @ApiOperation({ summary: 'Create price override rule' })
   async createRule(@Body() body: any, @Request() req: any) {
     const validated = parseOrBadRequest(priceOverrideRuleSchema, body);
-    return this.pricingService.createRule(validated, req.user.userId);
+    return this.pricingService.createRule(validated, req.user.userId, req.user.role);
   }
 
   @Put('rules/:id')
@@ -46,13 +46,13 @@ export class PricingController {
   @ApiOperation({ summary: 'Update price override rule' })
   async updateRule(@Param('id') id: string, @Body() body: any, @Request() req: any) {
     const validated = parseOrBadRequest(priceOverrideRuleSchema.partial(), body);
-    return this.pricingService.updateRule(id, validated, req.user.userId);
+    return this.pricingService.updateRule(id, validated, req.user.userId, req.user.role);
   }
 
   @Delete('rules/:id')
   @Roles('admin')
   @ApiOperation({ summary: 'Delete price override rule' })
   async deleteRule(@Param('id') id: string, @Request() req: any) {
-    return this.pricingService.deleteRule(id, req.user.userId);
+    return this.pricingService.deleteRule(id, req.user.userId, req.user.role);
   }
 }

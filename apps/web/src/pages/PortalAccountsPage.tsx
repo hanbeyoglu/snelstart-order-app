@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
@@ -13,6 +13,29 @@ import {
   getPortalAssignablePermissions,
   normalizePortalPermissionSelection,
 } from '../utils/permissions';
+
+const PORTAL_ACCOUNT_SORT_BY = ['customerName', 'username', 'createdAt', 'lastLoginAt'] as const;
+type PortalAccountSortBy = (typeof PORTAL_ACCOUNT_SORT_BY)[number];
+type PortalAccountSortOrder = 'asc' | 'desc';
+
+const PORTAL_SORT_OPTIONS: { value: string; sortBy: PortalAccountSortBy; sortOrder: PortalAccountSortOrder }[] = [
+  { value: 'customerName:asc', sortBy: 'customerName', sortOrder: 'asc' },
+  { value: 'customerName:desc', sortBy: 'customerName', sortOrder: 'desc' },
+  { value: 'createdAt:desc', sortBy: 'createdAt', sortOrder: 'desc' },
+  { value: 'createdAt:asc', sortBy: 'createdAt', sortOrder: 'asc' },
+  { value: 'lastLoginAt:desc', sortBy: 'lastLoginAt', sortOrder: 'desc' },
+  { value: 'lastLoginAt:asc', sortBy: 'lastLoginAt', sortOrder: 'asc' },
+];
+
+function parsePortalSortParams(searchParams: URLSearchParams): { sortBy: PortalAccountSortBy; sortOrder: PortalAccountSortOrder } {
+  const rawBy = searchParams.get('sortBy');
+  const rawOrder = searchParams.get('sortOrder');
+  const sortBy = PORTAL_ACCOUNT_SORT_BY.includes(rawBy as PortalAccountSortBy)
+    ? (rawBy as PortalAccountSortBy)
+    : 'customerName';
+  const sortOrder = rawOrder === 'desc' || rawOrder === 'asc' ? rawOrder : 'asc';
+  return { sortBy, sortOrder };
+}
 
 type PortalUser = {
   _id: string;
@@ -36,6 +59,56 @@ type CustomerOption = {
   plaats?: string;
 };
 
+function formatPortalLastLoginRelative(
+  lastLoginIso: string,
+  t: (key: string, options?: { count: number }) => string,
+): string {
+  const d = new Date(lastLoginIso);
+  const ms = Date.now() - d.getTime();
+  if (Number.isNaN(d.getTime()) || !Number.isFinite(ms)) return '';
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 0) return '';
+  if (minutes < 1) return t('common:portalAccounts.lastLoginRelative.justNow');
+  if (minutes < 60) return t('common:portalAccounts.lastLoginRelative.minutesAgo', { count: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t('common:portalAccounts.lastLoginRelative.hoursAgo', { count: hours });
+  const days = Math.floor(hours / 24);
+  return t('common:portalAccounts.lastLoginRelative.daysAgo', { count: days });
+}
+
+function PortalLastLoginCell({ lastLoginAt }: { lastLoginAt?: string | null }) {
+  const { t } = useAppTranslation(['common']);
+  const { formatDateTime, formatDateTimeLong } = useLocaleFormat();
+
+  if (!lastLoginAt || !String(lastLoginAt).trim()) {
+    return (
+      <span className="portal-last-login-never" role="status">
+        {t('common:portalAccounts.lastLoginNever')}
+      </span>
+    );
+  }
+
+  const d = new Date(lastLoginAt);
+  if (Number.isNaN(d.getTime())) {
+    return (
+      <span className="portal-last-login-never" role="status">
+        {t('common:portalAccounts.lastLoginNever')}
+      </span>
+    );
+  }
+
+  const relative = formatPortalLastLoginRelative(lastLoginAt, t);
+  const absoluteShort = formatDateTime(lastLoginAt);
+  const absoluteLong = formatDateTimeLong(lastLoginAt);
+  const tooltip = [relative, absoluteLong].filter(Boolean).join(' — ');
+
+  return (
+    <strong className="portal-last-login-datetime" title={tooltip}>
+      {absoluteShort}
+    </strong>
+  );
+}
+
 const emptyForm = () => ({
   customerId: '',
   username: '',
@@ -49,6 +122,7 @@ export default function PortalAccountsPage() {
   const { t } = useAppTranslation(['common']);
   const { formatDate } = useLocaleFormat();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
   const [search, setSearch] = useState('');
@@ -71,6 +145,21 @@ export default function PortalAccountsPage() {
   const [editPermissionBaseline, setEditPermissionBaseline] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
 
+  useEffect(() => {
+    const rawBy = searchParams.get('sortBy');
+    const rawOrder = searchParams.get('sortOrder');
+    const byOk = PORTAL_ACCOUNT_SORT_BY.includes(rawBy as PortalAccountSortBy);
+    const orderOk = rawOrder === 'asc' || rawOrder === 'desc';
+    if (byOk && orderOk) return;
+    const next = new URLSearchParams(searchParams);
+    if (!byOk) next.set('sortBy', 'customerName');
+    if (!orderOk) next.set('sortOrder', 'asc');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const { sortBy, sortOrder } = parsePortalSortParams(searchParams);
+  const sortSelectValue = `${sortBy}:${sortOrder}`;
+
   const { data: permissionCatalog } = useQuery({
     queryKey: ['permission-catalog'],
     queryFn: async () => {
@@ -86,13 +175,23 @@ export default function PortalAccountsPage() {
 
   const defaultPermissionSet = useMemo(() => new Set(CUSTOMER_DEFAULT_PERMISSIONS), []);
 
-  const { data: portalUsers = [], isLoading } = useQuery({
-    queryKey: ['portal-accounts'],
+  const {
+    data: portalUsers = [],
+    isPending,
+    isFetching,
+    isPlaceholderData,
+  } = useQuery({
+    queryKey: ['portal-accounts', sortBy, sortOrder],
     queryFn: async () => {
-      const response = await api.get('/users', { params: { role: 'customer' } });
+      const response = await api.get('/users', {
+        params: { role: 'customer', sortBy, sortOrder },
+      });
       return response.data as PortalUser[];
     },
+    placeholderData: keepPreviousData,
   });
+
+  const showBlockingLoader = isPending && !isPlaceholderData;
 
   const customerIds = useMemo(
     () => Array.from(new Set(portalUsers.map((user) => user.customerId).filter(Boolean))) as string[],
@@ -183,8 +282,8 @@ export default function PortalAccountsPage() {
     },
     onMutate: async ({ user, data, syncPermissions }) => {
       await queryClient.cancelQueries({ queryKey: ['portal-accounts'] });
-      const previous = queryClient.getQueryData<PortalUser[]>(['portal-accounts']);
-      queryClient.setQueryData<PortalUser[]>(['portal-accounts'], (current = []) =>
+      const previousEntries = queryClient.getQueriesData<PortalUser[]>({ queryKey: ['portal-accounts'] });
+      queryClient.setQueriesData<PortalUser[]>({ queryKey: ['portal-accounts'] }, (current = []) =>
         current.map((item) => {
           if (item._id !== user._id) return item;
           const merged = { ...item, ...data };
@@ -194,10 +293,14 @@ export default function PortalAccountsPage() {
           return merged;
         }),
       );
-      return { previous };
+      return { previousEntries };
     },
     onError: (error: any, _variables, context) => {
-      if (context?.previous) queryClient.setQueryData(['portal-accounts'], context.previous);
+      if (context?.previousEntries) {
+        for (const [key, data] of context.previousEntries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
       showToast(error?.response?.data?.message || error?.message || t('common:portalAccounts.updateError'), 'error');
     },
     onSuccess: () => {
@@ -285,10 +388,39 @@ export default function PortalAccountsPage() {
             <option value="inactive">{t('common:states.inactive')}</option>
           </select>
           <input className="input" type="date" value={createdFrom} onChange={(event) => setCreatedFrom(event.target.value)} aria-label={t('common:portalAccounts.createdFrom')} />
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <span>{t('common:portalAccounts.sortLabel')}</span>
+            <select
+              className="input"
+              value={sortSelectValue}
+              onChange={(event) => {
+                const opt = PORTAL_SORT_OPTIONS.find((o) => o.value === event.target.value);
+                if (!opt) return;
+                const next = new URLSearchParams(searchParams);
+                next.set('sortBy', opt.sortBy);
+                next.set('sortOrder', opt.sortOrder);
+                setSearchParams(next, { replace: true });
+              }}
+              aria-label={t('common:portalAccounts.sortLabel')}
+            >
+              <option value="customerName:asc">{t('common:portalAccounts.sortNameAsc')}</option>
+              <option value="customerName:desc">{t('common:portalAccounts.sortNameDesc')}</option>
+              <option value="createdAt:desc">{t('common:portalAccounts.sortCreatedDesc')}</option>
+              <option value="createdAt:asc">{t('common:portalAccounts.sortCreatedAsc')}</option>
+              <option value="lastLoginAt:desc">{t('common:portalAccounts.sortLastLoginDesc')}</option>
+              <option value="lastLoginAt:asc">{t('common:portalAccounts.sortLastLoginAsc')}</option>
+            </select>
+          </label>
         </div>
       </div>
 
-      {isLoading ? (
+      {isFetching && isPlaceholderData && (
+        <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }} role="status">
+          {t('common:portalAccounts.sortRefreshing')}
+        </p>
+      )}
+
+      {showBlockingLoader ? (
         <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>{t('common:states.loading')}</div>
       ) : (
         <div className="portal-account-list">
@@ -324,9 +456,11 @@ export default function PortalAccountsPage() {
                     <span>{t('common:portalAccounts.permissions')}</span>
                     <strong>{user.permissions?.length ?? CUSTOMER_DEFAULT_PERMISSIONS.length}</strong>
                   </div>
-                  <div className="portal-account-field">
+                  <div className="portal-account-field portal-account-field-last-login">
                     <span>{t('common:portalAccounts.lastLogin')}</span>
-                    <strong>{user.lastLoginAt ? formatDate(user.lastLoginAt) : '-'}</strong>
+                    <div className="portal-last-login-wrap">
+                      <PortalLastLoginCell lastLoginAt={user.lastLoginAt} />
+                    </div>
                   </div>
                   <div className="portal-account-field">
                     <span>{t('common:portalAccounts.createdAt')}</span>

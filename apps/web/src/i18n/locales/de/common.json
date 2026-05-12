@@ -36,6 +36,16 @@
     "username": "Portal-Benutzername",
     "languagePreference": "Sprache",
     "lastLogin": "Letzte Anmeldung",
+    "lastLoginNever": "Noch nie angemeldet",
+    "lastLoginRelative": {
+      "justNow": "Gerade eben",
+      "minutesAgo_one": "vor {{count}} Minute",
+      "minutesAgo_other": "vor {{count}} Minuten",
+      "hoursAgo_one": "vor {{count}} Stunde",
+      "hoursAgo_other": "vor {{count}} Stunden",
+      "daysAgo_one": "vor {{count}} Tag",
+      "daysAgo_other": "vor {{count}} Tagen"
+    },
     "createdAt": "Erstellt am",
     "actions": "Aktionen",
     "resetPassword": "Passwort zurucksetzen",
@@ -54,7 +64,15 @@
     "deleteError": "Portal-Konto konnte nicht geloscht werden",
     "permissions": "Portal-Berechtigungen",
     "permissionsHint": "Standardberechtigungen sind immer aktiv und konnen nicht entfernt werden. Zusatzliche Portal-Berechtigungen konnen Sie optional vergeben.",
-    "permissionDefault": "Standard"
+    "permissionDefault": "Standard",
+    "sortLabel": "Sortierung",
+    "sortNameAsc": "Name A–Z",
+    "sortNameDesc": "Name Z–A",
+    "sortCreatedDesc": "Neueste zuerst erstellt",
+    "sortCreatedAsc": "Alteste zuerst erstellt",
+    "sortLastLoginDesc": "Zuletzt angemeldet",
+    "sortLastLoginAsc": "Am langsten nicht angemeldet",
+    "sortRefreshing": "Liste wird aktualisiert…"
   },
   "format": { "currency": "EUR", "unit": "Stk." },
   "time": { "expired": "Abgelaufen", "daysHours": "{{days}} Tage {{hours}} Stunden", "hoursMinutes": "{{hours}} Stunden {{minutes}} Minuten", "minutes": "{{minutes}} Minuten", "remaining": "Verbleibende Zeit:" },

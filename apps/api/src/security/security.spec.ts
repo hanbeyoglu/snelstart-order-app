@@ -6,6 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { AuditViewGuard } from '../auth/guards/audit-view.guard';
 import { assertNoUnsafeMongoKeys } from './mongo-sanitize.middleware';
 import { getJwtSecret } from './env';
 import { AuthController } from '../auth/auth.controller';
@@ -60,7 +61,6 @@ test('admin-only endpoint metadata is present on sensitive routes', () => {
 
 test('super_admin-only endpoint metadata is present on sensitive routes', () => {
   assert.deepEqual(Reflect.getMetadata('roles', ReportsController.prototype.getReport), ['super_admin']);
-  assert.deepEqual(Reflect.getMetadata('roles', AuditController.prototype.getAuditLogs), ['super_admin']);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.saveSettings), ['super_admin']);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.testConnection), ['super_admin']);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.refreshToken), ['super_admin']);
@@ -75,12 +75,30 @@ test('reports endpoint is blocked for admin and allowed for super_admin', () => 
   assert.equal(guard.canActivate(contextFor(handler, { role: 'super_admin' })), true);
 });
 
-test('audit logs endpoint is blocked for admin and allowed for super_admin', () => {
-  const guard = new RolesGuard(new Reflector());
+test('audit logs route uses staff role plus audit.view permission guard', () => {
+  assert.deepEqual(Reflect.getMetadata('roles', AuditController.prototype.getAuditLogs), ['sales_rep']);
+  assert.deepEqual(Reflect.getMetadata('roles', AuditController.prototype.getAuditStats), ['sales_rep']);
+  const rolesGuard = new RolesGuard(new Reflector());
   const handler = AuditController.prototype.getAuditLogs;
+  assert.equal(rolesGuard.canActivate(contextFor(handler, { role: 'sales_rep' })), true);
+  assert.equal(rolesGuard.canActivate(contextFor(handler, { role: 'admin' })), true);
+  assert.equal(rolesGuard.canActivate(contextFor(handler, { role: 'super_admin' })), true);
+  assert.equal(rolesGuard.canActivate(contextFor(handler, { role: 'customer' })), false);
+});
 
-  assert.equal(guard.canActivate(contextFor(handler, { role: 'admin' })), false);
-  assert.equal(guard.canActivate(contextFor(handler, { role: 'super_admin' })), true);
+test('audit view guard requires audit.view in effective permissions', () => {
+  const guard = new AuditViewGuard();
+  const ctx = (user: any) =>
+    ({
+      getHandler: () => AuditController.prototype.getAuditLogs,
+      switchToHttp: () => ({
+        getRequest: () => ({ user }),
+      }),
+    }) as any;
+  assert.equal(guard.canActivate(ctx({ role: 'admin', permissions: ['audit.view'] })), true);
+  assert.equal(guard.canActivate(ctx({ role: 'super_admin', permissions: [] })), true);
+  assert.throws(() => guard.canActivate(ctx({ role: 'admin', permissions: [] })), ForbiddenException);
+  assert.throws(() => guard.canActivate(ctx({ role: 'sales_rep', permissions: ['dashboard.view'] })), ForbiddenException);
 });
 
 test('mongo sanitizer rejects query operator injection payloads', () => {

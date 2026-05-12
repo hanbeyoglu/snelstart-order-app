@@ -22,10 +22,13 @@ type AuditFilters = {
   status?: string;
   page?: number;
   limit?: number;
+  currentUserRole?: string;
 };
 
 @Injectable()
 export class AuditService {
+  private superAdminIdsCache: { at: number; ids: string[] } | null = null;
+
   constructor(
     @InjectModel(AuditLog.name) private auditLogModel: Model<AuditLogDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -36,14 +39,33 @@ export class AuditService {
     entityType: string;
     entityId: string;
     userId?: string;
+    actorRole?: string;
+    targetRole?: string;
     ip?: string;
     userAgent?: string;
     changes?: Record<string, any>;
     metadata?: Record<string, any>;
   }): Promise<void> {
     try {
+      let actorRole = data.actorRole;
+      if (actorRole === undefined && data.userId && Types.ObjectId.isValid(String(data.userId))) {
+        const u = await this.userModel.findById(data.userId).select('role').lean().exec();
+        actorRole = (u as any)?.role;
+      }
+      let targetRole = data.targetRole;
+      if (
+        targetRole === undefined &&
+        data.entityType === 'User' &&
+        data.entityId &&
+        Types.ObjectId.isValid(String(data.entityId))
+      ) {
+        const t = await this.userModel.findById(data.entityId).select('role').lean().exec();
+        targetRole = (t as any)?.role;
+      }
       const log = new this.auditLogModel({
         ...data,
+        actorRole,
+        targetRole,
         changes: this.redact(data.changes),
         metadata: this.redact(data.metadata),
       });
@@ -64,7 +86,7 @@ export class AuditService {
   async getLogs(filters?: AuditFilters) {
     const page = Math.max(1, Number(filters?.page || 1));
     const limit = Math.min(Math.max(1, Number(filters?.limit || 50)), 200);
-    const query = this.buildQuery(filters);
+    const query = await this.buildAuditListQuery(filters);
 
     if (filters?.critical === 'true') {
       query.$and = [...(query.$and || []), this.criticalQuery()];
@@ -87,7 +109,7 @@ export class AuditService {
       this.auditLogModel.countDocuments(query).exec(),
     ]);
 
-    const enrichedData = await this.enrichLogs(data);
+    const enrichedData = await this.enrichLogs(data, filters?.currentUserRole);
 
     return {
       data: enrichedData,
@@ -100,19 +122,25 @@ export class AuditService {
     };
   }
 
-  async getStats(filters?: Pick<AuditFilters, 'startDate' | 'endDate'>) {
+  async getStats(filters?: Pick<AuditFilters, 'startDate' | 'endDate' | 'currentUserRole'>) {
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
     const last7Start = new Date(now);
     last7Start.setDate(last7Start.getDate() - 6);
     last7Start.setHours(0, 0, 0, 0);
-    const scopedQuery = this.buildQuery(filters);
+
+    const scopedQuery = await this.buildAuditListQuery(filters);
+    const todayQuery = await this.mergeNonSuperAdminScope({ createdAt: { $gte: todayStart } }, filters?.currentUserRole);
+    const last7Query = await this.mergeNonSuperAdminScope({ createdAt: { $gte: last7Start } }, filters?.currentUserRole);
+    const scopedWithLast7: Record<string, any> = {
+      $and: [scopedQuery, { createdAt: { $gte: last7Start } }],
+    };
 
     const [totalToday, totalLast7Days, criticalCount, failedCount, actionDistribution, dailyTrend, actorDistribution] =
       await Promise.all([
-        this.auditLogModel.countDocuments({ createdAt: { $gte: todayStart } }).exec(),
-        this.auditLogModel.countDocuments({ createdAt: { $gte: last7Start } }).exec(),
+        this.auditLogModel.countDocuments(todayQuery).exec(),
+        this.auditLogModel.countDocuments(last7Query).exec(),
         this.auditLogModel.countDocuments({ $and: [scopedQuery, this.criticalQuery()] }).exec(),
         this.auditLogModel.countDocuments({ $and: [scopedQuery, this.statusQuery('failed')] }).exec(),
         this.auditLogModel.aggregate([
@@ -123,7 +151,7 @@ export class AuditService {
           { $project: { _id: 0, action: '$_id', count: 1 } },
         ]),
         this.auditLogModel.aggregate([
-          { $match: { ...scopedQuery, createdAt: { ...(scopedQuery.createdAt || {}), $gte: last7Start } } },
+          { $match: scopedWithLast7 },
           {
             $group: {
               _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -145,7 +173,7 @@ export class AuditService {
     const userMap = await this.getUserMap(actorDistribution.map((item) => item.userId).filter(Boolean));
     const actorDistributionWithNames = actorDistribution.map((item) => ({
       ...item,
-      actor: this.formatActor(userMap.get(String(item.userId)), item.userId),
+      actor: this.formatActor(userMap.get(String(item.userId)), item.userId, filters?.currentUserRole),
     }));
 
     return {
@@ -160,7 +188,49 @@ export class AuditService {
     };
   }
 
-  private buildQuery(filters?: Pick<AuditFilters, 'action' | 'entityType' | 'entityId' | 'userId' | 'startDate' | 'endDate' | 'search'>) {
+  private async getSuperAdminUserIdStrings(): Promise<string[]> {
+    const now = Date.now();
+    if (this.superAdminIdsCache && now - this.superAdminIdsCache.at < 60_000) {
+      return this.superAdminIdsCache.ids;
+    }
+    const users = await this.userModel.find({ role: 'super_admin' }).select('_id').lean().exec();
+    const ids = users.map((u: any) => String(u._id));
+    this.superAdminIdsCache = { at: now, ids };
+    return ids;
+  }
+
+  /** Non–super_admin viewers: exclude any audit row that reveals super_admin activity or identities. */
+  private async buildExcludeSuperAdminNorClause(): Promise<{ $nor: any[] }> {
+    const ids = await this.getSuperAdminUserIdStrings();
+    const nor: any[] = [
+      { actorRole: 'super_admin' },
+      { targetRole: 'super_admin' },
+      { 'changes.target.role': 'super_admin' },
+      { 'changes.actor.role': 'super_admin' },
+      { 'metadata.createdBy.createdByRole': 'super_admin' },
+    ];
+    if (ids.length > 0) {
+      nor.push({ userId: { $in: ids } });
+      nor.push({ $and: [{ entityType: 'User' }, { entityId: { $in: ids } }] });
+      nor.push({ 'changes.target.userId': { $in: ids } });
+      nor.push({ 'changes.actor.userId': { $in: ids } });
+      nor.push({ 'metadata.createdBy.createdByUserId': { $in: ids } });
+    }
+    return { $nor: nor };
+  }
+
+  private async mergeNonSuperAdminScope(query: Record<string, any>, viewerRole?: string): Promise<Record<string, any>> {
+    if (!viewerRole || viewerRole === 'super_admin') {
+      return query;
+    }
+    const exclusion = await this.buildExcludeSuperAdminNorClause();
+    return {
+      ...query,
+      $and: [...(query.$and || []), exclusion],
+    };
+  }
+
+  private async buildAuditListQuery(filters?: Pick<AuditFilters, 'action' | 'entityType' | 'entityId' | 'userId' | 'startDate' | 'endDate' | 'search' | 'currentUserRole'>): Promise<Record<string, any>> {
     const query: Record<string, any> = {};
 
     if (filters?.action) query.action = filters.action;
@@ -176,18 +246,46 @@ export class AuditService {
         query.createdAt.$lte = endDate;
       }
     }
-    if (filters?.search) {
-      const regex = new RegExp(this.escapeRegExp(filters.search), 'i');
-      query.$or = [
+    if (filters?.search?.trim()) {
+      const regex = new RegExp(this.escapeRegExp(filters.search.trim()), 'i');
+      const or: any[] = [
         { action: regex },
         { entityType: regex },
         { entityId: regex },
         { userId: regex },
         { ip: regex },
       ];
+      const userMatchQ: Record<string, any> = {
+        $or: [
+          { username: regex },
+          { email: regex },
+          { firstName: regex },
+          { lastName: regex },
+        ],
+      };
+      if (filters.currentUserRole === 'super_admin') {
+        const users = await this.userModel.find(userMatchQ).select('_id').lean().exec();
+        const matchIds = users.map((u: any) => String(u._id));
+        if (matchIds.length > 0) {
+          or.push({ userId: { $in: matchIds } });
+          or.push({ $and: [{ entityType: 'User' }, { entityId: { $in: matchIds } }] });
+        }
+      } else {
+        const users = await this.userModel
+          .find({ ...userMatchQ, role: { $ne: 'super_admin' } })
+          .select('_id')
+          .lean()
+          .exec();
+        const matchIds = users.map((u: any) => String(u._id));
+        if (matchIds.length > 0) {
+          or.push({ userId: { $in: matchIds } });
+          or.push({ $and: [{ entityType: 'User' }, { entityId: { $in: matchIds } }] });
+        }
+      }
+      query.$or = or;
     }
 
-    return query;
+    return this.mergeNonSuperAdminScope(query, filters?.currentUserRole);
   }
 
   private criticalQuery() {
@@ -219,10 +317,10 @@ export class AuditService {
     };
   }
 
-  private async enrichLogs(logs: any[]) {
+  private async enrichLogs(logs: any[], viewerRole?: string) {
     const userMap = await this.getUserMap(logs.map((log) => log.userId).filter(Boolean));
     return logs.map((log) => {
-      const actor = this.formatActor(userMap.get(String(log.userId)), log.userId);
+      const actor = this.formatActor(userMap.get(String(log.userId)), log.userId, viewerRole);
       return {
         ...log,
         changes: this.redact(log.changes),
@@ -246,8 +344,17 @@ export class AuditService {
     return new Map(users.map((user: any) => [String(user._id), user]));
   }
 
-  private formatActor(user?: any, userId?: string) {
+  private formatActor(user?: any, userId?: string, viewerRole?: string) {
     if (!user && !userId) return null;
+    if (viewerRole !== 'super_admin' && user?.role === 'super_admin') {
+      return {
+        id: userId || String(user?._id),
+        username: undefined,
+        email: undefined,
+        role: undefined,
+        displayName: '[redacted]',
+      };
+    }
     const displayName = user
       ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || user.email
       : userId;

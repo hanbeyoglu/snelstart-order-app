@@ -156,7 +156,7 @@ export default function Layout() {
         ...(canManagePermissions(user) ? [{ to: '/users', label: t('navigation.users'), icon: '👥' }] : []),
         ...(canManagePermissions(user) ? [{ to: '/portal-users', label: t('navigation.portalAccounts'), icon: '🛒' }] : []),
         ...(hasPermission(user, 'snelstart.settings.manage') ? [{ to: '/admin/settings', label: t('navigation.connectionSettings'), icon: '🔗' }] : []),
-        ...(user.role === 'super_admin' && hasPermission(user, 'audit.view') ? [{ to: '/audit', label: 'Audit Logs', icon: '🧾' }] : []),
+        ...(hasPermission(user, 'audit.view') ? [{ to: '/audit', label: 'Audit Logs', icon: '🧾' }] : []),
       ]
     : [];
 

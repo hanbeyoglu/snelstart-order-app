@@ -16,6 +16,12 @@ export class AuditLog extends Document {
   userId?: string;
 
   @Prop()
+  actorRole?: string;
+
+  @Prop()
+  targetRole?: string;
+
+  @Prop()
   ip?: string;
 
   @Prop()
@@ -33,4 +39,5 @@ AuditLogSchema.index({ createdAt: -1 });
 AuditLogSchema.index({ action: 1, createdAt: -1 });
 AuditLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
 AuditLogSchema.index({ userId: 1, createdAt: -1 });
+AuditLogSchema.index({ actorRole: 1, createdAt: -1 });
 export type AuditLogDocument = AuditLog & Document;

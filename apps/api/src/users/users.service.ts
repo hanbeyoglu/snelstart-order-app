@@ -13,6 +13,16 @@ import {
 } from '../auth/permissions';
 import { Customer, CustomerDocument } from '../customers/schemas/customer.schema';
 
+export type ListUsersSortBy = 'customerName' | 'username' | 'createdAt' | 'lastLoginAt';
+export type ListUsersSortOrder = 'asc' | 'desc';
+
+export type GetAllUsersFilters = {
+  customerId?: string;
+  role?: 'customer' | 'staff';
+  sortBy?: string;
+  sortOrder?: string;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -20,7 +30,7 @@ export class UsersService {
     @InjectModel(Customer.name) private customerModel?: Model<CustomerDocument>,
   ) {}
 
-  async getAllUsers(requesterRole: UserRole, filters: { customerId?: string; role?: 'customer' | 'staff' } = {}) {
+  async getAllUsers(requesterRole: UserRole, filters: GetAllUsersFilters = {}) {
     const filter: any = requesterRole === 'super_admin' ? {} : { role: { $ne: 'super_admin' } };
     if (filters.role === 'customer') {
       filter.role = 'customer';
@@ -33,11 +43,91 @@ export class UsersService {
       filter.customerId = filters.customerId;
       filter.role = 'customer';
     }
-    const users = await this.userModel
-      .find(filter)
-      .select('-passwordHash')
-      .exec();
-    return users;
+
+    const allowedSortBy: ListUsersSortBy[] = ['customerName', 'username', 'createdAt', 'lastLoginAt'];
+    let sortBy: ListUsersSortBy | undefined;
+    let sortOrder: ListUsersSortOrder = 'asc';
+    if (filters.sortBy !== undefined && filters.sortBy !== '') {
+      if (!allowedSortBy.includes(filters.sortBy as ListUsersSortBy)) {
+        throw new BadRequestException(
+          `Geçersiz sortBy. İzin verilenler: ${allowedSortBy.join(', ')}`,
+        );
+      }
+      sortBy = filters.sortBy as ListUsersSortBy;
+    }
+    if (filters.sortOrder !== undefined && filters.sortOrder !== '') {
+      if (filters.sortOrder !== 'asc' && filters.sortOrder !== 'desc') {
+        throw new BadRequestException('sortOrder asc veya desc olmalıdır');
+      }
+      sortOrder = filters.sortOrder as ListUsersSortOrder;
+    }
+    if (filters.sortBy && !filters.sortOrder) {
+      sortOrder = 'asc';
+    }
+
+    if (!sortBy) {
+      const users = await this.userModel
+        .find(filter)
+        .select('-passwordHash')
+        .exec();
+      return users;
+    }
+
+    const dir = sortOrder === 'desc' ? -1 : 1;
+    const pipeline: any[] = [{ $match: filter }];
+
+    if (sortBy === 'customerName') {
+      if (!this.customerModel) {
+        throw new BadRequestException('Müşteri sıralaması için müşteri modeli gerekli');
+      }
+      const customerCollection = this.customerModel.collection.collectionName;
+      pipeline.push({
+        $lookup: {
+          from: customerCollection,
+          localField: 'customerId',
+          foreignField: 'snelstartId',
+          as: '_cust',
+        },
+      });
+      pipeline.push({
+        $addFields: {
+          _customerNameLower: {
+            $toLower: { $ifNull: [{ $arrayElemAt: ['$_cust.naam', 0] }, ''] },
+          },
+        },
+      });
+      pipeline.push({ $sort: { _customerNameLower: dir, username: 1, _id: 1 } });
+    } else if (sortBy === 'username') {
+      pipeline.push({
+        $addFields: {
+          _usernameLower: { $toLower: { $ifNull: ['$username', ''] } },
+        },
+      });
+      pipeline.push({ $sort: { _usernameLower: dir, _id: 1 } });
+    } else if (sortBy === 'createdAt') {
+      pipeline.push({ $sort: { createdAt: dir, _id: 1 } });
+    } else if (sortBy === 'lastLoginAt') {
+      pipeline.push({
+        $addFields: {
+          _hasLogin: {
+            $cond: [{ $eq: [{ $type: '$lastLoginAt' }, 'date'] }, 1, 0],
+          },
+        },
+      });
+      pipeline.push({ $sort: { _hasLogin: -1, lastLoginAt: dir, _id: 1 } });
+    }
+
+    pipeline.push({
+      $project: {
+        passwordHash: 0,
+        _cust: 0,
+        _customerNameLower: 0,
+        _usernameLower: 0,
+        _hasLogin: 0,
+      },
+    });
+
+    return this.userModel.aggregate(pipeline).exec();
   }
 
   async getUserById(id: string, requesterRole?: UserRole) {
