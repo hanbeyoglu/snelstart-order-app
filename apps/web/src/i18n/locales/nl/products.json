@@ -74,6 +74,13 @@
       "genericError": "Er is een fout opgetreden."
     }
   },
+  "search": {
+    "searching": "Zoeken...",
+    "noResults": "Geen producten gevonden",
+    "noResultsFor": "Geen resultaten voor \"{{query}}\".",
+    "noResultsHint": "Probeer een andere productnaam, barcode of artikelcode.",
+    "clearSearch": "Zoekopdracht wissen"
+  },
   "messages": {
     "syncSuccess": "Producten en categorieen succesvol gesynchroniseerd",
     "syncFailed": "Synchronisatie mislukt",

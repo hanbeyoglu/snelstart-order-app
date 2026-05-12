@@ -7,6 +7,10 @@ import { CacheService } from '../cache/cache.service';
 import { CategoriesService } from '../categories/categories.service';
 import { ImagesService } from '../images/images.service';
 import { Product, ProductDocument, ProductSubArticle } from './schemas/product.schema';
+import {
+  buildNormalizedSearchTextFromApiProduct,
+  normalizeForSearch,
+} from './normalized-search.util';
 
 @Injectable()
 export class ProductsService {
@@ -102,6 +106,7 @@ export class ProductsService {
                 artikelcode: product.artikelcode || artikelnummer, // May be empty or duplicate
                 brand: product.brand || product.merk,
                 omschrijving: product.omschrijving,
+                normalizedSearchText: buildNormalizedSearchTextFromApiProduct(product),
                 artikelgroepId: artikelgroepId, // Optional - may be null/undefined
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
                 artikelomzetgroepId: artikelomzetgroepId,
@@ -304,6 +309,7 @@ export class ProductsService {
                 artikelcode: product.artikelcode || artikelnummer,
                 brand: product.brand || product.merk,
                 omschrijving: product.omschrijving,
+                normalizedSearchText: buildNormalizedSearchTextFromApiProduct(product),
                 artikelgroepId: artikelgroepId, // Optional - may be null/undefined
                 artikelgroepOmschrijving: product.artikelgroepOmschrijving,
                 artikelomzetgroepId: artikelomzetgroepId,
@@ -691,7 +697,7 @@ export class ProductsService {
     inStockOnly: boolean = false,
   ) {
     const groupIdsKey = groupIds?.length ? groupIds.slice().sort().join(',') : 'all';
-    const cacheKey = `products:v4:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
+    const cacheKey = `products:v5:${groupIdsKey}:${search || 'none'}:${customerId || 'none'}:${page}:${limit}:${sortBy || 'name_asc'}:${inStockOnly}`;
 
     // First check Redis cache
     const cached = await this.cacheService.get(cacheKey);
@@ -724,12 +730,15 @@ export class ProductsService {
       this.addActiveCategoryRule(query, activeCategoryIds);
 
       const searchLower = search.toLowerCase().trim();
+      const normalizedTerm = normalizeForSearch(searchLower);
 
-      // Search in multiple fields
-      const searchConditions = [
+      // Search in multiple fields, including normalized form for fuzzy hyphen/space tolerance
+      const searchConditions: any[] = [
         { omschrijving: { $regex: searchLower, $options: 'i' } },
         { artikelnummer: { $regex: searchLower, $options: 'i' } },
+        { artikelcode: { $regex: searchLower, $options: 'i' } },
         { barcode: { $regex: searchLower, $options: 'i' } },
+        ...(normalizedTerm ? [{ normalizedSearchText: { $regex: normalizedTerm, $options: 'i' } }] : []),
       ];
 
       query.$and.push({ $or: searchConditions });
@@ -857,10 +866,13 @@ export class ProductsService {
     // Apply search if provided
     if (search && search.trim()) {
       const searchLower = search.toLowerCase().trim();
-      const searchConditions = [
+      const normalizedTerm = normalizeForSearch(searchLower);
+      const searchConditions: any[] = [
         { omschrijving: { $regex: searchLower, $options: 'i' } },
         { artikelnummer: { $regex: searchLower, $options: 'i' } },
+        { artikelcode: { $regex: searchLower, $options: 'i' } },
         { barcode: { $regex: searchLower, $options: 'i' } },
+        ...(normalizedTerm ? [{ normalizedSearchText: { $regex: normalizedTerm, $options: 'i' } }] : []),
       ];
 
       if (query.$and) {
@@ -1136,6 +1148,7 @@ export class ProductsService {
         artikelnummer: artikelnummer, // Fallback to artikelcode if missing
         artikelcode: product.artikelcode || artikelnummer, // Store artikelcode separately
         omschrijving: product.omschrijving,
+        normalizedSearchText: buildNormalizedSearchTextFromApiProduct(product),
         artikelgroepId: artikelgroepId, // Optional - may be null/undefined
         artikelgroepOmschrijving: product.artikelgroepOmschrijving,
         artikelomzetgroepId: artikelomzetgroepId,

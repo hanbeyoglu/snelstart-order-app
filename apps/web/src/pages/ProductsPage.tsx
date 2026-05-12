@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -81,7 +81,7 @@ export default function ProductsPage() {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1); // Reset to first page on search change
-    }, 600); // 600ms delay - reduced unnecessary API calls
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [search]);
@@ -91,7 +91,7 @@ export default function ProductsPage() {
     setPage(1);
   }, [sortBy, selectedCategoryIds]);
 
-  const { data: productsResponse, isLoading } = useQuery({
+  const { data: productsResponse, isLoading, isFetching } = useQuery({
     queryKey: ['products', groupIds, debouncedSearch, customerId, page, sortBy, isCustomer],
     queryFn: async () => {
       const params: any = {
@@ -105,11 +105,12 @@ export default function ProductsPage() {
       const response = await api.get('/products', { params });
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
-    enabled: true, // Always enabled
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: keepPreviousData,
+    enabled: true,
   });
 
   const products = productsResponse?.data || [];
@@ -302,6 +303,34 @@ export default function ProductsPage() {
             padding: '0.875rem 1rem',
           }}
         />
+
+        {isFetching && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.1rem 0.25rem',
+              marginTop: '-0.25rem',
+            }}
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+              style={{
+                width: '12px',
+                height: '12px',
+                border: '2px solid rgba(99, 102, 241, 0.2)',
+                borderTopColor: 'var(--primary)',
+                borderRadius: '50%',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              {t('products:search.searching')}
+            </span>
+          </div>
+        )}
 
         {/* Filtre ve sıralama */}
         <motion.div
@@ -945,6 +974,52 @@ export default function ProductsPage() {
           );
         })}
       </div>
+
+      {/* Empty state */}
+      {!isLoading && !isFetching && products.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'clamp(2rem, 8vw, 5rem) clamp(1rem, 5vw, 2rem)',
+            textAlign: 'center',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <div style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', marginBottom: '1rem', lineHeight: 1 }}>
+            🔍
+          </div>
+          <h3
+            style={{
+              margin: '0 0 0.5rem',
+              fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}
+          >
+            {debouncedSearch
+              ? t('products:search.noResultsFor', { query: debouncedSearch })
+              : t('products:search.noResults')}
+          </h3>
+          <p style={{ margin: '0 0 1.5rem', fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)', maxWidth: '360px' }}>
+            {t('products:search.noResultsHint')}
+          </p>
+          {debouncedSearch && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setSearch('')}
+              style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem' }}
+            >
+              {t('products:search.clearSearch')}
+            </button>
+          )}
+        </motion.div>
+      )}
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

@@ -71,6 +71,9 @@ export class Product extends Document {
   barcode?: string;
 
   @Prop()
+  normalizedSearchText?: string; // Compact lowercase form for fuzzy matching (hyphens/spaces removed)
+
+  @Prop()
   imageUrl?: string; // Cover image URL from R2
 
   @Prop({ default: false })
@@ -108,6 +111,7 @@ ProductSchema.index({ artikelcode: 1 }); // For lookups (NOT unique - may be emp
 ProductSchema.index({ artikelnummer: 1 }); // For SKU searches
 ProductSchema.index({ omschrijving: 'text' }); // Text search index
 ProductSchema.index({ barcode: 1 }); // Barcode searches
+ProductSchema.index({ normalizedSearchText: 1 }); // Normalized fuzzy search
 ProductSchema.index({ artikelgroepId: 1 }); // Category filtering
 ProductSchema.index({ artikelomzetgroepId: 1 }); // Category filtering
 ProductSchema.index({ vatRate: 1 }); // VAT reporting/filtering

@@ -74,6 +74,13 @@
       "genericError": "Ein Fehler ist aufgetreten."
     }
   },
+  "search": {
+    "searching": "Suche läuft...",
+    "noResults": "Keine Produkte gefunden",
+    "noResultsFor": "Keine Ergebnisse für \"{{query}}\".",
+    "noResultsHint": "Versuchen Sie einen anderen Produktnamen, Barcode oder Artikelcode.",
+    "clearSearch": "Suche löschen"
+  },
   "messages": {
     "syncSuccess": "Produkte und Kategorien erfolgreich synchronisiert",
     "syncFailed": "Synchronisierung fehlgeschlagen",
