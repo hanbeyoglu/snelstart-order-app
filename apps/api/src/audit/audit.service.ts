@@ -393,6 +393,12 @@ export class AuditService {
       PRICE_RULE_DELETED: `${actor} fiyat kuralı sildi`,
       ORDER_SYNC_FAILED: `${actor} sipariş senkronizasyonunda hata aldı`,
       ORDER_SYNCED: `${actor} siparişi SnelStart ile senkronize etti`,
+      MAIL_SETTINGS_SMTP_SAVED: `${actor} SMTP mail ayarlarını güncelledi`,
+      MAIL_SETTINGS_NOTIFICATIONS_SAVED: `${actor} sipariş bildirim adreslerini güncelledi`,
+      MAIL_TEST_SENT: `${actor} test maili başarıyla gönderdi`,
+      MAIL_TEST_FAILED: `${actor} test maili gönderemedi`,
+      ORDER_NOTIFICATION_EMAIL_SENT: `${actor} sipariş bildirim maili gönderildi`,
+      ORDER_NOTIFICATION_EMAIL_FAILED: `${actor} sipariş bildirim maili gönderilemedi`,
     };
 
     return descriptions[log.action] || `${actor} ${String(log.action || '').toLowerCase().replace(/_/g, ' ')} işlemini yaptı`;
