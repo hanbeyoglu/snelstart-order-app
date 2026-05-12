@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,6 +13,8 @@ import {
   getPortalAssignablePermissions,
   normalizePortalPermissionSelection,
 } from '../utils/permissions';
+
+const DEFAULT_PAGE_SIZE = 10;
 
 const PORTAL_ACCOUNT_SORT_BY = ['customerName', 'username', 'createdAt', 'lastLoginAt'] as const;
 type PortalAccountSortBy = (typeof PORTAL_ACCOUNT_SORT_BY)[number];
@@ -43,11 +45,20 @@ type PortalUser = {
   email?: string | null;
   role: 'customer';
   customerId?: string;
+  customerName?: string;
   isActive?: boolean;
   preferredLanguage?: string;
   lastLoginAt?: string;
   createdAt?: string;
   permissions?: string[];
+};
+
+type PaginatedPortalResponse = {
+  data: PortalUser[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 };
 
 type CustomerOption = {
@@ -125,9 +136,7 @@ export default function PortalAccountsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [createdFrom, setCreatedFrom] = useState('');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [form, setForm] = useState(() => emptyForm());
@@ -160,6 +169,60 @@ export default function PortalAccountsPage() {
   const { sortBy, sortOrder } = parsePortalSortParams(searchParams);
   const sortSelectValue = `${sortBy}:${sortOrder}`;
 
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const limit = DEFAULT_PAGE_SIZE;
+  const statusParam = searchParams.get('status');
+  const status: 'all' | 'active' | 'inactive' =
+    statusParam === 'active' || statusParam === 'inactive' ? statusParam : 'all';
+  const createdFrom = searchParams.get('createdFrom') ?? '';
+  const q = searchParams.get('q') ?? '';
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        const trimmed = searchInput.trim();
+        const prevQ = prev.get('q') ?? '';
+        if (trimmed) next.set('q', trimmed);
+        else next.delete('q');
+        if (prevQ !== trimmed) next.set('page', '1');
+        return next;
+      }, { replace: true });
+    }, 320);
+    return () => window.clearTimeout(t);
+  }, [searchInput, setSearchParams]);
+
+  const setPage = useCallback(
+    (nextPage: number) => {
+      setSearchParams((prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('page', String(Math.max(1, nextPage)));
+        return n;
+      }, { replace: true });
+    },
+    [setSearchParams],
+  );
+
+  const setStatusFilter = (value: 'all' | 'active' | 'inactive') => {
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev);
+      if (value === 'all') n.delete('status');
+      else n.set('status', value);
+      n.set('page', '1');
+      return n;
+    }, { replace: true });
+  };
+
+  const setCreatedFromFilter = (value: string) => {
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev);
+      if (value) n.set('createdFrom', value);
+      else n.delete('createdFrom');
+      n.set('page', '1');
+      return n;
+    }, { replace: true });
+  };
+
   const { data: permissionCatalog } = useQuery({
     queryKey: ['permission-catalog'],
     queryFn: async () => {
@@ -176,45 +239,46 @@ export default function PortalAccountsPage() {
   const defaultPermissionSet = useMemo(() => new Set(CUSTOMER_DEFAULT_PERMISSIONS), []);
 
   const {
-    data: portalUsers = [],
+    data: portalPage,
     isPending,
-    isFetching,
     isPlaceholderData,
   } = useQuery({
-    queryKey: ['portal-accounts', sortBy, sortOrder],
+    queryKey: ['portal-accounts', page, limit, q, sortBy, sortOrder, status, createdFrom],
     queryFn: async () => {
       const response = await api.get('/users', {
-        params: { role: 'customer', sortBy, sortOrder },
+        params: {
+          role: 'customer',
+          page,
+          limit,
+          sortBy,
+          sortOrder,
+          search: q || undefined,
+          isActive: status === 'all' ? undefined : status,
+          createdFrom: createdFrom || undefined,
+        },
       });
-      return response.data as PortalUser[];
+      return response.data as PaginatedPortalResponse;
     },
     placeholderData: keepPreviousData,
   });
 
+  const portalUsers = portalPage?.data ?? [];
+  const total = portalPage?.total ?? 0;
+  const totalPages = portalPage?.totalPages ?? 0;
+
+  useEffect(() => {
+    if (!portalPage || totalPages <= 0) return;
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, portalPage, setPage, totalPages]);
+
   const showBlockingLoader = isPending && !isPlaceholderData;
 
-  const customerIds = useMemo(
-    () => Array.from(new Set(portalUsers.map((user) => user.customerId).filter(Boolean))) as string[],
-    [portalUsers],
-  );
-
-  const { data: customersById = {} } = useQuery({
-    queryKey: ['portal-account-customers', customerIds.join(',')],
-    queryFn: async () => {
-      const map: Record<string, CustomerOption> = {};
-      await Promise.all(
-        customerIds.map(async (customerId) => {
-          try {
-            const response = await api.get(`/customers/${customerId}`);
-            map[customerId] = response.data;
-          } catch {
-            map[customerId] = { id: customerId, naam: customerId };
-          }
-        }),
-      );
-      return map;
-    },
-    enabled: customerIds.length > 0,
+  const { data: editCustomerRecord } = useQuery({
+    queryKey: ['portal-edit-customer', editForm.customerId],
+    queryFn: async () => (await api.get(`/customers/${editForm.customerId}`)).data as CustomerOption,
+    enabled: !!editTarget && !!editForm.customerId,
   });
 
   const { data: customersResponse } = useQuery({
@@ -230,23 +294,6 @@ export default function PortalAccountsPage() {
   });
 
   const customerOptions: CustomerOption[] = customersResponse?.data || [];
-
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    const fromTime = createdFrom ? new Date(createdFrom).getTime() : null;
-    return portalUsers.filter((user) => {
-      const customer = user.customerId ? customersById[user.customerId] : null;
-      const haystack = [user.username, user.email, user.customerId, customer?.naam]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      if (normalizedSearch && !haystack.includes(normalizedSearch)) return false;
-      if (status === 'active' && user.isActive === false) return false;
-      if (status === 'inactive' && user.isActive !== false) return false;
-      if (fromTime && user.createdAt && new Date(user.createdAt).getTime() < fromTime) return false;
-      return true;
-    });
-  }, [createdFrom, customersById, portalUsers, search, status]);
 
   function sortedPermissionListsEqual(a: string[], b: string[]) {
     if (a.length !== b.length) return false;
@@ -282,17 +329,21 @@ export default function PortalAccountsPage() {
     },
     onMutate: async ({ user, data, syncPermissions }) => {
       await queryClient.cancelQueries({ queryKey: ['portal-accounts'] });
-      const previousEntries = queryClient.getQueriesData<PortalUser[]>({ queryKey: ['portal-accounts'] });
-      queryClient.setQueriesData<PortalUser[]>({ queryKey: ['portal-accounts'] }, (current = []) =>
-        current.map((item) => {
-          if (item._id !== user._id) return item;
-          const merged = { ...item, ...data };
-          if (syncPermissions) {
-            merged.permissions = normalizePortalPermissionSelection(syncPermissions.next, portalPermissionOptions);
-          }
-          return merged;
-        }),
-      );
+      const previousEntries = queryClient.getQueriesData<PaginatedPortalResponse>({ queryKey: ['portal-accounts'] });
+      queryClient.setQueriesData<PaginatedPortalResponse>({ queryKey: ['portal-accounts'] }, (current) => {
+        if (!current?.data) return current;
+        return {
+          ...current,
+          data: current.data.map((item) => {
+            if (item._id !== user._id) return item;
+            const merged = { ...item, ...data };
+            if (syncPermissions) {
+              merged.permissions = normalizePortalPermissionSelection(syncPermissions.next, portalPermissionOptions);
+            }
+            return merged;
+          }),
+        };
+      });
       return { previousEntries };
     },
     onError: (error: any, _variables, context) => {
@@ -366,123 +417,217 @@ export default function PortalAccountsPage() {
   };
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+    <div className="container portal-accounts-page">
+      <header className="portal-accounts-header-block">
         <div>
-          <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 800, marginBottom: '0.35rem' }}>
-            {t('common:navigation.portalAccounts')}
-          </h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{t('common:portalAccounts.subtitle')}</p>
+          <h1 className="portal-accounts-title">{t('common:navigation.portalAccounts')}</h1>
+          <p className="portal-accounts-subtitle">{t('common:portalAccounts.subtitle')}</p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ minHeight: 44 }}>
-          {t('common:portalAccounts.newAccount')}
-        </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common:portalAccounts.searchPlaceholder')} />
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as any)}>
-            <option value="all">{t('common:states.all')}</option>
-            <option value="active">{t('common:states.active')}</option>
-            <option value="inactive">{t('common:states.inactive')}</option>
-          </select>
-          <input className="input" type="date" value={createdFrom} onChange={(event) => setCreatedFrom(event.target.value)} aria-label={t('common:portalAccounts.createdFrom')} />
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            <span>{t('common:portalAccounts.sortLabel')}</span>
-            <select
-              className="input"
-              value={sortSelectValue}
-              onChange={(event) => {
-                const opt = PORTAL_SORT_OPTIONS.find((o) => o.value === event.target.value);
-                if (!opt) return;
-                const next = new URLSearchParams(searchParams);
-                next.set('sortBy', opt.sortBy);
-                next.set('sortOrder', opt.sortOrder);
-                setSearchParams(next, { replace: true });
-              }}
-              aria-label={t('common:portalAccounts.sortLabel')}
-            >
-              <option value="customerName:asc">{t('common:portalAccounts.sortNameAsc')}</option>
-              <option value="customerName:desc">{t('common:portalAccounts.sortNameDesc')}</option>
-              <option value="createdAt:desc">{t('common:portalAccounts.sortCreatedDesc')}</option>
-              <option value="createdAt:asc">{t('common:portalAccounts.sortCreatedAsc')}</option>
-              <option value="lastLoginAt:desc">{t('common:portalAccounts.sortLastLoginDesc')}</option>
-              <option value="lastLoginAt:asc">{t('common:portalAccounts.sortLastLoginAsc')}</option>
+      <div className="portal-accounts-toolbar card">
+        <div className="portal-accounts-toolbar__row portal-accounts-toolbar__row--primary">
+          <div className="portal-accounts-search-wrap">
+            <span className="portal-accounts-search-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              className="portal-accounts-search-input"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t('common:portalAccounts.searchPlaceholder')}
+              aria-label={t('common:portalAccounts.searchLabel')}
+              autoComplete="off"
+            />
+          </div>
+          <div className="portal-accounts-toolbar__actions">
+            <label className="portal-accounts-field portal-accounts-field--compact">
+              <span className="portal-accounts-field-label">{t('common:portalAccounts.sortLabel')}</span>
+              <select
+                className="input portal-accounts-select"
+                value={sortSelectValue}
+                onChange={(event) => {
+                  const opt = PORTAL_SORT_OPTIONS.find((o) => o.value === event.target.value);
+                  if (!opt) return;
+                  const next = new URLSearchParams(searchParams);
+                  next.set('sortBy', opt.sortBy);
+                  next.set('sortOrder', opt.sortOrder);
+                  next.set('page', '1');
+                  setSearchParams(next, { replace: true });
+                }}
+                aria-label={t('common:portalAccounts.sortLabel')}
+              >
+                <option value="customerName:asc">{t('common:portalAccounts.sortNameAsc')}</option>
+                <option value="customerName:desc">{t('common:portalAccounts.sortNameDesc')}</option>
+                <option value="createdAt:desc">{t('common:portalAccounts.sortCreatedDesc')}</option>
+                <option value="createdAt:asc">{t('common:portalAccounts.sortCreatedAsc')}</option>
+                <option value="lastLoginAt:desc">{t('common:portalAccounts.sortLastLoginDesc')}</option>
+                <option value="lastLoginAt:asc">{t('common:portalAccounts.sortLastLoginAsc')}</option>
+              </select>
+            </label>
+            <button type="button" className="btn-primary portal-accounts-create-btn" onClick={() => setShowCreateModal(true)}>
+              {t('common:portalAccounts.newAccount')}
+            </button>
+          </div>
+        </div>
+        <div className="portal-accounts-toolbar__row portal-accounts-toolbar__row--filters">
+          <label className="portal-accounts-field portal-accounts-field--grow">
+            <span className="portal-accounts-field-label">{t('common:forms.status')}</span>
+            <select className="input portal-accounts-select" value={status} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}>
+              <option value="all">{t('common:states.all')}</option>
+              <option value="active">{t('common:states.active')}</option>
+              <option value="inactive">{t('common:states.inactive')}</option>
             </select>
+          </label>
+          <label className="portal-accounts-field portal-accounts-field--grow">
+            <span className="portal-accounts-field-label">{t('common:portalAccounts.createdFrom')}</span>
+            <input
+              className="input"
+              type="date"
+              value={createdFrom}
+              onChange={(e) => setCreatedFromFilter(e.target.value)}
+              aria-label={t('common:portalAccounts.createdFrom')}
+            />
           </label>
         </div>
       </div>
 
-      {isFetching && isPlaceholderData && (
-        <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }} role="status">
-          {t('common:portalAccounts.sortRefreshing')}
-        </p>
-      )}
+      <p className="portal-accounts-total" role="status">
+        {t('common:portalAccounts.totalCount', { count: total })}
+      </p>
 
       {showBlockingLoader ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>{t('common:states.loading')}</div>
+        <div className="portal-account-list portal-account-list--skeleton" aria-busy>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="portal-account-skeleton-card" />
+          ))}
+        </div>
       ) : (
-        <div className="portal-account-list">
-          {filteredUsers.map((user) => {
-            const customer = user.customerId ? customersById[user.customerId] : null;
-            const isActive = user.isActive !== false;
-            return (
-              <motion.div key={user._id} className="portal-account-card" layout>
-                <div className="portal-account-main">
-                  <div className="portal-account-avatar" aria-hidden="true">
-                    {(customer?.naam || user.username || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="portal-account-identity">
-                    <div className="portal-account-customer">{customer?.naam || user.customerId || '-'}</div>
-                    <div className="portal-account-username">{user.username}</div>
-                    <div className="portal-account-email">{user.email || t('common:states.notAvailable')}</div>
-                  </div>
-                </div>
-
-                <div className="portal-account-meta">
-                  <div className="portal-account-field">
-                    <span>{t('common:forms.status')}</span>
-                    <label className="portal-switch">
-                      <input
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={(event) => updateMutation.mutate({ user, data: { isActive: event.target.checked } })}
-                      />
-                      <strong>{isActive ? t('common:states.active') : t('common:states.inactive')}</strong>
-                    </label>
-                  </div>
-                  <div className="portal-account-field">
-                    <span>{t('common:portalAccounts.permissions')}</span>
-                    <strong>{user.permissions?.length ?? CUSTOMER_DEFAULT_PERMISSIONS.length}</strong>
-                  </div>
-                  <div className="portal-account-field portal-account-field-last-login">
-                    <span>{t('common:portalAccounts.lastLogin')}</span>
-                    <div className="portal-last-login-wrap">
-                      <PortalLastLoginCell lastLoginAt={user.lastLoginAt} />
+        <>
+          <div className={`portal-account-list${isPlaceholderData ? ' portal-account-list--muted' : ''}`}>
+            {portalUsers.map((user) => {
+              const displayName = user.customerName?.trim() || user.customerId || '-';
+              const isActive = user.isActive !== false;
+              return (
+                <motion.div key={user._id} className="portal-account-card portal-account-card--elevated" layout>
+                  <div className="portal-account-main">
+                    <div className="portal-account-avatar" aria-hidden="true">
+                      {(displayName || user.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="portal-account-identity">
+                      <div className="portal-account-customer-row">
+                        <span className="portal-account-customer">{displayName}</span>
+                        <span className={`portal-status-badge ${isActive ? 'portal-status-badge--active' : 'portal-status-badge--inactive'}`}>
+                          {isActive ? t('common:states.active') : t('common:states.inactive')}
+                        </span>
+                      </div>
+                      <div className="portal-account-username">{user.username}</div>
+                      <div className="portal-account-email">{user.email || t('common:states.notAvailable')}</div>
                     </div>
                   </div>
-                  <div className="portal-account-field">
-                    <span>{t('common:portalAccounts.createdAt')}</span>
-                    <strong>{user.createdAt ? formatDate(user.createdAt) : '-'}</strong>
-                  </div>
-                </div>
 
-                <div className="portal-account-actions" aria-label={t('common:portalAccounts.actions')}>
-                  <button type="button" className="btn-secondary" onClick={() => openEditModal(user)}>{t('common:actions.edit')}</button>
-                  <button type="button" className="btn-secondary" onClick={() => setResetTarget(user)}>{t('common:portalAccounts.resetPassword')}</button>
-                  <button type="button" className="btn-secondary" onClick={() => user.customerId && navigate(`/customers/${user.customerId}`)} disabled={!user.customerId}>{t('common:portalAccounts.goToCustomer')}</button>
-                  <button type="button" className="btn-danger" onClick={() => setDeleteTarget(user)}>{t('common:portalAccounts.deleteAccount')}</button>
+                  <div className="portal-account-meta">
+                    <div className="portal-account-field">
+                      <span>{t('common:forms.status')}</span>
+                      <label className="portal-switch">
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          onChange={(event) => updateMutation.mutate({ user, data: { isActive: event.target.checked } })}
+                        />
+                        <strong className="portal-switch-label">{isActive ? t('common:states.active') : t('common:states.inactive')}</strong>
+                      </label>
+                    </div>
+                    <div className="portal-account-field">
+                      <span>{t('common:portalAccounts.permissions')}</span>
+                      <strong>{user.permissions?.length ?? CUSTOMER_DEFAULT_PERMISSIONS.length}</strong>
+                    </div>
+                    <div className="portal-account-field portal-account-field-last-login">
+                      <span>{t('common:portalAccounts.lastLogin')}</span>
+                      <div className="portal-last-login-wrap">
+                        <PortalLastLoginCell lastLoginAt={user.lastLoginAt} />
+                      </div>
+                    </div>
+                    <div className="portal-account-field">
+                      <span>{t('common:portalAccounts.createdAtLabel')}</span>
+                      <strong>{user.createdAt ? formatDate(user.createdAt) : '-'}</strong>
+                    </div>
+                  </div>
+
+                  <div className="portal-account-actions" aria-label={t('common:portalAccounts.actions')}>
+                    <button type="button" className="btn-secondary" onClick={() => openEditModal(user)}>
+                      {t('common:actions.edit')}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => setResetTarget(user)}>
+                      {t('common:portalAccounts.resetPassword')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => user.customerId && navigate(`/customers/${user.customerId}`)}
+                      disabled={!user.customerId}
+                    >
+                      {t('common:portalAccounts.goToCustomer')}
+                    </button>
+                    <button type="button" className="btn-danger" onClick={() => setDeleteTarget(user)}>
+                      {t('common:portalAccounts.deleteAccount')}
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {portalUsers.length === 0 && (
+              <div className="portal-accounts-empty card">
+                <div className="portal-accounts-empty-icon" aria-hidden>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
                 </div>
-              </motion.div>
-            );
-          })}
-          {filteredUsers.length === 0 && (
-            <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              {t('common:states.empty')}
-            </div>
+                <h2 className="portal-accounts-empty-title">{t('common:portalAccounts.emptyTitle')}</h2>
+                <p className="portal-accounts-empty-hint">{t('common:portalAccounts.emptyHint')}</p>
+                {(q || status !== 'all' || createdFrom) && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      setSearchInput('');
+                      setSearchParams((prev) => {
+                        const n = new URLSearchParams(prev);
+                        n.delete('q');
+                        n.delete('status');
+                        n.delete('createdFrom');
+                        n.set('page', '1');
+                        return n;
+                      }, { replace: true });
+                    }}
+                  >
+                    {t('common:portalAccounts.clearSearch')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <nav className="portal-accounts-pagination card" aria-label={t('common:pagination.page')}>
+              <button type="button" className="btn-secondary portal-pag-btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                {t('common:pagination.previous')}
+              </button>
+              <span className="portal-pag-info">
+                {t('common:portalAccounts.pageOf', { page, totalPages })}
+              </span>
+              <button type="button" className="btn-secondary portal-pag-btn" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                {t('common:pagination.next')}
+              </button>
+            </nav>
           )}
-        </div>
+        </>
       )}
 
       <AnimatePresence>
@@ -549,8 +694,8 @@ export default function PortalAccountsPage() {
               <input className="input" value={editCustomerSearch} onChange={(event) => setEditCustomerSearch(event.target.value)} placeholder={t('common:portalAccounts.customerSearch')} />
               <select className="input" required value={editForm.customerId} onChange={(event) => setEditForm({ ...editForm, customerId: event.target.value })}>
                 <option value="">{t('common:portalAccounts.selectCustomer')}</option>
-                {editForm.customerId && customersById[editForm.customerId] && (
-                  <option value={editForm.customerId}>{customersById[editForm.customerId].naam}</option>
+                {editForm.customerId && editCustomerRecord && (
+                  <option value={editForm.customerId}>{editCustomerRecord.naam}</option>
                 )}
                 {customerOptions.map((customer) => (
                   <option key={customer.id} value={customer.id}>

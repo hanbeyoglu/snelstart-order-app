@@ -18,6 +18,13 @@
     "customer": "العميل / الشركة",
     "username": "اسم مستخدم البوابة",
     "languagePreference": "تفضيل اللغة",
+    "totalCount": "إجمالي {{count}} حساب بوابة",
+    "searchLabel": "بحث",
+    "createdAtLabel": "تاريخ الإنشاء",
+    "emptyTitle": "لم يتم العثور على حساب بوابة",
+    "emptyHint": "جرّب بحثاً مختلفاً أو عدّل المرشحات",
+    "clearSearch": "مسح البحث",
+    "pageOf": "الصفحة {{page}} من {{totalPages}}",
     "lastLogin": "آخر تسجيل دخول",
     "lastLoginNever": "لم يسجّل الدخول بعد",
     "lastLoginRelative": {
