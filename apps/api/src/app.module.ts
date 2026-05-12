@@ -25,6 +25,7 @@ import { R2Module } from './r2/r2.module';
 import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { MailSettingsModule } from './mail-settings/mail-settings.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
     UsersModule,
     ReportsModule,
     MonitoringModule,
+    MailSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
