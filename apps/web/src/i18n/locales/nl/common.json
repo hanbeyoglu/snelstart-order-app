@@ -19,6 +19,16 @@
     "username": "Portalgebruikersnaam",
     "languagePreference": "Taalvoorkeur",
     "lastLogin": "Laatste login",
+    "lastLoginNever": "Nooit ingelogd",
+    "lastLoginRelative": {
+      "justNow": "Zojuist",
+      "minutesAgo_one": "{{count}} minuut geleden",
+      "minutesAgo_other": "{{count}} minuten geleden",
+      "hoursAgo_one": "{{count}} uur geleden",
+      "hoursAgo_other": "{{count}} uur geleden",
+      "daysAgo_one": "{{count}} dag geleden",
+      "daysAgo_other": "{{count}} dagen geleden"
+    },
     "createdAt": "Aangemaakt op",
     "actions": "Acties",
     "resetPassword": "Wachtwoord resetten",
@@ -37,7 +47,15 @@
     "deleteError": "Portalaccount kon niet worden verwijderd",
     "permissions": "Portalrechten",
     "permissionsHint": "Standaardrechten staan altijd aan en kunnen niet worden uitgeschakeld. U kunt extra portalrechten toewijzen.",
-    "permissionDefault": "standaard"
+    "permissionDefault": "standaard",
+    "sortLabel": "Sorteren",
+    "sortNameAsc": "Naam A–Z",
+    "sortNameDesc": "Naam Z–A",
+    "sortCreatedDesc": "Nieuwste eerst aangemaakt",
+    "sortCreatedAsc": "Oudste eerst aangemaakt",
+    "sortLastLoginDesc": "Recentste aanmelding",
+    "sortLastLoginAsc": "Langste tijd sinds aanmelding",
+    "sortRefreshing": "Lijst bijwerken…"
   },
   "actions": {
     "add": "Toevoegen", "addToCart": "Toevoegen aan winkelwagen", "back": "Terug", "cancel": "Annuleren", "clear": "Wissen", "close": "Sluiten",

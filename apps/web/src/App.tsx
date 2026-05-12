@@ -115,7 +115,7 @@ function App() {
             <Route path="/orders/:orderId" element={page('orders.view', <OrderDetailPage />)} />
             <Route path="/user" element={<UserPage />} />
             <Route path="/reports" element={page('reports.view', <ReportsPage />)} />
-            <Route path="/audit" element={guarded(user?.role === 'super_admin' && hasPermission(user, 'audit.view'), <AuditLogsPage />)} />
+            <Route path="/audit" element={guarded(hasPermission(user, 'audit.view'), <AuditLogsPage />)} />
             <Route path="/admin/settings" element={page('snelstart.settings.manage', <AdminSettingsPage />)} />
             <Route path="/admin/pricing" element={page('pricing.manage', <AdminPricingPage />)} />
             <Route path="/admin/price-warnings" element={page('pricing.manage', <PriceWarningsPage />)} />

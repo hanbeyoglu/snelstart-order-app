@@ -20,6 +20,10 @@ export function useLocaleFormat() {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
+    const dateTimeLongFormatter = new Intl.DateTimeFormat(config.locale, {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
 
     return {
       language,
@@ -40,6 +44,10 @@ export function useLocaleFormat() {
       formatDateTime(value?: string | Date | null) {
         if (!value) return '';
         return dateTimeFormatter.format(new Date(value));
+      },
+      formatDateTimeLong(value?: string | Date | null) {
+        if (!value) return '';
+        return dateTimeLongFormatter.format(new Date(value));
       },
     };
   }, [config.currency, config.direction, config.locale, language]);

@@ -52,7 +52,17 @@
     "customer": "Müşteri / Firma",
     "username": "Portal kullanıcı adı",
     "languagePreference": "Dil Tercihi",
-    "lastLogin": "Son Giriş",
+    "lastLogin": "Son giriş",
+    "lastLoginNever": "Hiç giriş yapılmadı",
+    "lastLoginRelative": {
+      "justNow": "Az önce",
+      "minutesAgo_one": "{{count}} dakika önce",
+      "minutesAgo_other": "{{count}} dakika önce",
+      "hoursAgo_one": "{{count}} saat önce",
+      "hoursAgo_other": "{{count}} saat önce",
+      "daysAgo_one": "{{count}} gün önce",
+      "daysAgo_other": "{{count}} gün önce"
+    },
     "createdAt": "Oluşturulma Tarihi",
     "actions": "Aksiyonlar",
     "resetPassword": "Şifre Sıfırla",
@@ -71,7 +81,15 @@
     "deleteError": "Portal hesabı silinemedi",
     "permissions": "Portal izinleri",
     "permissionsHint": "Varsayılan izinler her zaman açıktır ve kaldırılamaz. İsterseniz ek portal izinleri seçebilirsiniz.",
-    "permissionDefault": "varsayılan"
+    "permissionDefault": "varsayılan",
+    "sortLabel": "Sıralama",
+    "sortNameAsc": "İsim A-Z",
+    "sortNameDesc": "İsim Z-A",
+    "sortCreatedDesc": "Yeni oluşturulanlar",
+    "sortCreatedAsc": "Eski oluşturulanlar",
+    "sortLastLoginDesc": "Son giriş yapanlar",
+    "sortLastLoginAsc": "En uzun süredir giriş yapmayanlar",
+    "sortRefreshing": "Liste güncelleniyor…"
   },
   "actions": {
     "add": "Ekle",
