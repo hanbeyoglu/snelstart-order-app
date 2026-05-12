@@ -10,6 +10,7 @@ import { CustomersModule } from '../customers/customers.module';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { ProductsModule } from '../products/products.module';
 import { OrderNotificationService } from './order-notification.service';
+import { MailSettingsModule } from '../mail-settings/mail-settings.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OrderNotificationService } from './order-notification.service';
     AuditModule,
     forwardRef(() => CustomersModule),
     ProductsModule,
+    MailSettingsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrderNotificationService],
