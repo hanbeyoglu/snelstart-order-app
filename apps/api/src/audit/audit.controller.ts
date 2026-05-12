@@ -1,21 +1,23 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { AuditViewGuard } from '../auth/guards/audit-view.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Audit')
 @Controller('audit')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, AuditViewGuard)
 @ApiBearerAuth()
 export class AuditController {
   constructor(private auditService: AuditService) {}
 
   @Get()
-  @Roles('super_admin')
-  @ApiOperation({ summary: 'Get audit logs (super_admin only)' })
+  @Roles('sales_rep')
+  @ApiOperation({ summary: 'Get audit logs (requires audit.view permission)' })
   async getAuditLogs(
+    @Request() req: any,
     @Query('action') action?: string,
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
@@ -40,16 +42,18 @@ export class AuditController {
       status,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
+      currentUserRole: req.user.role,
     });
   }
 
   @Get('stats')
-  @Roles('super_admin')
-  @ApiOperation({ summary: 'Get audit log statistics (super_admin only)' })
+  @Roles('sales_rep')
+  @ApiOperation({ summary: 'Get audit log statistics (requires audit.view permission)' })
   async getAuditStats(
+    @Request() req: any,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.auditService.getStats({ startDate, endDate });
+    return this.auditService.getStats({ startDate, endDate, currentUserRole: req.user.role });
   }
 }

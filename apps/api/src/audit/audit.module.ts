@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuditService } from './audit.service';
 import { AuditController } from './audit.controller';
+import { AuditViewGuard } from '../auth/guards/audit-view.guard';
 import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 
@@ -13,7 +14,7 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
     ]),
   ],
   controllers: [AuditController],
-  providers: [AuditService],
+  providers: [AuditService, AuditViewGuard],
   exports: [AuditService],
 })
 export class AuditModule {}
