@@ -36,6 +36,8 @@
   "mailSmtpSaved": "تم حفظ إعدادات SMTP",
   "mailSaveFailed": "تعذر حفظ الإعدادات",
   "mailNotificationsTitle": "إشعارات الطلبات",
+  "mailNotificationLanguage": "لغة بريد الإشعار",
+  "mailNotificationLanguageHint": "رسائل الطلبات الجديدة تُرسل بهذه اللغة. إن لم تُحفظ قيمة بعد، يُستخدم المتغير ORDER_NOTIFICATION_LOCALE على الخادم.",
   "mailNotificationTo": "المستلمون (إلى)",
   "mailNotificationCc": "نسخة",
   "mailEmailsHint": "افصل العناوين المتعددة بفاصلة",

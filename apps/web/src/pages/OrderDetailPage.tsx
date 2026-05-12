@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { useCartStore } from '../store/cartStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
@@ -17,6 +18,7 @@ export default function OrderDetailPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const isCustomer = user?.role === 'customer';
+  const addItemsToCart = useCartStore((state) => state.addItems);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -125,6 +127,53 @@ export default function OrderDetailPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/orders/${orderId}/reorder`);
+      return response.data as {
+        items: any[];
+        skipped: any[];
+        priceUpdates: any[];
+        customerId?: string;
+      };
+    },
+    onSuccess: (data) => {
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const skipped = Array.isArray(data?.skipped) ? data.skipped : [];
+      const priceChanges = Array.isArray(data?.priceUpdates) ? data.priceUpdates : [];
+
+      if (items.length === 0) {
+        showToast(t('orders:messages.reorderEmpty'), 'warning', 5000);
+        return;
+      }
+
+      const mappedItems = items.map((item: any) => ({
+        ...item,
+        totalPrice: Number(item.unitPrice ?? 0) * Number(item.quantity ?? 0),
+      }));
+      addItemsToCart(mappedItems, { customerId: data?.customerId ?? undefined });
+
+      showToast(t('orders:messages.reorderSuccess'), 'success', 4000);
+
+      if (priceChanges.length > 0) {
+        setTimeout(() => {
+          showToast(t('orders:messages.reorderPricesChanged'), 'info', 5000);
+        }, 250);
+      }
+      if (skipped.length > 0) {
+        setTimeout(() => {
+          showToast(t('orders:messages.reorderSkipped'), 'warning', 6000);
+        }, 500);
+      }
+
+      navigate('/cart');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.message || t('orders:messages.reorderError');
+      showToast(message, 'error', 5000);
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="container">
@@ -224,12 +273,23 @@ export default function OrderDetailPage() {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  const deliveryDecision = orderMemoLines
+  const memoDeliveryDecision = orderMemoLines
     .find((line) => line.toLowerCase().startsWith('teslimat:'))
-    ?.replace(/^Teslimat:\s*/i, '') || '-';
-  const deliveryTime = orderMemoLines
+    ?.replace(/^Teslimat:\s*/i, '');
+  const memoDeliveryTime = orderMemoLines
     .find((line) => line.toLowerCase().startsWith('teslimat zamanı:'))
-    ?.replace(/^Teslimat zamanı:\s*/i, '') || '-';
+    ?.replace(/^Teslimat zamanı:\s*/i, '');
+  const deliveryTypeLabel = order.deliveryType
+    ? t(`orders:deliveryType.${order.deliveryType}` as any, { defaultValue: memoDeliveryDecision || order.deliveryType })
+    : memoDeliveryDecision || '-';
+  const deliveryTimingLabel = order.deliveryTiming
+    ? t(`orders:deliveryTiming.${order.deliveryTiming}` as any, { defaultValue: memoDeliveryTime || order.deliveryTiming })
+    : memoDeliveryTime || '-';
+  const deliveryDateLabel = order.deliveryDate
+    ? new Date(order.deliveryDate).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
+    : '-';
+  const deliveryDecision = deliveryTypeLabel || '-';
+  const deliveryTime = deliveryTimingLabel || '-';
   const orderDetailItems = [
     {
       label: 'Oluşturulma Tarihi',
@@ -283,6 +343,21 @@ export default function OrderDetailPage() {
         </motion.button>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {isCustomer && (
+            <motion.button
+              type="button"
+              className="btn-primary"
+              style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => !reorderMutation.isPending && reorderMutation.mutate()}
+              disabled={reorderMutation.isPending}
+            >
+              <span aria-hidden="true">🔄</span>
+              <span>
+                {reorderMutation.isPending ? t('orders:messages.reordering') : t('orders:actions.reorder')}
+              </span>
+            </motion.button>
+          )}
           {!isCustomer && canEdit && (
             <motion.button
               type="button"
@@ -498,7 +573,7 @@ export default function OrderDetailPage() {
                 Sipariş Detayları
               </div>
               <h2 style={{ fontSize: 'clamp(1.6rem, 5vw, 2.35rem)', fontWeight: 900, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-                #{order._id?.slice(-8).toUpperCase() || 'N/A'}
+                {order.orderNumber || `#${order._id?.slice(-8).toUpperCase() || 'N/A'}`}
               </h2>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.65rem' }}>
@@ -566,6 +641,21 @@ export default function OrderDetailPage() {
               </div>
               <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 850 }}>
                 {deliveryTime}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: '1rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.04))',
+                border: '1px solid rgba(139, 92, 246, 0.2)',
+              }}
+            >
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                {t('orders:fields.deliveryDate')}
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 850 }}>
+                {deliveryDateLabel}
               </div>
             </div>
           </div>

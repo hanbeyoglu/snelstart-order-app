@@ -36,6 +36,8 @@
   "mailSmtpSaved": "SMTP-Einstellungen gespeichert",
   "mailSaveFailed": "Einstellungen konnten nicht gespeichert werden",
   "mailNotificationsTitle": "Bestellbenachrichtigungen",
+  "mailNotificationLanguage": "Sprache der Benachrichtigungs-E-Mails",
+  "mailNotificationLanguageHint": "Neue Bestell-E-Mails werden in dieser Sprache versendet. Ohne gespeicherten Wert wird ORDER_NOTIFICATION_LOCALE auf dem Server verwendet.",
   "mailNotificationTo": "Empfänger (An)",
   "mailNotificationCc": "CC",
   "mailEmailsHint": "Mehrere Adressen mit Komma trennen",

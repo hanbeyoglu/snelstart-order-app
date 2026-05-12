@@ -500,6 +500,7 @@ http://localhost:3001/api/docs
 | `SMTP_PASS`                 | SMTP password                 |
 | `SMTP_FROM`                 | Sender address                |
 | `ORDER_NOTIFICATION_EMAILS` | Order notification recipients |
+| `ORDER_NOTIFICATION_LOCALE`   | Default language for order notification emails (`tr`, `en`, `nl`, `de`, `ar`) when not set in mail settings |
 
 ---
 

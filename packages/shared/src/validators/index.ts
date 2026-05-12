@@ -92,6 +92,11 @@ export const createOrderSchema = z.object({
   customerId: z.string(),
   items: z.array(cartItemSchema),
   memo: z.string().trim().min(1).max(1000).optional(),
+  deliveryType: z.enum(['warehouse_pickup', 'market_delivery']).optional(),
+  deliveryTiming: z.enum(['asap', 'scheduled']).optional(),
+  deliveryDate: z
+    .union([z.string().datetime(), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)])
+    .optional(),
 });
 
 export const createOrderRequestSchema = z.object({

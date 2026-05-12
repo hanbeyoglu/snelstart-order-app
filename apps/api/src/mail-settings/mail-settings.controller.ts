@@ -17,6 +17,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { AuditService } from '../audit/audit.service';
+import { normalizeOrderNotificationLocale } from '@snelstart-order-app/shared';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -121,10 +122,12 @@ export class MailSettingsController {
   async saveNotificationSettings(@Body() body: any, @Request() req: any) {
     const toEmails = validateEmails(body.orderNotificationToEmails);
     const ccEmails = validateEmails(body.orderNotificationCcEmails);
+    const orderNotificationLocale = normalizeOrderNotificationLocale(body.orderNotificationLocale);
 
     await this.mailSettingsService.saveNotificationSettings({
       orderNotificationToEmails: toEmails,
       orderNotificationCcEmails: ccEmails,
+      orderNotificationLocale,
     });
 
     await this.auditService.log({
@@ -134,7 +137,11 @@ export class MailSettingsController {
       userId: req.user.userId,
       actorRole: req.user.role,
       ...this.auditService.requestContext(req),
-      changes: { orderNotificationToEmails: toEmails, orderNotificationCcEmails: ccEmails },
+      changes: {
+        orderNotificationToEmails: toEmails,
+        orderNotificationCcEmails: ccEmails,
+        orderNotificationLocale,
+      },
     });
 
     return { success: true };

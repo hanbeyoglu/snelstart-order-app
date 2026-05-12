@@ -1,11 +1,51 @@
 {
   "title": "Orders",
+  "myOrdersTitle": "My Orders",
+  "pastOrdersSubtitle": "Past orders",
   "loading": "Loading orders...",
   "emptyTitle": "No orders yet",
+  "emptyTitleCustomer": "You have no orders yet",
   "emptyDescription": "Your orders will appear here",
+  "emptyFilteredDescription": "No orders match the selected filters",
   "statusFilter": "Status filter",
+  "filters": {
+    "title": "Filters",
+    "showFilters": "Show filters",
+    "hideFilters": "Hide filters",
+    "clearAll": "Clear filters",
+    "dateRange": "Date range",
+    "dateFrom": "Start date",
+    "dateTo": "End date",
+    "deliveryType": "Delivery type",
+    "deliveryTypeAll": "All delivery types",
+    "deliveryTiming": "Delivery timing",
+    "deliveryTimingAll": "All timings",
+    "searchProduct": "Search by product name or SKU",
+    "searchOrderNumber": "Search by order number",
+    "searchPlaceholder": "Order number, product name, or SKU...",
+    "quickFilters": "Quick filters",
+    "today": "Today",
+    "last7Days": "Last 7 days",
+    "last30Days": "Last 30 days",
+    "thisMonth": "This month",
+    "sortLabel": "Sort",
+    "sortNewest": "Newest orders",
+    "sortOldest": "Oldest orders",
+    "sortTotalDesc": "Total: high to low",
+    "sortTotalAsc": "Total: low to high",
+    "perPage": "Per page"
+  },
+  "deliveryType": {
+    "warehouse_pickup": "Warehouse pickup",
+    "market_delivery": "Market delivery"
+  },
+  "deliveryTiming": {
+    "asap": "ASAP",
+    "scheduled": "Scheduled"
+  },
   "fields": {
     "orderId": "Order ID",
+    "orderNumber": "Order No",
     "snelstartOrderId": "SnelStart Order ID",
     "snelstartId": "SnelStart ID",
     "customer": "Customer",
@@ -13,14 +53,23 @@
     "date": "Date",
     "status": "Status",
     "deliveryDecision": "Delivery",
+    "deliveryType": "Delivery Type",
     "deliveryTime": "Delivery Time",
+    "deliveryDate": "Delivery Date",
     "createdBy": "Created By",
     "createdByRole": "Created By Role",
     "createdByCustomer": "Created By Customer",
     "itemCount": "Item Count",
+    "amount": "Amount",
+    "vat": "VAT",
     "total": "Total",
     "createdAt": "Created At",
     "productName": "Product Name"
+  },
+  "actions": {
+    "detail": "Details",
+    "reorder": "Order again",
+    "viewDetails": "View details"
   },
   "status": {
     "draft": "Draft",
@@ -35,6 +84,35 @@
     "updated": "Order updated successfully",
     "deleteError": "An error occurred while deleting the order",
     "updateError": "An error occurred while updating the order",
-    "editSoon": "Order editing will be added soon"
+    "editSoon": "Order editing will be added soon",
+    "reorderSuccess": "Order items have been added to your cart at current prices.",
+    "reorderEmpty": "No items from this order could be added to your cart.",
+    "reorderSkipped": "Some items could not be added to your cart because they are no longer available.",
+    "reorderPricesChanged": "Prices have been recalculated using current pricing rules.",
+    "reorderError": "Could not reorder this order.",
+    "reordering": "Adding to cart...",
+    "loadMore": "Load more",
+    "page": "Page",
+    "of": "/"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "showing": "{{from}}–{{to}} of {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Delivery information",
+    "deliveryType": "Delivery type",
+    "deliveryTiming": "Delivery time",
+    "timingAsap": "Immediate delivery",
+    "timingScheduled": "Scheduled delivery",
+    "deliveryDate": "Delivery date",
+    "deliveryDateAsap": "Immediate delivery",
+    "deliveryAddress": "Delivery address",
+    "deliveryNote": "Delivery note",
+    "customerName": "Customer name",
+    "cityPostcode": "City / Postcode",
+    "warehousePickup": "Warehouse pickup",
+    "marketDelivery": "Market delivery"
   }
 }

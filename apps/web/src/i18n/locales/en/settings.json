@@ -36,6 +36,8 @@
   "mailSmtpSaved": "SMTP settings saved",
   "mailSaveFailed": "Failed to save settings",
   "mailNotificationsTitle": "Order Notifications",
+  "mailNotificationLanguage": "Notification email language",
+  "mailNotificationLanguageHint": "New order emails use this language. If not stored yet, the ORDER_NOTIFICATION_LOCALE environment variable is used.",
   "mailNotificationTo": "Recipients (To)",
   "mailNotificationCc": "CC",
   "mailEmailsHint": "Separate multiple addresses with a comma",

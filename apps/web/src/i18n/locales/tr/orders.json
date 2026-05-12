@@ -1,11 +1,51 @@
 {
   "title": "Siparişler",
+  "myOrdersTitle": "Siparişlerim",
+  "pastOrdersSubtitle": "Geçmiş siparişler",
   "loading": "Siparişler yükleniyor...",
   "emptyTitle": "Henüz sipariş yok",
+  "emptyTitleCustomer": "Henüz siparişiniz yok",
   "emptyDescription": "Siparişleriniz burada görünecek",
+  "emptyFilteredDescription": "Filtreleme kriterlerinize uygun sipariş bulunamadı",
   "statusFilter": "Durum Filtresi",
+  "filters": {
+    "title": "Filtreler",
+    "showFilters": "Filtreleri Göster",
+    "hideFilters": "Filtreleri Gizle",
+    "clearAll": "Filtreleri Temizle",
+    "dateRange": "Tarih Aralığı",
+    "dateFrom": "Başlangıç tarihi",
+    "dateTo": "Bitiş tarihi",
+    "deliveryType": "Teslimat Tipi",
+    "deliveryTypeAll": "Tüm teslimat tipleri",
+    "deliveryTiming": "Teslimat Zamanı",
+    "deliveryTimingAll": "Tüm zamanlar",
+    "searchProduct": "Ürün adı veya artikel kodu ile ara",
+    "searchOrderNumber": "Sipariş no ile ara",
+    "searchPlaceholder": "Sipariş no, ürün adı veya artikel kodu...",
+    "quickFilters": "Hızlı Filtreler",
+    "today": "Bugün",
+    "last7Days": "Son 7 gün",
+    "last30Days": "Son 30 gün",
+    "thisMonth": "Bu ay",
+    "sortLabel": "Sıralama",
+    "sortNewest": "En yeni siparişler",
+    "sortOldest": "En eski siparişler",
+    "sortTotalDesc": "Toplam tutar: yüksekten düşüğe",
+    "sortTotalAsc": "Toplam tutar: düşükten yükseğe",
+    "perPage": "Sayfa başına"
+  },
+  "deliveryType": {
+    "warehouse_pickup": "Depodan Teslim",
+    "market_delivery": "Markete Teslim"
+  },
+  "deliveryTiming": {
+    "asap": "Hemen",
+    "scheduled": "İleri Tarihli"
+  },
   "fields": {
     "orderId": "Sipariş ID",
+    "orderNumber": "Sipariş No",
     "snelstartOrderId": "SnelStart Sipariş ID",
     "snelstartId": "SnelStart ID",
     "customer": "Müşteri",
@@ -13,14 +53,23 @@
     "date": "Tarih",
     "status": "Durum",
     "deliveryDecision": "Teslimat",
+    "deliveryType": "Teslimat Tipi",
     "deliveryTime": "Teslimat Zamanı",
+    "deliveryDate": "Teslimat Tarihi",
     "createdBy": "Oluşturan",
     "createdByRole": "Oluşturan Rolü",
     "createdByCustomer": "Oluşturan Müşteri",
     "itemCount": "Ürün Sayısı",
-    "total": "Toplam",
+    "amount": "Tutar",
+    "vat": "KDV",
+    "total": "Toplam Tutar",
     "createdAt": "Oluşturulma Tarihi",
     "productName": "Ürün Adı"
+  },
+  "actions": {
+    "detail": "Detay",
+    "reorder": "Aynı siparişi tekrar ver",
+    "viewDetails": "Detayı Göster"
   },
   "status": {
     "draft": "Taslak",
@@ -35,6 +84,35 @@
     "updated": "Sipariş başarıyla güncellendi",
     "deleteError": "Sipariş silinirken bir hata oluştu",
     "updateError": "Sipariş güncellenirken bir hata oluştu",
-    "editSoon": "Sipariş düzenleme özelliği yakında eklenecek"
+    "editSoon": "Sipariş düzenleme özelliği yakında eklenecek",
+    "reorderSuccess": "Sipariş ürünleri güncel fiyatlarla sepete eklendi.",
+    "reorderEmpty": "Bu siparişten güncel olarak sepete eklenebilecek ürün bulunamadı.",
+    "reorderSkipped": "Bazı ürünler artık mevcut olmadığı için sepete eklenmedi.",
+    "reorderPricesChanged": "Fiyatlar güncel fiyatlandırmaya göre yeniden hesaplandı.",
+    "reorderError": "Sipariş tekrar oluşturulamadı.",
+    "reordering": "Sepete ekleniyor...",
+    "loadMore": "Daha Fazla",
+    "page": "Sayfa",
+    "of": "/"
+  },
+  "pagination": {
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "showing": "{{from}}–{{to}} / {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Teslimat Bilgileri",
+    "deliveryType": "Teslimat Tipi",
+    "deliveryTiming": "Teslimat Zamanı",
+    "timingAsap": "Hemen Teslim",
+    "timingScheduled": "İleri Tarihli Teslim",
+    "deliveryDate": "Teslimat Tarihi",
+    "deliveryDateAsap": "Hemen Teslim",
+    "deliveryAddress": "Teslimat Adresi",
+    "deliveryNote": "Teslimat Notu",
+    "customerName": "Müşteri adı",
+    "cityPostcode": "Şehir / Posta kodu",
+    "warehousePickup": "Depodan Teslim",
+    "marketDelivery": "Markete Teslim"
   }
 }

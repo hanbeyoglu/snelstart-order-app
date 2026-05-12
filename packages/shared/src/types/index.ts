@@ -175,6 +175,7 @@ export interface PriceOverrideRule {
 export interface LocalOrder {
   _id?: string;
   idempotencyKey: string; // Client-generated UUID
+  orderNumber?: string;
   customerId: string;
   createdByUserId?: string;
   createdByUsername?: string;
@@ -192,6 +193,9 @@ export interface LocalOrder {
   totalInclVat?: number;
   vatBreakdown?: VatBreakdownItem[];
   status: OrderStatus;
+  deliveryType?: DeliveryType | null;
+  deliveryTiming?: DeliveryTiming | null;
+  deliveryDate?: Date | string | null;
   snelstartOrderId?: string;
   errorMessage?: string;
   retryCount: number;
@@ -201,6 +205,8 @@ export interface LocalOrder {
 }
 
 export type OrderStatus = 'DRAFT' | 'PENDING_SYNC' | 'SYNCED' | 'FAILED';
+export type DeliveryType = 'warehouse_pickup' | 'market_delivery';
+export type DeliveryTiming = 'asap' | 'scheduled';
 
 export interface CartItem {
   productId: string;

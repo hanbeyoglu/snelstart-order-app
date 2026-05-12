@@ -8,6 +8,21 @@ import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { hasPermission } from '../utils/permissions';
 
+/** @see packages/shared/src/i18n/order-notification-email.ts ORDER_NOTIFICATION_EMAIL_LOCALES */
+const ORDER_NOTIFICATION_EMAIL_LOCALES = ['tr', 'en', 'nl', 'de', 'ar'] as const;
+type OrderNotificationEmailLocale = (typeof ORDER_NOTIFICATION_EMAIL_LOCALES)[number];
+
+/** @see packages/shared/src/i18n/order-notification-email.ts normalizeOrderNotificationLocale */
+function normalizeOrderNotificationLocaleUi(raw?: string | null): OrderNotificationEmailLocale {
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === 'en' || v.startsWith('en')) return 'en';
+  if (v === 'nl' || v.startsWith('nl')) return 'nl';
+  if (v === 'de' || v.startsWith('de')) return 'de';
+  if (v === 'ar' || v.startsWith('ar')) return 'ar';
+  if (v === 'tr' || v.startsWith('tr')) return 'tr';
+  return 'tr';
+}
+
 export default function AdminSettingsPage() {
   const { t } = useAppTranslation(['common', 'settings', 'orders']);
   const { formatDateTime } = useLocaleFormat();
@@ -36,6 +51,7 @@ export default function AdminSettingsPage() {
   // Notification email state (comma-separated)
   const [toEmails, setToEmails] = useState('');
   const [ccEmails, setCcEmails] = useState('');
+  const [orderNotificationLocale, setOrderNotificationLocale] = useState<OrderNotificationEmailLocale>('tr');
 
   // Test mail state
   const [testMailTo, setTestMailTo] = useState('');
@@ -69,6 +85,7 @@ export default function AdminSettingsPage() {
     setSmtpFromEmail(mailSettings.smtpFromEmail || '');
     setToEmails((mailSettings.orderNotificationToEmails || []).join(', '));
     setCcEmails((mailSettings.orderNotificationCcEmails || []).join(', '));
+    setOrderNotificationLocale(normalizeOrderNotificationLocaleUi(mailSettings.orderNotificationLocale));
   }, [mailSettings]);
 
   const saveMutation = useMutation({
@@ -157,6 +174,7 @@ export default function AdminSettingsPage() {
       const response = await api.post('/mail-settings/notifications', {
         orderNotificationToEmails: parseEmails(toEmails),
         orderNotificationCcEmails: parseEmails(ccEmails),
+        orderNotificationLocale,
       });
       return response.data;
     },
@@ -530,6 +548,30 @@ export default function AdminSettingsPage() {
                   {t('settings:readOnly')}
                 </span>
               )}
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>{t('settings:mailNotificationLanguage')}</label>
+              <select
+                value={orderNotificationLocale}
+                onChange={(e) => setOrderNotificationLocale(e.target.value as OrderNotificationEmailLocale)}
+                disabled={!canManageNotifications}
+                style={{
+                  ...(canManageNotifications ? inputStyle : readonlyInputStyle),
+                  maxWidth: '280px',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '8px',
+                }}
+              >
+                {ORDER_NOTIFICATION_EMAIL_LOCALES.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>
+                {t('settings:mailNotificationLanguageHint')}
+              </p>
             </div>
 
             <div style={fieldStyle}>

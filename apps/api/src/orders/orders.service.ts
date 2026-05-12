@@ -1,17 +1,40 @@
 import { BadRequestException, ForbiddenException, Injectable, Inject, forwardRef, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { LocalOrder, LocalOrderDocument } from './schemas/local-order.schema';
 import { SnelStartService } from '../snelstart/snelstart.service';
 import { AuditService } from '../audit/audit.service';
 import { CustomersService } from '../customers/customers.service';
+import { CategoriesService } from '../categories/categories.service';
 import { createOrderSchema } from '@snelstart-order-app/shared';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
+import { PricingService } from '../pricing/pricing.service';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
 import { OrderNotificationService } from './order-notification.service';
+import { randomUUID } from 'node:crypto';
+
+export interface OrderListFilters {
+  status?: string;
+  deliveryType?: string;
+  deliveryTiming?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  customerId?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+const ALLOWED_SORTS: Record<string, Record<string, 1 | -1>> = {
+  newest: { createdAt: -1 },
+  oldest: { createdAt: 1 },
+  total_desc: { totalInclVat: -1, total: -1 },
+  total_asc: { totalInclVat: 1, total: 1 },
+};
 
 @Injectable()
 export class OrdersService {
@@ -25,6 +48,8 @@ export class OrdersService {
     private auditService: AuditService,
     @Inject(forwardRef(() => CustomersService)) private customersService: CustomersService,
     private productsService: ProductsService,
+    private pricingService: PricingService,
+    private categoriesService: CategoriesService,
     private orderNotificationService?: OrderNotificationService,
   ) {}
 
@@ -121,10 +146,73 @@ export class OrdersService {
         stuksprijs: item.unitPrice,
       })),
       memo: this.appendCreatorNote(
-        (order as any).memo || 'Özel yazılımdan gelen sipariş',
+        this.appendDeliveryNote((order as any).memo || 'Özel yazılımdan gelen sipariş', order),
         order,
       ),
     };
+  }
+
+  private appendDeliveryNote(
+    existingNote: string | undefined,
+    order: Partial<LocalOrder> | Record<string, any>,
+  ): string | undefined {
+    const baseNote = (existingNote || '').trim();
+    const segments: string[] = [];
+    const deliveryType = (order as any).deliveryType;
+    const deliveryTiming = (order as any).deliveryTiming;
+    const deliveryDate = (order as any).deliveryDate;
+    if (deliveryType) {
+      const label = deliveryType === 'warehouse_pickup' ? 'Depodan Teslim Alınacak' : 'Markete Teslim';
+      segments.push(`Teslimat: ${label}`);
+    }
+    if (deliveryTiming) {
+      let line = deliveryTiming === 'asap' ? 'Teslimat zamanı: Hemen' : 'Teslimat zamanı: Belirli tarih';
+      if (deliveryTiming === 'scheduled' && deliveryDate) {
+        const parsed = deliveryDate instanceof Date ? deliveryDate : new Date(deliveryDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          line = `Teslimat zamanı: Belirli tarih: ${parsed.toISOString().split('T')[0]}`;
+        }
+      }
+      segments.push(line);
+    }
+    if (segments.length === 0) {
+      return baseNote || undefined;
+    }
+    const deliveryBlock = segments.join('\n');
+    if (!baseNote) {
+      return deliveryBlock;
+    }
+    // Avoid duplicating delivery lines if already present in memo
+    const baseLower = baseNote.toLowerCase();
+    if (baseLower.includes('teslimat:') || baseLower.includes('teslimat zamanı:')) {
+      return baseNote;
+    }
+    return `${baseNote}\n${deliveryBlock}`;
+  }
+
+  private parseDeliveryDate(value: unknown): Date | undefined {
+    if (!value) return undefined;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value;
+    }
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [year, month, day] = trimmed.split('-').map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+    }
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  private generateOrderNumber(now: Date = new Date()): string {
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const suffix = randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
+    return `SO-${year}${month}${day}-${suffix}`;
   }
 
   private getVatRate(source: any): number {
@@ -235,17 +323,22 @@ export class OrdersService {
       user,
     );
     const totals = this.calculateOrderTotals(trustedItems);
+    const parsedDeliveryDate = this.parseDeliveryDate(requested.deliveryDate);
     const validated = {
       idempotencyKey: requested.idempotencyKey,
       customerId: effectiveCustomerId,
       memo: requested.memo,
       items: totals.items,
+      deliveryType: requested.deliveryType ?? null,
+      deliveryTiming: requested.deliveryTiming ?? null,
+      ...(parsedDeliveryDate ? { deliveryDate: parsedDeliveryDate } : {}),
       ...creatorSnapshot,
     };
 
     // Create local order
     const order = new this.orderModel({
       ...validated,
+      orderNumber: this.generateOrderNumber(),
       subtotal: totals.subtotalExclVat,
       total: totals.totalInclVat,
       subtotalExclVat: totals.subtotalExclVat,
@@ -318,13 +411,134 @@ export class OrdersService {
     }
   }
 
-  async getOrders(filters?: any, user?: any) {
-    const effectiveFilters = { ...(filters || {}) };
+  async getOrders(filters?: OrderListFilters | any, user?: any) {
+    const raw = filters || {};
+    const query: FilterQuery<LocalOrderDocument> = {};
+
+    // Customer scope: hard restrict to own customer + own user
     if (user?.role === 'customer') {
-      effectiveFilters.customerId = this.requireCustomerId(user);
-      effectiveFilters.createdByUserId = this.requireCustomerUserId(user);
+      query.customerId = this.requireCustomerId(user);
+      query.createdByUserId = this.requireCustomerUserId(user);
+    } else if (raw.customerId) {
+      query.customerId = String(raw.customerId);
     }
-    return this.orderModel.find(effectiveFilters).sort({ createdAt: -1 }).exec();
+
+    if (raw.status) {
+      const statuses = String(raw.status)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (statuses.length === 1) {
+        query.status = statuses[0];
+      } else if (statuses.length > 1) {
+        query.status = { $in: statuses };
+      }
+    }
+
+    if (raw.deliveryType) {
+      const types = String(raw.deliveryType)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (types.length === 1) {
+        query.deliveryType = types[0];
+      } else if (types.length > 1) {
+        query.deliveryType = { $in: types };
+      }
+    }
+
+    if (raw.deliveryTiming) {
+      const timings = String(raw.deliveryTiming)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (timings.length === 1) {
+        query.deliveryTiming = timings[0];
+      } else if (timings.length > 1) {
+        query.deliveryTiming = { $in: timings };
+      }
+    }
+
+    if (raw.dateFrom || raw.dateTo) {
+      const range: Record<string, Date> = {};
+      const from = this.parseDateBoundary(raw.dateFrom, 'start');
+      const to = this.parseDateBoundary(raw.dateTo, 'end');
+      if (from) range.$gte = from;
+      if (to) range.$lte = to;
+      if (Object.keys(range).length > 0) {
+        query.createdAt = range;
+      }
+    }
+
+    if (raw.search) {
+      const term = String(raw.search).trim();
+      if (term) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escaped, 'i');
+        query.$or = [
+          { orderNumber: regex },
+          { snelstartOrderId: regex },
+          { memo: regex },
+          { 'items.productName': regex },
+          { 'items.sku': regex },
+          { 'items.productId': regex },
+        ];
+      }
+    }
+
+    const sortKey = String(raw.sort || 'newest');
+    const sort = ALLOWED_SORTS[sortKey] || ALLOWED_SORTS.newest;
+
+    const limit = Math.min(Math.max(Number(raw.limit) || 10, 1), 100);
+    const page = Math.max(Number(raw.page) || 1, 1);
+    const skip = (page - 1) * limit;
+
+    const wantsPagination = raw.page !== undefined || raw.limit !== undefined;
+
+    if (!wantsPagination) {
+      // Backward compatible: return array (existing staff UI still expects array)
+      return this.orderModel
+        .find(query)
+        .sort(sort)
+        .limit(500)
+        .exec();
+    }
+
+    const [data, total] = await Promise.all([
+      this.orderModel.find(query).sort(sort).skip(skip).limit(limit).exec(),
+      this.orderModel.countDocuments(query).exec(),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+        hasNext: skip + data.length < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  private parseDateBoundary(value: unknown, edge: 'start' | 'end'): Date | undefined {
+    if (!value) return undefined;
+    const str = String(value).trim();
+    if (!str) return undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [year, month, day] = str.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      if (Number.isNaN(date.getTime())) return undefined;
+      if (edge === 'end') {
+        date.setHours(23, 59, 59, 999);
+      } else {
+        date.setHours(0, 0, 0, 0);
+      }
+      return date;
+    }
+    const parsed = new Date(str);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }
 
   private async buildTrustedOrderItems(
@@ -443,6 +657,205 @@ export class OrdersService {
     }
     this.assertCanAccessOrder(order, user);
     return order;
+  }
+
+  /**
+   * Reorder: build a current-cart snapshot from a past order.
+   * - Validates customer access (404 if not own order for customers).
+   * - Skips inactive products / inactive categories.
+   * - Recalculates unit prices using ProductsService.getProductById
+   *   (which applies current pricing rules + customer overrides).
+   * - Rebuilds recipe child items from current product definition.
+   * - Returns: items (parent-only, for cart add), skipped[], updatedPrices[].
+   */
+  async reorderOrder(id: string, user?: any) {
+    const order = await this.orderModel.findById(id).exec();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    this.assertCanAccessOrder(order, user);
+
+    const customerId = order.customerId;
+    const parentItems = (order.items || []).filter(
+      (item: any) => item?.isChildItem !== true,
+    );
+
+    const items: any[] = [];
+    const skipped: Array<{
+      productId?: string;
+      productName?: string;
+      sku?: string;
+      quantity?: number;
+      reason: 'product_inactive' | 'product_not_found' | 'category_inactive' | 'price_invalid';
+    }> = [];
+    const priceUpdates: Array<{
+      productId: string;
+      productName: string;
+      oldUnitPrice: number;
+      newUnitPrice: number;
+    }> = [];
+    let activeCategoryIds: Set<string> | null = null;
+    let priceChangedCount = 0;
+
+    for (const originalItem of parentItems) {
+      const productId = String(originalItem.productId || '').trim();
+      if (!productId) {
+        skipped.push({
+          productId: originalItem.productId,
+          productName: originalItem.productName,
+          sku: originalItem.sku,
+          quantity: originalItem.quantity,
+          reason: 'product_not_found',
+        });
+        continue;
+      }
+
+      let freshProduct: any;
+      try {
+        freshProduct = await this.productsService.getProductById(
+          productId,
+          customerId,
+          true, // enforceActive: rejects inactive product / inactive category
+        );
+      } catch (error: any) {
+        const reason: 'product_not_found' | 'product_inactive' =
+          error instanceof NotFoundException ? 'product_not_found' : 'product_not_found';
+        skipped.push({
+          productId,
+          productName: originalItem.productName,
+          sku: originalItem.sku,
+          quantity: originalItem.quantity,
+          reason,
+        });
+        continue;
+      }
+
+      if (!freshProduct) {
+        skipped.push({
+          productId,
+          productName: originalItem.productName,
+          sku: originalItem.sku,
+          quantity: originalItem.quantity,
+          reason: 'product_not_found',
+        });
+        continue;
+      }
+
+      // Defense in depth: explicit isActive + category active check.
+      if (freshProduct.isActive === false) {
+        skipped.push({
+          productId,
+          productName: freshProduct.omschrijving || originalItem.productName,
+          sku: freshProduct.artikelnummer || originalItem.sku,
+          quantity: originalItem.quantity,
+          reason: 'product_inactive',
+        });
+        continue;
+      }
+
+      const productCategoryId =
+        freshProduct.artikelomzetgroepId ||
+        freshProduct.artikelOmzetgroep?.id ||
+        freshProduct.artikelgroepId;
+      if (productCategoryId) {
+        if (!activeCategoryIds) {
+          const ids = await this.categoriesService.getActiveCategoryIds();
+          activeCategoryIds = new Set(ids);
+        }
+        if (!activeCategoryIds.has(productCategoryId)) {
+          skipped.push({
+            productId,
+            productName: freshProduct.omschrijving || originalItem.productName,
+            sku: freshProduct.artikelnummer || originalItem.sku,
+            quantity: originalItem.quantity,
+            reason: 'category_inactive',
+          });
+          continue;
+        }
+      }
+
+      const basePrice = Number(freshProduct.basePrice ?? freshProduct.verkoopprijs ?? 0);
+      const finalPrice = Number(freshProduct.finalPrice ?? basePrice);
+      if (!Number.isFinite(finalPrice) || finalPrice < 0) {
+        skipped.push({
+          productId,
+          productName: freshProduct.omschrijving || originalItem.productName,
+          sku: freshProduct.artikelnummer || originalItem.sku,
+          quantity: originalItem.quantity,
+          reason: 'price_invalid',
+        });
+        continue;
+      }
+
+      const vatRate = this.getVatRate(freshProduct);
+      const quantity = this.positiveNumber(originalItem.quantity, 1);
+      const oldUnitPrice = Number(originalItem.unitPrice ?? originalItem.basePrice ?? 0);
+      if (Number.isFinite(oldUnitPrice) && this.money(oldUnitPrice) !== this.money(finalPrice)) {
+        priceChangedCount += 1;
+        priceUpdates.push({
+          productId,
+          productName: freshProduct.omschrijving || originalItem.productName || '',
+          oldUnitPrice: this.money(oldUnitPrice),
+          newUnitPrice: this.money(finalPrice),
+        });
+      }
+
+      // Frontend cart-friendly snapshot (parent only — children are computed by cart store from subArticles).
+      items.push({
+        productId: freshProduct.id || productId,
+        productName: freshProduct.omschrijving,
+        sku: freshProduct.artikelnummer || freshProduct.artikelcode || '',
+        categoryId: productCategoryId,
+        quantity,
+        unitPrice: this.money(finalPrice),
+        unitPriceExclVat: this.money(finalPrice),
+        basePrice: this.money(basePrice),
+        totalPrice: this.money(finalPrice * quantity),
+        vatPercentage: vatRate,
+        vatType: freshProduct.vatType ?? null,
+        vatRate,
+        vatGroupId: freshProduct.vatGroupId,
+        vatGroupName: freshProduct.vatGroupName,
+        inkoopprijs: freshProduct.inkoopprijs,
+        eenheid: freshProduct.eenheid,
+        coverImageUrl: freshProduct.coverImageUrl ?? null,
+        voorraad: freshProduct.voorraad,
+        isParentArticle: freshProduct.isParentArticle === true,
+        subArticles: Array.isArray(freshProduct.subArticles) ? freshProduct.subArticles : [],
+        lineType: 'product',
+      });
+    }
+
+    await this.auditService.log({
+      action: 'ORDER_REORDER_PREVIEW',
+      entityType: 'LocalOrder',
+      entityId: order._id.toString(),
+      userId: user?.userId,
+      actorRole: user?.role,
+      metadata: {
+        customerId,
+        sourceOrderId: order._id.toString(),
+        sourceOrderNumber: order.orderNumber,
+        itemCount: items.length,
+        skippedCount: skipped.length,
+        priceChangedCount,
+      },
+    });
+
+    return {
+      sourceOrderId: order._id.toString(),
+      sourceOrderNumber: order.orderNumber,
+      customerId,
+      items,
+      skipped,
+      priceUpdates,
+      stats: {
+        totalSourceItems: parentItems.length,
+        addedCount: items.length,
+        skippedCount: skipped.length,
+        priceChangedCount,
+      },
+    };
   }
 
   async retryOrder(orderId: string, user?: any) {
