@@ -99,5 +99,20 @@
     "previous": "السابق",
     "next": "التالي",
     "showing": "{{from}}–{{to}} من {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "معلومات التسليم",
+    "deliveryType": "نوع التسليم",
+    "deliveryTiming": "توقيت التسليم",
+    "timingAsap": "تسليم فوري",
+    "timingScheduled": "تسليم بموعد لاحق",
+    "deliveryDate": "تاريخ التسليم",
+    "deliveryDateAsap": "تسليم فوري",
+    "deliveryAddress": "عنوان التسليم",
+    "deliveryNote": "ملاحظة التسليم",
+    "customerName": "اسم العميل",
+    "cityPostcode": "المدينة / الرمز البريدي",
+    "warehousePickup": "استلام من المستودع",
+    "marketDelivery": "تسليم إلى السوق"
   }
 }

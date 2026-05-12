@@ -99,5 +99,20 @@
     "previous": "Zurück",
     "next": "Weiter",
     "showing": "{{from}}–{{to}} von {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Lieferinformationen",
+    "deliveryType": "Lieferart",
+    "deliveryTiming": "Lieferzeitpunkt",
+    "timingAsap": "Sofortlieferung",
+    "timingScheduled": "Terminierte Lieferung",
+    "deliveryDate": "Lieferdatum",
+    "deliveryDateAsap": "Sofortlieferung",
+    "deliveryAddress": "Lieferadresse",
+    "deliveryNote": "Lieferhinweis",
+    "customerName": "Kundenname",
+    "cityPostcode": "Stadt / Postleitzahl",
+    "warehousePickup": "Abholung vom Lager",
+    "marketDelivery": "Lieferung zum Markt"
   }
 }

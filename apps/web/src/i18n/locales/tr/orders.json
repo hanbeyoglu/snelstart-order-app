@@ -99,5 +99,20 @@
     "previous": "Önceki",
     "next": "Sonraki",
     "showing": "{{from}}–{{to}} / {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Teslimat Bilgileri",
+    "deliveryType": "Teslimat Tipi",
+    "deliveryTiming": "Teslimat Zamanı",
+    "timingAsap": "Hemen Teslim",
+    "timingScheduled": "İleri Tarihli Teslim",
+    "deliveryDate": "Teslimat Tarihi",
+    "deliveryDateAsap": "Hemen Teslim",
+    "deliveryAddress": "Teslimat Adresi",
+    "deliveryNote": "Teslimat Notu",
+    "customerName": "Müşteri adı",
+    "cityPostcode": "Şehir / Posta kodu",
+    "warehousePickup": "Depodan Teslim",
+    "marketDelivery": "Markete Teslim"
   }
 }

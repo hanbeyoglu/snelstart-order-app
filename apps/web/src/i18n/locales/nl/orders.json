@@ -99,5 +99,20 @@
     "previous": "Vorige",
     "next": "Volgende",
     "showing": "{{from}}–{{to}} van {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Leveringsinformatie",
+    "deliveryType": "Leveringstype",
+    "deliveryTiming": "Leveringstijd",
+    "timingAsap": "Directe levering",
+    "timingScheduled": "Geplande levering",
+    "deliveryDate": "Leveringsdatum",
+    "deliveryDateAsap": "Directe levering",
+    "deliveryAddress": "Leveringsadres",
+    "deliveryNote": "Leveringsnotitie",
+    "customerName": "Klantnaam",
+    "cityPostcode": "Plaats / Postcode",
+    "warehousePickup": "Afhalen van magazijn",
+    "marketDelivery": "Levering aan markt"
   }
 }

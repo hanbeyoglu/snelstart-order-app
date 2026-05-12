@@ -99,5 +99,20 @@
     "previous": "Previous",
     "next": "Next",
     "showing": "{{from}}–{{to}} of {{total}}"
+  },
+  "emailDelivery": {
+    "sectionTitle": "Delivery information",
+    "deliveryType": "Delivery type",
+    "deliveryTiming": "Delivery time",
+    "timingAsap": "Immediate delivery",
+    "timingScheduled": "Scheduled delivery",
+    "deliveryDate": "Delivery date",
+    "deliveryDateAsap": "Immediate delivery",
+    "deliveryAddress": "Delivery address",
+    "deliveryNote": "Delivery note",
+    "customerName": "Customer name",
+    "cityPostcode": "City / Postcode",
+    "warehousePickup": "Warehouse pickup",
+    "marketDelivery": "Market delivery"
   }
 }
