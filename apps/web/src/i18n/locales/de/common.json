@@ -35,6 +35,13 @@
     "customer": "Kunde / Firma",
     "username": "Portal-Benutzername",
     "languagePreference": "Sprache",
+    "totalCount": "Insgesamt {{count}} Portal-Konten",
+    "searchLabel": "Suche",
+    "createdAtLabel": "Erstellungsdatum",
+    "emptyTitle": "Kein Portal-Konto gefunden",
+    "emptyHint": "Versuchen Sie eine andere Suche oder passen Sie die Filter an",
+    "clearSearch": "Suche zurücksetzen",
+    "pageOf": "Seite {{page}} von {{totalPages}}",
     "lastLogin": "Letzte Anmeldung",
     "lastLoginNever": "Noch nie angemeldet",
     "lastLoginRelative": {

@@ -18,6 +18,13 @@
     "customer": "Klant / Bedrijf",
     "username": "Portalgebruikersnaam",
     "languagePreference": "Taalvoorkeur",
+    "totalCount": "Totaal {{count}} portalaccounts",
+    "searchLabel": "Zoeken",
+    "createdAtLabel": "Aanmaakdatum",
+    "emptyTitle": "Geen portalaccount gevonden",
+    "emptyHint": "Probeer een andere zoekopdracht of pas filters aan",
+    "clearSearch": "Zoekopdracht wissen",
+    "pageOf": "Pagina {{page}} van {{totalPages}}",
     "lastLogin": "Laatste login",
     "lastLoginNever": "Nooit ingelogd",
     "lastLoginRelative": {

@@ -52,6 +52,13 @@
     "customer": "Customer / Company",
     "username": "Portal username",
     "languagePreference": "Language Preference",
+    "totalCount": "Total {{count}} portal accounts",
+    "searchLabel": "Search",
+    "createdAtLabel": "Created date",
+    "emptyTitle": "No portal accounts found",
+    "emptyHint": "Try a different search or adjust filters.",
+    "clearSearch": "Clear search",
+    "pageOf": "Page {{page}} of {{totalPages}}",
     "lastLogin": "Last login",
     "lastLoginNever": "Never logged in",
     "lastLoginRelative": {
@@ -85,10 +92,10 @@
     "sortLabel": "Sort",
     "sortNameAsc": "Name A–Z",
     "sortNameDesc": "Name Z–A",
-    "sortCreatedDesc": "Newest created first",
-    "sortCreatedAsc": "Oldest created first",
-    "sortLastLoginDesc": "Most recent sign-in",
-    "sortLastLoginAsc": "Longest since sign-in",
+    "sortCreatedDesc": "Created: New → Old",
+    "sortCreatedAsc": "Created: Old → New",
+    "sortLastLoginDesc": "Last sign-in: New → Old",
+    "sortLastLoginAsc": "Last sign-in: Old → New",
     "sortRefreshing": "Updating list…"
   },
   "actions": {

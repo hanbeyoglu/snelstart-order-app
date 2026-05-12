@@ -46,14 +46,36 @@ export class UsersController {
 
   @Get()
   @Roles('admin')
-  @ApiOperation({ summary: 'Get all users' })
+  @ApiOperation({ summary: 'Get all users (array), or paginated portal list when page is set' })
   async getAllUsers(
     @Request() req: any,
     @Query('customerId') customerId?: string,
     @Query('role') role?: 'customer' | 'staff',
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: 'all' | 'active' | 'inactive',
+    @Query('createdFrom') createdFrom?: string,
   ) {
+    const pageNum = pageStr !== undefined && pageStr !== '' ? Number.parseInt(pageStr, 10) : NaN;
+    if (Number.isFinite(pageNum) && pageNum >= 1) {
+      const limitRaw = limitStr !== undefined && limitStr !== '' ? Number.parseInt(limitStr, 10) : 10;
+      const limit = Number.isFinite(limitRaw) && limitRaw >= 1 ? Math.min(100, limitRaw) : 10;
+      const isActiveFilter = isActive === 'active' || isActive === 'inactive' ? isActive : 'all';
+      return this.usersService.getUsersPaginated(req.user.role, {
+        customerId,
+        role: role ?? 'customer',
+        sortBy,
+        sortOrder,
+        page: pageNum,
+        limit,
+        search,
+        isActiveFilter,
+        createdFrom,
+      });
+    }
     return this.usersService.getAllUsers(req.user.role, { customerId, role, sortBy, sortOrder });
   }
 

@@ -1332,6 +1332,268 @@ h3 {
   padding: 1.5rem;
 }
 
+/* —— Portal Accounts (admin list) —— */
+.portal-accounts-page .portal-accounts-header-block {
+  margin-bottom: 1.25rem;
+}
+
+.portal-accounts-title {
+  font-size: clamp(1.55rem, 3.5vw, 2.25rem);
+  font-weight: 800;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.portal-accounts-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.portal-accounts-toolbar {
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.portal-accounts-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.portal-accounts-toolbar__row--primary {
+  justify-content: space-between;
+}
+
+.portal-accounts-toolbar__row--filters {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.portal-accounts-search-wrap {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: min(100%, 220px);
+}
+
+.portal-accounts-search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  display: flex;
+}
+
+.portal-accounts-search-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.55rem 0.85rem 0.55rem 2.65rem;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.portal-accounts-search-input:focus {
+  outline: none;
+  border-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.portal-accounts-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.portal-accounts-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.portal-accounts-field--compact {
+  min-width: min(100%, 200px);
+}
+
+.portal-accounts-field--grow {
+  flex: 1 1 160px;
+}
+
+.portal-accounts-field-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.portal-accounts-select {
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.portal-accounts-create-btn {
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.portal-accounts-total {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.portal-account-list--muted {
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+
+.portal-account-card--elevated {
+  border-radius: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.portal-account-card--elevated:hover {
+  border-color: rgba(15, 118, 110, 0.28);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.portal-account-customer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  min-width: 0;
+}
+
+.portal-status-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.portal-status-badge--active {
+  color: #065f46;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.portal-status-badge--inactive {
+  color: #7f1d1d;
+  background: rgba(248, 113, 113, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.portal-account-list--skeleton {
+  gap: 0.75rem;
+}
+
+.portal-account-skeleton-card {
+  height: 118px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.12) 0%, rgba(148, 163, 184, 0.22) 50%, rgba(148, 163, 184, 0.12) 100%);
+  background-size: 200% 100%;
+  animation: portal-shimmer 1.1s ease-in-out infinite;
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+@keyframes portal-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.portal-accounts-empty {
+  text-align: center;
+  padding: 2.25rem 1.5rem;
+  border-radius: 14px;
+  border: 1px dashed var(--border, #e5e7eb);
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.portal-accounts-empty-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.portal-accounts-empty-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.portal-accounts-empty-hint {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.portal-accounts-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+}
+
+.portal-pag-btn {
+  min-width: min(100%, 120px);
+}
+
+.portal-pag-info {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.portal-switch-label {
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .portal-accounts-toolbar__row--primary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .portal-accounts-toolbar__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .portal-accounts-toolbar__actions .portal-accounts-field--compact {
+    flex: 1 1 auto;
+  }
+
+  .portal-accounts-create-btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1024px) {
   .portal-accounts-table {
     display: grid;

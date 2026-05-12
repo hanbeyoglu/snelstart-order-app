@@ -52,6 +52,13 @@
     "customer": "Müşteri / Firma",
     "username": "Portal kullanıcı adı",
     "languagePreference": "Dil Tercihi",
+    "totalCount": "Toplam {{count}} portal hesabı",
+    "searchLabel": "Arama",
+    "createdAtLabel": "Oluşturulma tarihi",
+    "emptyTitle": "Portal hesabı bulunamadı",
+    "emptyHint": "Farklı bir arama deneyin",
+    "clearSearch": "Aramayı temizle",
+    "pageOf": "Sayfa {{page}} / {{totalPages}}",
     "lastLogin": "Son giriş",
     "lastLoginNever": "Hiç giriş yapılmadı",
     "lastLoginRelative": {
@@ -85,10 +92,10 @@
     "sortLabel": "Sıralama",
     "sortNameAsc": "İsim A-Z",
     "sortNameDesc": "İsim Z-A",
-    "sortCreatedDesc": "Yeni oluşturulanlar",
-    "sortCreatedAsc": "Eski oluşturulanlar",
-    "sortLastLoginDesc": "Son giriş yapanlar",
-    "sortLastLoginAsc": "En uzun süredir giriş yapmayanlar",
+    "sortCreatedDesc": "Oluşturulma tarihi: Yeni → Eski",
+    "sortCreatedAsc": "Oluşturulma tarihi: Eski → Yeni",
+    "sortLastLoginDesc": "Son giriş: Yeni → Eski",
+    "sortLastLoginAsc": "Son giriş: Eski → Yeni",
     "sortRefreshing": "Liste güncelleniyor…"
   },
   "actions": {

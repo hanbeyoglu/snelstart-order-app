@@ -23,6 +23,22 @@ export type GetAllUsersFilters = {
   sortOrder?: string;
 };
 
+export type PaginatedPortalUsersResult = {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type GetUsersPaginatedFilters = GetAllUsersFilters & {
+  page: number;
+  limit: number;
+  search?: string;
+  isActiveFilter?: 'all' | 'active' | 'inactive';
+  createdFrom?: string;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -128,6 +144,142 @@ export class UsersService {
     });
 
     return this.userModel.aggregate(pipeline).exec();
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Portal (customer) listesi: arama, filtre, sıralama ve sayfalama tek aggregation ile.
+   */
+  async getUsersPaginated(requesterRole: UserRole, filters: GetUsersPaginatedFilters): Promise<PaginatedPortalUsersResult> {
+    if (filters.role !== 'customer') {
+      throw new BadRequestException('Sayfalama şu an yalnızca portal (customer) listesi için destekleniyor');
+    }
+    if (!this.customerModel) {
+      throw new BadRequestException('Müşteri modeli gerekli');
+    }
+
+    const page = Math.max(1, Math.floor(filters.page) || 1);
+    const limit = Math.min(100, Math.max(1, Math.floor(filters.limit) || 10));
+    const skip = (page - 1) * limit;
+    const isActiveFilter = filters.isActiveFilter || 'all';
+
+    const filter: any = requesterRole === 'super_admin' ? {} : { role: { $ne: 'super_admin' } };
+    filter.role = 'customer';
+    if (filters.customerId) {
+      filter.customerId = filters.customerId;
+    }
+
+    const allowedSortBy: ListUsersSortBy[] = ['customerName', 'username', 'createdAt', 'lastLoginAt'];
+    let sortBy: ListUsersSortBy = 'customerName';
+    if (filters.sortBy && allowedSortBy.includes(filters.sortBy as ListUsersSortBy)) {
+      sortBy = filters.sortBy as ListUsersSortBy;
+    }
+    let sortOrder: ListUsersSortOrder = 'asc';
+    if (filters.sortOrder === 'desc' || filters.sortOrder === 'asc') {
+      sortOrder = filters.sortOrder;
+    }
+    const dir = sortOrder === 'desc' ? -1 : 1;
+
+    const customerCollection = this.customerModel.collection.collectionName;
+    const pipeline: any[] = [{ $match: filter }];
+
+    pipeline.push({
+      $lookup: {
+        from: customerCollection,
+        localField: 'customerId',
+        foreignField: 'snelstartId',
+        as: '_cust',
+      },
+    });
+    pipeline.push({
+      $addFields: {
+        customerName: { $ifNull: [{ $arrayElemAt: ['$_cust.naam', 0] }, ''] },
+      },
+    });
+
+    const q = filters.search?.trim();
+    if (q) {
+      const pattern = this.escapeRegExp(q);
+      pipeline.push({
+        $match: {
+          $or: [
+            { username: { $regex: pattern, $options: 'i' } },
+            { email: { $regex: pattern, $options: 'i' } },
+            { customerId: { $regex: pattern, $options: 'i' } },
+            { customerName: { $regex: pattern, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    if (isActiveFilter === 'active') {
+      pipeline.push({ $match: { isActive: { $ne: false } } });
+    } else if (isActiveFilter === 'inactive') {
+      pipeline.push({ $match: { isActive: false } });
+    }
+
+    const fromRaw = filters.createdFrom?.trim();
+    if (fromRaw) {
+      const fromDate = new Date(fromRaw);
+      if (!Number.isNaN(fromDate.getTime())) {
+        pipeline.push({ $match: { createdAt: { $gte: fromDate } } });
+      }
+    }
+
+    if (sortBy === 'customerName') {
+      pipeline.push({
+        $addFields: {
+          _customerNameLower: { $toLower: { $ifNull: ['$customerName', ''] } },
+        },
+      });
+      pipeline.push({ $sort: { _customerNameLower: dir, username: 1, _id: 1 } });
+    } else if (sortBy === 'username') {
+      pipeline.push({
+        $addFields: {
+          _usernameLower: { $toLower: { $ifNull: ['$username', ''] } },
+        },
+      });
+      pipeline.push({ $sort: { _usernameLower: dir, _id: 1 } });
+    } else if (sortBy === 'createdAt') {
+      pipeline.push({ $sort: { createdAt: dir, _id: 1 } });
+    } else if (sortBy === 'lastLoginAt') {
+      pipeline.push({
+        $addFields: {
+          _hasLogin: {
+            $cond: [{ $eq: [{ $type: '$lastLoginAt' }, 'date'] }, 1, 0],
+          },
+        },
+      });
+      pipeline.push({ $sort: { _hasLogin: -1, lastLoginAt: dir, _id: 1 } });
+    }
+
+    const projectStage = {
+      $project: {
+        passwordHash: 0,
+        _cust: 0,
+        _customerNameLower: 0,
+        _usernameLower: 0,
+        _hasLogin: 0,
+      },
+    };
+
+    pipeline.push({
+      $facet: {
+        countArr: [{ $count: 'total' }],
+        data: [{ $skip: skip }, { $limit: limit }, projectStage],
+      },
+    });
+
+    const agg = await this.userModel.aggregate(pipeline).exec();
+    const bucket = agg[0] || { countArr: [], data: [] };
+    const total = bucket.countArr?.[0]?.total ?? 0;
+    const data = bucket.data ?? [];
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+    return { data, total, page, limit, totalPages };
   }
 
   async getUserById(id: string, requesterRole?: UserRole) {
