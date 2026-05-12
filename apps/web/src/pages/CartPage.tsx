@@ -279,6 +279,10 @@ export default function CartPage() {
         customerId: selectedCustomerId,
         memo: `Teslimat: ${selectedDeliveryOption.memoLabel}\nTeslimat zamanı: ${deliveryTimeMemo}`,
         items: orderItems,
+        deliveryType: deliveryDecision,
+        deliveryTiming: deliveryTiming || undefined,
+        deliveryDate:
+          deliveryTiming === 'scheduled' && deliveryDate ? deliveryDate : undefined,
       });
       return response.data;
     },

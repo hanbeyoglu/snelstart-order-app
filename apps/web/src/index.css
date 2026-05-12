@@ -2030,3 +2030,253 @@ h3 {
     flex-wrap: wrap;
   }
 }
+
+/* Orders table - kaydırmasız, tam genişlik */
+.orders-table-card {
+  overflow: visible;
+}
+
+.orders-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.orders-table colgroup .orders-col-order {
+  width: 18%;
+}
+.orders-table colgroup .orders-col-date {
+  width: 11%;
+}
+.orders-table colgroup .orders-col-delivery {
+  width: 16%;
+}
+.orders-table colgroup .orders-col-status {
+  width: 11%;
+}
+.orders-table colgroup .orders-col-total {
+  width: 14%;
+}
+.orders-table colgroup .orders-col-created-by {
+  width: 12%;
+}
+.orders-table colgroup .orders-col-actions {
+  width: 18%;
+}
+
+.orders-table thead tr {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.orders-table thead th {
+  padding: 0.85rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.orders-table-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.orders-table-row:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.orders-table td {
+  padding: 0.85rem 0.9rem;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.orders-cell-order-number {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  word-break: break-all;
+}
+.orders-cell-order-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+  line-height: 1.3;
+}
+
+.orders-cell-date-primary {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.orders-cell-date-secondary {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.orders-cell-delivery-primary {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.orders-cell-delivery-secondary {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.orders-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.orders-cell-total {
+  text-align: right;
+}
+.orders-cell-total-primary {
+  font-weight: 800;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+.orders-cell-total-secondary {
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.orders-cell-created-by-name {
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+.orders-cell-created-by-role {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.orders-cell-actions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.orders-action-btn {
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Tablet — actions altta tek satıra düşsün */
+@media (max-width: 900px) {
+  .orders-table colgroup .orders-col-order {
+    width: 22%;
+  }
+  .orders-table colgroup .orders-col-date {
+    width: 12%;
+  }
+  .orders-table colgroup .orders-col-delivery {
+    width: 18%;
+  }
+  .orders-table colgroup .orders-col-status {
+    width: 12%;
+  }
+  .orders-table colgroup .orders-col-total {
+    width: 16%;
+  }
+  .orders-table colgroup .orders-col-created-by {
+    width: 0;
+    display: none;
+  }
+  .orders-table colgroup .orders-col-actions {
+    width: 20%;
+  }
+  .orders-table thead th,
+  .orders-table td {
+    padding: 0.7rem 0.55rem;
+    font-size: 0.8rem;
+  }
+  .orders-cell-actions-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .orders-action-btn {
+    width: 100%;
+  }
+}
+
+/* Mobile — kart düzeni */
+@media (max-width: 640px) {
+  .orders-table,
+  .orders-table thead,
+  .orders-table tbody,
+  .orders-table tr,
+  .orders-table th,
+  .orders-table td,
+  .orders-table colgroup {
+    display: block;
+  }
+  .orders-table colgroup {
+    display: none;
+  }
+  .orders-table thead {
+    position: absolute;
+    left: -9999px;
+  }
+  .orders-table-row {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+    background: white;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+  .orders-table-row:hover {
+    background: rgba(99, 102, 241, 0.04);
+  }
+  .orders-table td {
+    padding: 0;
+    border: none;
+  }
+  .orders-cell-total {
+    text-align: left;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .orders-cell-total-primary {
+    font-size: 1.1rem;
+  }
+  .orders-cell-actions-wrap {
+    flex-direction: row;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .orders-action-btn {
+    width: auto;
+    flex: 1 1 auto;
+  }
+}

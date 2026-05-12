@@ -152,6 +152,8 @@ test('order creation rebuilds prices server-side and ignores client overrides', 
     {} as any,
     {} as any,
     productsService as any,
+    {} as any,
+    {} as any,
   );
 
   const items = await (service as any).buildTrustedOrderItems(
@@ -227,6 +229,8 @@ function createOrderTestHarness(customersService: any = {}) {
     { log: async () => undefined } as any,
     customersService as any,
     productsService as any,
+    { } as any,
+    { getActiveCategoryIds: async () => [] } as any,
   );
 
   return {
@@ -375,11 +379,19 @@ test('customer order list is limited to orders created by that portal user', asy
   const model = {
     find: (filter: any) => {
       findFilter = filter;
-      return { sort: () => execResult([]) };
+      return {
+        sort: () => ({
+          limit: () => execResult([]),
+          skip: () => ({ limit: () => execResult([]) }),
+        }),
+      };
     },
+    countDocuments: () => execResult(0),
   };
   const service = new OrdersService(
     model as any,
+    {} as any,
+    {} as any,
     {} as any,
     {} as any,
     {} as any,
@@ -416,6 +428,8 @@ test('customer order detail blocks same-customer orders created by another user'
     {} as any,
     {} as any,
     {} as any,
+    {} as any,
+    {} as any,
   );
 
   await assert.rejects(
@@ -445,6 +459,8 @@ test('customer order detail allows own created order', async () => {
     {} as any,
     {} as any,
     {} as any,
+    {} as any,
+    {} as any,
   );
 
   const result = await service.getOrderById('order-1', {
@@ -454,6 +470,240 @@ test('customer order detail allows own created order', async () => {
   });
 
   assert.equal(result, ownOrder);
+});
+
+test('reorderOrder rejects access to another customer order', async () => {
+  const foreignOrder = {
+    _id: { toString: () => 'order-foreign' },
+    customerId: 'customer-2',
+    createdByUserId: 'portal-2',
+    items: [],
+  };
+  const model = {
+    findById: () => execResult(foreignOrder),
+  };
+  const service = new OrdersService(
+    model as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    { log: async () => undefined } as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any,
+  );
+
+  await assert.rejects(
+    () =>
+      service.reorderOrder('order-foreign', {
+        userId: 'portal-1',
+        role: 'customer',
+        customerId: 'customer-1',
+      }),
+    /Order not found/,
+  );
+});
+
+test('reorderOrder recomputes prices from current product data, not stored item', async () => {
+  const sourceOrder = {
+    _id: { toString: () => 'order-1' },
+    orderNumber: 'SO-20260510-ABCDEF',
+    customerId: 'customer-1',
+    createdByUserId: 'portal-1',
+    items: [
+      {
+        productId: 'product-1',
+        productName: 'Old name',
+        sku: 'SKU-OLD',
+        quantity: 3,
+        unitPrice: 5.0,
+        basePrice: 6.0,
+      },
+    ],
+  };
+  const model = {
+    findById: () => execResult(sourceOrder),
+  };
+  const productsService = {
+    getProductById: async (id: string, _customerId: string, enforceActive?: boolean) => {
+      assert.equal(id, 'product-1');
+      assert.equal(enforceActive, true);
+      return {
+        id: 'product-1',
+        omschrijving: 'New name',
+        artikelnummer: 'SKU-NEW',
+        finalPrice: 12.5,
+        basePrice: 15,
+        btwPercentage: 21,
+        artikelgroepId: 'cat-1',
+        isActive: true,
+      };
+    },
+  };
+  const categoriesService = {
+    getActiveCategoryIds: async () => ['cat-1'],
+  };
+  const auditService = { log: async () => undefined };
+  const service = new OrdersService(
+    model as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    auditService as any,
+    {} as any,
+    productsService as any,
+    {} as any,
+    categoriesService as any,
+  );
+
+  const result = await service.reorderOrder('order-1', {
+    userId: 'portal-1',
+    role: 'customer',
+    customerId: 'customer-1',
+  });
+
+  assert.equal(result.items.length, 1);
+  const reorderedItem = result.items[0];
+  assert.equal(reorderedItem.productId, 'product-1');
+  assert.equal(reorderedItem.productName, 'New name');
+  assert.equal(reorderedItem.sku, 'SKU-NEW');
+  assert.equal(reorderedItem.quantity, 3);
+  // Critical: price must come from fresh product, NOT from sourceOrder
+  assert.equal(reorderedItem.unitPrice, 12.5);
+  assert.equal(reorderedItem.unitPriceExclVat, 12.5);
+  assert.equal(reorderedItem.totalPrice, 37.5);
+  assert.equal(reorderedItem.vatPercentage, 21);
+  // priceUpdates surfaces the change (5 -> 12.5)
+  assert.equal(result.priceUpdates.length, 1);
+  assert.equal(result.priceUpdates[0].oldUnitPrice, 5);
+  assert.equal(result.priceUpdates[0].newUnitPrice, 12.5);
+  assert.equal(result.skipped.length, 0);
+  assert.equal(result.stats.priceChangedCount, 1);
+});
+
+test('reorderOrder skips items when product is inactive or not found', async () => {
+  const sourceOrder = {
+    _id: { toString: () => 'order-2' },
+    orderNumber: 'SO-20260510-DEAD00',
+    customerId: 'customer-1',
+    createdByUserId: 'portal-1',
+    items: [
+      { productId: 'product-active', productName: 'Active', sku: 'SKU-A', quantity: 2, unitPrice: 10 },
+      { productId: 'product-inactive', productName: 'Inactive', sku: 'SKU-I', quantity: 1, unitPrice: 8 },
+      { productId: 'product-missing', productName: 'Missing', sku: 'SKU-M', quantity: 4, unitPrice: 9 },
+    ],
+  };
+  const model = {
+    findById: () => execResult(sourceOrder),
+  };
+  const productsService = {
+    getProductById: async (id: string) => {
+      if (id === 'product-active') {
+        return {
+          id: 'product-active',
+          omschrijving: 'Active',
+          artikelnummer: 'SKU-A',
+          finalPrice: 11,
+          basePrice: 11,
+          btwPercentage: 9,
+          artikelgroepId: 'cat-1',
+          isActive: true,
+        };
+      }
+      if (id === 'product-inactive') {
+        return {
+          id: 'product-inactive',
+          omschrijving: 'Inactive',
+          artikelnummer: 'SKU-I',
+          finalPrice: 8,
+          basePrice: 8,
+          btwPercentage: 9,
+          artikelgroepId: 'cat-1',
+          isActive: false,
+        };
+      }
+      throw new Error('Product not found');
+    },
+  };
+  const categoriesService = {
+    getActiveCategoryIds: async () => ['cat-1'],
+  };
+  const auditService = { log: async () => undefined };
+  const service = new OrdersService(
+    model as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    auditService as any,
+    {} as any,
+    productsService as any,
+    {} as any,
+    categoriesService as any,
+  );
+
+  const result = await service.reorderOrder('order-2', {
+    userId: 'portal-1',
+    role: 'customer',
+    customerId: 'customer-1',
+  });
+
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].productId, 'product-active');
+  assert.equal(result.items[0].unitPrice, 11);
+  assert.equal(result.skipped.length, 2);
+  const skippedIds = result.skipped.map((s: any) => s.productId).sort();
+  assert.deepEqual(skippedIds, ['product-inactive', 'product-missing']);
+  const inactive = result.skipped.find((s: any) => s.productId === 'product-inactive');
+  assert.equal(inactive?.reason, 'product_inactive');
+});
+
+test('reorderOrder skips items whose category is no longer active', async () => {
+  const sourceOrder = {
+    _id: { toString: () => 'order-3' },
+    customerId: 'customer-1',
+    createdByUserId: 'portal-1',
+    items: [
+      { productId: 'product-x', productName: 'X', sku: 'SKU-X', quantity: 2, unitPrice: 7 },
+    ],
+  };
+  const model = { findById: () => execResult(sourceOrder) };
+  const productsService = {
+    getProductById: async () => ({
+      id: 'product-x',
+      omschrijving: 'X',
+      artikelnummer: 'SKU-X',
+      finalPrice: 7,
+      basePrice: 7,
+      btwPercentage: 21,
+      artikelgroepId: 'cat-disabled',
+      isActive: true,
+    }),
+  };
+  const categoriesService = {
+    getActiveCategoryIds: async () => ['cat-other'],
+  };
+  const service = new OrdersService(
+    model as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    { log: async () => undefined } as any,
+    {} as any,
+    productsService as any,
+    {} as any,
+    categoriesService as any,
+  );
+
+  const result = await service.reorderOrder('order-3', {
+    userId: 'portal-1',
+    role: 'customer',
+    customerId: 'customer-1',
+  });
+
+  assert.equal(result.items.length, 0);
+  assert.equal(result.skipped.length, 1);
+  assert.equal(result.skipped[0].reason, 'category_inactive');
 });
 
 test('admin cannot assign super_admin role but can create admin users', async () => {

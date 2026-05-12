@@ -24,10 +24,37 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({ summary: 'Get orders' })
-  async getOrders(@Query('status') status: string | undefined, @Req() req: any) {
-    const filters: any = {};
+  async getOrders(
+    @Query('status') status: string | undefined,
+    @Query('deliveryType') deliveryType: string | undefined,
+    @Query('deliveryTiming') deliveryTiming: string | undefined,
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Query('search') search: string | undefined,
+    @Query('customerId') customerId: string | undefined,
+    @Query('sort') sort: string | undefined,
+    @Query('page') page: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Req() req: any,
+  ) {
+    const filters: Record<string, any> = {};
     if (status) filters.status = status;
+    if (deliveryType) filters.deliveryType = deliveryType;
+    if (deliveryTiming) filters.deliveryTiming = deliveryTiming;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+    if (search) filters.search = search;
+    if (customerId) filters.customerId = customerId;
+    if (sort) filters.sort = sort;
+    if (page !== undefined) filters.page = Number(page);
+    if (limit !== undefined) filters.limit = Number(limit);
     return this.ordersService.getOrders(filters, req.user);
+  }
+
+  @Post(':id/reorder')
+  @ApiOperation({ summary: 'Build a current-priced cart snapshot from a past order' })
+  async reorderOrder(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.reorderOrder(id, req.user);
   }
 
   @Get(':id')

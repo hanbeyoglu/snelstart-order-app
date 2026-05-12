@@ -131,6 +131,7 @@ interface CartState {
   customerId: string | null;
   currentUserId: string | null;
   addItem: (item: CartItem) => void;
+  addItems: (items: CartItem[], options?: { customerId?: string | null; replace?: boolean }) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updateUnitPrice: (
     productId: string,
@@ -171,6 +172,28 @@ export const useCartStore = create<CartState>()((set, get) => ({
         saveCartForUser(state.currentUserId, nextItems, state.customerId);
       }
       return { items: nextItems };
+    }),
+
+  addItems: (incoming, options) =>
+    set((state) => {
+      const targetCustomerId = options?.customerId ?? state.customerId ?? null;
+      const baseItems = options?.replace ? [] : state.items.filter((i) => !i.isChildItem);
+      let merged = baseItems;
+      for (const item of incoming) {
+        const existing = merged.find((i) => i.productId === item.productId);
+        if (existing) {
+          merged = merged.map((i) =>
+            i.productId === item.productId ? mergeParentCartItem(i, item) : i,
+          );
+        } else {
+          merged = [...merged, item];
+        }
+      }
+      const synced = syncChildItems(merged);
+      if (state.currentUserId) {
+        saveCartForUser(state.currentUserId, synced, targetCustomerId);
+      }
+      return { items: synced, customerId: targetCustomerId };
     }),
 
   updateQuantity: (productId, quantity) =>

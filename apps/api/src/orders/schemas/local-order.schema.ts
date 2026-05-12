@@ -33,10 +33,16 @@ export interface CartItem {
   quantityPerParent?: number;
 }
 
+export type DeliveryType = 'warehouse_pickup' | 'market_delivery';
+export type DeliveryTiming = 'asap' | 'scheduled';
+
 @Schema({ timestamps: true })
 export class LocalOrder extends Document {
   @Prop({ required: true, unique: true })
   idempotencyKey: string;
+
+  @Prop({ index: true })
+  orderNumber?: string;
 
   @Prop({ required: true })
   customerId: string;
@@ -94,6 +100,15 @@ export class LocalOrder extends Document {
   @Prop({ required: true, enum: ['DRAFT', 'PENDING_SYNC', 'SYNCED', 'FAILED'], default: 'DRAFT' })
   status: string;
 
+  @Prop({ enum: ['warehouse_pickup', 'market_delivery'], default: null })
+  deliveryType?: DeliveryType | null;
+
+  @Prop({ enum: ['asap', 'scheduled'], default: null })
+  deliveryTiming?: DeliveryTiming | null;
+
+  @Prop()
+  deliveryDate?: Date;
+
   @Prop()
   snelstartOrderId?: string;
 
@@ -109,3 +124,13 @@ export class LocalOrder extends Document {
 
 export const LocalOrderSchema = SchemaFactory.createForClass(LocalOrder);
 export type LocalOrderDocument = LocalOrder & Document;
+
+LocalOrderSchema.index({ customerId: 1, createdAt: -1 });
+LocalOrderSchema.index({ createdByUserId: 1, createdAt: -1 });
+LocalOrderSchema.index({ status: 1, createdAt: -1 });
+LocalOrderSchema.index({ deliveryType: 1 });
+LocalOrderSchema.index({ deliveryTiming: 1 });
+LocalOrderSchema.index({ totalInclVat: -1 });
+LocalOrderSchema.index({ orderNumber: 1 });
+LocalOrderSchema.index({ 'items.productId': 1 });
+LocalOrderSchema.index({ 'items.sku': 1 });
