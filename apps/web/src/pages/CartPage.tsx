@@ -954,8 +954,13 @@ export default function CartPage() {
                     <QuantityInput
                       className="quantity-input"
                       value={item.quantity}
+                      allowZero
                       onCommit={(newQuantity) => {
-                        if (!isChildItem) updateQuantity(item.productId, newQuantity);
+                        if (isChildItem) return;
+                        if (newQuantity <= 0) {
+                          showToast(t('cart:messages.removed', { name: item.productName }), 'success', 2500);
+                        }
+                        updateQuantity(item.productId, newQuantity);
                       }}
                       ariaLabel={`${item.productName} ${t('products:fields.quantity')}`}
                       disabled={isChildItem}
@@ -1278,7 +1283,7 @@ export default function CartPage() {
                 <motion.button
                   onClick={() => {
                     removeItem(itemToRemove.productId);
-                    showToast(t('cart:messages.removed', { name: itemToRemove.productName }), 'info', 2500);
+                    showToast(t('cart:messages.removed', { name: itemToRemove.productName }), 'success', 2500);
                     setItemToRemove(null);
                   }}
                   className="btn-danger"

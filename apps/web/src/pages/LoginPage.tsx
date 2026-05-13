@@ -288,7 +288,7 @@ export default function LoginPage() {
                     textDecoration: 'underline',
                   }}
                 >
-                  Şifremi unuttum
+                  {t('auth:login.forgotPassword')}
                 </button>
               </div>
             </motion.div>
@@ -351,17 +351,15 @@ export default function LoginPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginBottom: '0.75rem', color: '#111827' }}>Uyarı</h3>
-            <p style={{ marginBottom: '1rem', color: '#374151' }}>
-              Lütfen Yetkiliniz ile görüşün
-            </p>
+            <h3 style={{ marginBottom: '0.75rem', color: '#111827' }}>{t('auth:login.forgotPasswordTitle')}</h3>
+            <p style={{ marginBottom: '1rem', color: '#374151' }}>{t('auth:login.forgotPasswordMessage')}</p>
             <button
               type="button"
               className="btn-primary"
               onClick={() => setShowForgotPasswordPopup(false)}
               style={{ width: '100%' }}
             >
-              Tamam
+              {t('auth:login.forgotPasswordDismiss')}
             </button>
           </div>
         </div>

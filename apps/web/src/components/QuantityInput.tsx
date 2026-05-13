@@ -7,6 +7,8 @@ interface QuantityInputProps {
   value: number;
   onCommit: (quantity: number) => void;
   max?: number | null;
+  /** true: 0 kabul edilir (sepetten satır silmek için). Varsayılan false → minimum 1. */
+  allowZero?: boolean;
   ariaLabel?: string;
   className?: string;
   style?: CSSProperties;
@@ -17,6 +19,7 @@ export default function QuantityInput({
   value,
   onCommit,
   max,
+  allowZero = false,
   ariaLabel = 'Miktar',
   className,
   style,
@@ -49,7 +52,11 @@ export default function QuantityInput({
   const clampQuantity = (raw: number) => {
     const maxQuantity = typeof max === 'number' && Number.isFinite(max) ? Math.max(1, max) : null;
     let nextQuantity = Number.isFinite(raw) ? raw : 1;
-    if (nextQuantity < 1) {
+    if (allowZero) {
+      if (nextQuantity < 0) {
+        nextQuantity = 0;
+      }
+    } else if (nextQuantity < 1) {
       nextQuantity = 1;
     }
     if (maxQuantity !== null && nextQuantity > maxQuantity) {
@@ -102,7 +109,7 @@ export default function QuantityInput({
     <input
       type="number"
       inputMode="numeric"
-      min="1"
+      min={allowZero ? '0' : '1'}
       max={typeof max === 'number' && Number.isFinite(max) ? max : undefined}
       value={draftValue}
       onChange={handleChange}

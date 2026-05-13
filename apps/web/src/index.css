@@ -76,6 +76,114 @@ html[dir='rtl'] td[style*='right'] {
   min-height: 100vh;
 }
 
+/* Toasts (portal → body): üst köşe, kapatma mutlak — metin ile çakışmaz */
+.toast-viewport {
+  position: fixed;
+  z-index: 19000;
+  width: min(calc(100vw - 1.25rem), 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  pointer-events: none;
+  inset-inline-end: max(0.6rem, env(safe-area-inset-end, 0px));
+  inset-inline-start: auto;
+  top: max(0.6rem, env(safe-area-inset-top, 0px));
+  box-sizing: border-box;
+}
+
+.toast-viewport-item {
+  pointer-events: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toast-card {
+  position: relative;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(300px, 100%);
+  margin-inline-start: auto;
+  padding-block: 0.5rem;
+  padding-inline: 0.5rem 2.35rem;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-inline-start: 3px solid var(--toast-accent, #059669);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.toast-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.toast-card-body {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.toast-card-message {
+  margin: 0;
+  color: #334155;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.toast-card-close {
+  position: absolute;
+  top: 0.35rem;
+  inset-inline-end: 0.3rem;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(100, 116, 139, 0.8);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toast-card-close:active {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.toast-card-close svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+.toast-card-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -983,10 +1091,12 @@ h3 {
   top: 0;
   z-index: 50;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+  grid-template-columns: minmax(140px, 1fr) auto minmax(160px, 1fr);
   align-items: center;
-  gap: 1rem;
-  padding: 0.85rem clamp(1rem, 3vw, 2rem);
+  gap: 0.75rem 1rem;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px)) clamp(0.75rem, 3vw, 2rem) 0.85rem;
+  padding-left: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-right, 0px));
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid #dbe7e1;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
@@ -1002,11 +1112,17 @@ h3 {
   min-width: 0;
 }
 
+.customer-brand-text {
+  min-width: 0;
+  display: block;
+}
+
 .customer-brand-mark {
   display: grid;
   place-items: center;
   width: 42px;
   height: 42px;
+  flex-shrink: 0;
   border-radius: 8px;
   background: #0f766e;
   color: #fff;
@@ -1030,6 +1146,68 @@ h3 {
   margin-top: 0.15rem;
   color: #66756e;
   font-size: 0.8rem;
+}
+
+.customer-nav-toggle {
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #d7e5de;
+  background: #fff;
+  color: #1e3d35;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.customer-nav-toggle-icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 22px;
+  height: 18px;
+}
+
+.customer-nav-toggle-bar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 1px;
+  background: #0f766e;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.customer-topbar--nav-open .customer-nav-toggle-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.customer-topbar--nav-open .customer-nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.customer-topbar--nav-open .customer-nav-toggle-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.customer-nav-toggle-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.customer-panel {
+  display: contents;
 }
 
 .customer-nav {
@@ -1084,8 +1262,19 @@ h3 {
   min-width: 0;
 }
 
-.customer-account > div {
+.customer-account-meta {
   min-width: 0;
+}
+
+.customer-logout-btn {
+  min-height: 38px;
+  border: 1px solid #d7e5de;
+  border-radius: 6px;
+  background: #fff;
+  color: #33443d;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.45rem 0.75rem;
 }
 
 [dir='rtl'] .customer-account {
@@ -1095,17 +1284,6 @@ h3 {
 [dir='rtl'] .customer-brand,
 [dir='rtl'] .customer-account {
   text-align: right;
-}
-
-.customer-account button {
-  min-height: 38px;
-  border: 1px solid #d7e5de;
-  border-radius: 6px;
-  background: #fff;
-  color: #33443d;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0.45rem 0.75rem;
 }
 
 .customer-main {
@@ -1692,26 +1870,103 @@ h3 {
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .customer-topbar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem 0.75rem;
+  }
+
+  .customer-nav-toggle {
+    display: inline-flex;
+    margin-inline-start: auto;
+    position: relative;
+  }
+
+  .customer-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex-basis: 100%;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      max-height 0.32s ease,
+      opacity 0.22s ease,
+      visibility 0.22s ease;
+    border-top: 1px solid transparent;
+  }
+
+  .customer-panel--open {
+    max-height: min(78vh, 580px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    opacity: 1;
+    visibility: visible;
+    margin-top: 0.15rem;
+    padding-top: 0.65rem;
+    border-top-color: #dbe7e1;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .customer-nav {
     width: 100%;
-    overflow-x: auto;
+    flex-direction: column;
+    align-items: stretch;
     justify-content: flex-start;
+    gap: 0.2rem;
+    padding: 0.35rem;
+    background: #edf5f1;
+  }
+
+  .customer-nav a {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 46px;
+    padding: 0.65rem 1rem;
+    white-space: normal;
+    border-radius: 8px;
   }
 
   .customer-account {
-    justify-self: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.35rem 0.15rem;
+    border-top: 1px solid #dbe7e1;
+    gap: 0.75rem;
+    align-items: center;
     justify-content: space-between;
-    gap: 0.65rem;
+    justify-self: stretch;
+  }
+
+  .customer-account-meta {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+
+  .customer-logout-btn {
+    min-height: 44px;
+    padding: 0.5rem 0.85rem;
   }
 
   .customer-products-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .customer-panel {
+    display: contents;
+  }
+
+  .customer-nav-toggle {
+    display: none !important;
   }
 }
 
@@ -2006,8 +2261,8 @@ h3 {
 
 @media (max-width: 430px) {
   .customer-topbar {
-    padding: 0.75rem;
-    gap: 0.7rem;
+    padding-top: max(0.65rem, env(safe-area-inset-top, 0px));
+    gap: 0.55rem;
   }
 
   .customer-brand-mark {
@@ -2016,18 +2271,13 @@ h3 {
   }
 
   .customer-nav a {
-    min-height: 42px;
-    padding: 0.5rem 0.7rem;
+    min-height: 48px;
     font-size: 0.88rem;
   }
 
   .customer-main {
     width: min(100% - 1rem, 1280px);
     padding-top: 0.75rem;
-  }
-
-  .customer-account {
-    flex-wrap: wrap;
   }
 }
 

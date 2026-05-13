@@ -54,6 +54,6 @@
     "orderCreateError": "Sipariş oluşturulurken bir hata oluştu",
     "cartCleared": "Sepet temizlendi",
     "priceRestored": "{{name}} orijinal fiyatına döndürüldü",
-    "removed": "{{name}} sepetten çıkarıldı"
+    "removed": "{{name}} sepetten çıkartıldı"
   }
 }

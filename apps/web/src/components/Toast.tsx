@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { isRtlLanguage } from '../i18n/constants';
 
 export interface Toast {
   id: string;
@@ -33,123 +33,74 @@ function ToastItem({ toast, onClose }: ToastProps) {
   };
 
   const colors = {
-    success: {
-      bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%)',
-      border: 'rgba(16, 185, 129, 0.3)',
-    },
-    error: {
-      bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%)',
-      border: 'rgba(239, 68, 68, 0.3)',
-    },
-    info: {
-      bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(79, 70, 229, 0.95) 100%)',
-      border: 'rgba(99, 102, 241, 0.3)',
-    },
-    warning: {
-      bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)',
-      border: 'rgba(245, 158, 11, 0.3)',
-    },
+    success: { accent: '#059669', iconBg: 'rgba(16, 185, 129, 0.12)' },
+    error: { accent: '#dc2626', iconBg: 'rgba(239, 68, 68, 0.1)' },
+    info: { accent: '#4f46e5', iconBg: 'rgba(99, 102, 241, 0.12)' },
+    warning: { accent: '#d97706', iconBg: 'rgba(245, 158, 11, 0.14)' },
   };
 
   const color = colors[toast.type];
+  const cssVars = { '--toast-accent': color.accent } as CSSProperties;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -50, x: 300, scale: 0.8 }}
-      animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 300, scale: 0.8 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      style={{
-        background: color.bg,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${color.border}`,
-        borderRadius: '16px',
-        padding: '1rem 1.25rem',
-        minWidth: '300px',
-        maxWidth: '400px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        cursor: 'pointer',
-        marginBottom: '0.75rem',
-      }}
+      className="toast-card"
+      style={cssVars}
+      initial={{ opacity: 0, y: -14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       onClick={() => onClose(toast.id)}
-      whileHover={{ scale: 1.02, x: -5 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.008 }}
+      whileTap={{ scale: 0.995 }}
     >
-      <motion.div
-        style={{ fontSize: '1.5rem', flexShrink: 0 }}
-        animate={{ rotate: [0, 10, -10, 0] }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        {icons[toast.type]}
-      </motion.div>
-      <p
-        style={{
-          color: 'white',
-          fontWeight: 500,
-          fontSize: '0.95rem',
-          lineHeight: 1.5,
-          flex: 1,
-          margin: 0,
-        }}
-      >
-        {toast.message}
-      </p>
+      <div className="toast-card-main">
+        <div className="toast-card-icon" style={{ background: color.iconBg }} aria-hidden>
+          {icons[toast.type]}
+        </div>
+        <div className="toast-card-body">
+          <p className="toast-card-message">{toast.message}</p>
+        </div>
+      </div>
       <button
-        className="close-x-button"
+        type="button"
+        className="toast-card-close"
         onClick={(e) => {
           e.stopPropagation();
           onClose(toast.id);
         }}
-        style={{
-          background: 'rgba(255, 255, 255, 0.2)',
-          border: 'none',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: 'white',
-          fontSize: '1rem',
-          padding: 0,
-          flexShrink: 0,
-        }}
         aria-label={t('actions.close')}
-      />
+      >
+        <svg viewBox="0 0 10 10" aria-hidden>
+          <path
+            d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
     </motion.div>
   );
 }
 
 export default function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: (id: string) => void }) {
-  const { i18n } = useTranslation();
-  const isRtl = isRtlLanguage(i18n.resolvedLanguage || i18n.language);
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '1rem',
-        right: isRtl ? 'auto' : '1rem',
-        left: isRtl ? '1rem' : 'auto',
-        zIndex: 10000,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: isRtl ? 'flex-start' : 'flex-end',
-        pointerEvents: 'none',
-        gap: '0.5rem',
-      }}
-    >
+  const node = (
+    <div className="toast-viewport">
       <AnimatePresence>
         {toasts.map((toast) => (
-          <div key={toast.id} style={{ pointerEvents: 'auto' }}>
+          <div key={toast.id} className="toast-viewport-item">
             <ToastItem toast={toast} onClose={onClose} />
           </div>
         ))}
       </AnimatePresence>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(node, document.body);
 }
