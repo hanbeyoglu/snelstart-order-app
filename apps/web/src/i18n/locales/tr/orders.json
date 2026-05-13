@@ -100,6 +100,22 @@
     "next": "Sonraki",
     "showing": "{{from}}–{{to}} / {{total}}"
   },
+  "upcomingTitle": "Yaklaşan Siparişler",
+  "upcomingSubtitle": "İleri tarihli, henüz teslim edilmemiş planlı siparişler",
+  "upcomingEmpty": "Yaklaşan sipariş yok",
+  "upcomingEmptyDesc": "Seçilen filtrelere uygun planlı sipariş bulunamadı",
+  "upcomingFilters": {
+    "all": "Tümü",
+    "tomorrow": "Yarın",
+    "next3days": "Sonraki 3 gün",
+    "next7days": "Sonraki 7 gün",
+    "thisweek": "Bu hafta"
+  },
+  "upcomingDays": {
+    "today": "Bugün",
+    "tomorrow": "Yarın",
+    "inDays": "{{count}} gün sonra"
+  },
   "emailDelivery": {
     "sectionTitle": "Teslimat Bilgileri",
     "deliveryType": "Teslimat Tipi",

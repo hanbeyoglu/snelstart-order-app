@@ -30,5 +30,13 @@
     "orders_one": "{{count}} sipariş",
     "orders_other": "{{count}} sipariş",
     "pieces": "{{count}} adet"
+  },
+  "upcoming": {
+    "title": "Yaklaşan Teslimatlar",
+    "viewAll": "Yaklaşanları görüntüle",
+    "today": "Bugün planlı",
+    "tomorrow": "Yarın",
+    "next7days": "Sonraki 7 gün",
+    "overdue": "Geciken"
   }
 }

@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
 export default function DashboardPage() {
-  const { t } = useAppTranslation(['dashboard']);
+  const { t } = useAppTranslation(['dashboard', 'orders']);
+  const { formatCurrency } = useLocaleFormat();
   const [period, setPeriod] = useState<Period>('daily');
   const navigate = useNavigate();
 
@@ -101,6 +103,63 @@ export default function DashboardPage() {
           ))}
         </div>
       </motion.div>
+
+      {/* Upcoming Orders Widgets */}
+      {stats?.upcoming && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              📅 {t('dashboard:upcoming.title')}
+            </h2>
+            <motion.button
+              onClick={() => navigate('/upcoming-orders')}
+              className="btn-secondary"
+              style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', fontWeight: 600 }}
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+            >
+              {t('dashboard:upcoming.viewAll')}
+            </motion.button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+            {[
+              { label: t('dashboard:upcoming.today'), count: stats.upcoming.todayScheduled, color: '#6366f1', bg: 'rgba(99,102,241,0.08)', icon: '📦' },
+              { label: t('dashboard:upcoming.tomorrow'), count: stats.upcoming.tomorrow, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', icon: '⏰', onClick: () => navigate('/upcoming-orders?quickFilter=tomorrow') },
+              { label: t('dashboard:upcoming.next7days'), count: stats.upcoming.next7Days, color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', icon: '📅', onClick: () => navigate('/upcoming-orders?quickFilter=next7days') },
+              { label: t('dashboard:upcoming.overdue'), count: stats.upcoming.overdue, color: '#ef4444', bg: 'rgba(239,68,68,0.08)', icon: '🚨' },
+            ].map((widget) => (
+              <motion.div
+                key={widget.label}
+                onClick={widget.onClick}
+                style={{
+                  background: widget.bg,
+                  border: `1.5px solid ${widget.color}25`,
+                  borderRadius: '14px',
+                  padding: '1rem',
+                  cursor: widget.onClick ? 'pointer' : 'default',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem',
+                }}
+                whileHover={widget.onClick ? { scale: 1.03, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' } : {}}
+                whileTap={widget.onClick ? { scale: 0.98 } : {}}
+              >
+                <span style={{ fontSize: '1.5rem' }}>{widget.icon}</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: widget.color, lineHeight: 1 }}>
+                  {widget.count}
+                </span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {widget.label}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }} className="responsive-grid">

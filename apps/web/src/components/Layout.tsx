@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { canManagePermissions, hasPermission } from '../utils/permissions';
@@ -134,7 +135,10 @@ export default function Layout() {
       ? [{ to: '/customers', label: t('navigation.customers'), icon: '👥' }]
       : []),
     ...(hasPermission(user, 'orders.view')
-      ? [{ to: '/orders', label: t('navigation.orders'), icon: '📋' }]
+      ? [
+          { to: '/orders', label: t('navigation.orders'), icon: '📋' },
+          { to: '/upcoming-orders', label: t('navigation.upcomingOrders'), icon: '📅' },
+        ]
       : []),
   ];
 
@@ -280,15 +284,25 @@ export default function Layout() {
         }}
       >
         <div
-          className="container"
+          className="container header-toolbar"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '0 clamp(0.75rem, 2vw, 1rem)',
-            gap: 'clamp(0.5rem, 2vw, 0.75rem)',
+            gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+            flexWrap: 'nowrap',
+            minWidth: 0,
           }}
         >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'clamp(0.35rem, 1.5vw, 0.5rem)',
+              flexShrink: 0,
+            }}
+          >
           <Link
             to="/"
             style={{
@@ -363,7 +377,6 @@ export default function Layout() {
             </motion.div> */}
           </Link>
 
-          {/* Token Durumu İkonu */}
           {user && (
             <motion.div
               data-token-icon
@@ -556,21 +569,48 @@ export default function Layout() {
               </AnimatePresence>
             </motion.div>
           )}
+          </div>
 
           {/* Desktop Navigation */}
           <nav
             className="desktop-nav"
             style={{
               display: 'none',
-              gap: '0.25rem',
               alignItems: 'center',
               flexWrap: 'nowrap',
-              flex: 1,
-              justifyContent: 'center',
-              margin: '0 1rem',
+              flex: '1 1 0%',
+              margin: '0 clamp(0.25rem, 1vw, 0.75rem)',
               minWidth: 0,
+              gap: 'clamp(0.65rem, 2vw, 1.25rem)',
             }}
           >
+            <div
+              className="desktop-nav-scroll"
+              style={{
+                flex: '1 1 0%',
+                minWidth: 0,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                overscrollBehaviorX: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'thin',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingInlineEnd: '0.75rem',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  flexWrap: 'nowrap',
+                  width: 'max-content',
+                  minHeight: '44px',
+                }}
+              >
             {navLinks.map((link) => {
               const isActive = isActiveLink(link.to);
               return (
@@ -579,6 +619,12 @@ export default function Layout() {
                   whileHover={{ y: -1 }}
                   whileTap={{ y: 0 }}
                   transition={{ duration: 0.15 }}
+                  style={{
+                    flex: '0 0 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    alignSelf: 'stretch',
+                  }}
                 >
                   <Link
                     to={link.to}
@@ -587,18 +633,22 @@ export default function Layout() {
                       textDecoration: 'none',
                       color: isActive ? 'var(--primary)' : 'var(--text-primary)',
                       fontWeight: 600,
-                      padding: '0.6rem 1rem',
+                      padding: '0.5rem clamp(0.5rem, 1.2vw, 0.95rem)',
                       borderRadius: '10px',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                      fontSize: '0.9rem',
+                      fontSize: 'clamp(0.8rem, 1.1vw, 0.9rem)',
                       position: 'relative',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      minHeight: '44px',
+                      lineHeight: 1.2,
                       background: isActive
                         ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%)'
                         : 'transparent',
                       transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+                      whiteSpace: 'nowrap',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background =
@@ -620,13 +670,33 @@ export default function Layout() {
                       }
                     }}
                   >
-                    <span style={{ fontSize: '1em' }}>{link.icon}</span>
-                    <span>{link.label}</span>
+                    <span style={{ fontSize: '1em', flexShrink: 0 }}>{link.icon}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{link.label}</span>
                   </Link>
                 </motion.div>
               );
             })}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              </div>
+            </div>
+            <div
+              className="desktop-nav-actions"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexShrink: 0,
+                position: 'relative',
+                zIndex: 3,
+                paddingInlineStart: '0.15rem',
+              }}
+            >
+              {/* Notification Bell — son menü linkiyle çakışmasın */}
+              {user && user.role !== 'customer' && (
+                <div className="header-notification-slot" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  <NotificationBell />
+                </div>
+              )}
+
               <motion.div
                 style={{
                   position: 'relative',
@@ -637,19 +707,22 @@ export default function Layout() {
                 <motion.button
                   onClick={() => navigate('/cart')}
                   className="btn-primary"
+                  aria-label={t('navigation.cart')}
+                  type="button"
                   style={{
-                    padding: '0.65rem 1.25rem',
-                    fontSize: '0.9rem',
+                    padding: '0.6rem clamp(0.65rem, 1.5vw, 1.15rem)',
+                    fontSize: 'clamp(0.8rem, 1.1vw, 0.9rem)',
                     minHeight: '42px',
                     minWidth: '42px',
                     overflow: 'visible',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     boxShadow: '0 3px 12px rgba(99, 102, 241, 0.3)',
                     border: 'none',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.45rem',
+                    gap: '0.4rem',
                     fontWeight: 600,
+                    whiteSpace: 'nowrap',
                   }}
                   whileHover={{
                     boxShadow: '0 5px 16px rgba(99, 102, 241, 0.4)',
@@ -657,8 +730,8 @@ export default function Layout() {
                   }}
                   whileTap={{ scale: 0.96 }}
                 >
-                  <span style={{ fontSize: '1.1em' }}>🛒</span>
-                  <span>{t('navigation.cart')}</span>
+                  <span style={{ fontSize: '1.1em', flexShrink: 0 }}>🛒</span>
+                  <span className="cart-label-text">{t('navigation.cart')}</span>
                 </motion.button>
                 {cartItemCount > 0 && (
                   <motion.span

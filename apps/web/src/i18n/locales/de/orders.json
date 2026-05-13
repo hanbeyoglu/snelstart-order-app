@@ -100,6 +100,22 @@
     "next": "Weiter",
     "showing": "{{from}}–{{to}} von {{total}}"
   },
+  "upcomingTitle": "Bevorstehende Bestellungen",
+  "upcomingSubtitle": "Geplante Bestellungen mit zukünftigem Lieferdatum, die noch nicht geliefert wurden",
+  "upcomingEmpty": "Keine bevorstehenden Bestellungen",
+  "upcomingEmptyDesc": "Keine geplanten Bestellungen für die ausgewählten Filter gefunden",
+  "upcomingFilters": {
+    "all": "Alle",
+    "tomorrow": "Morgen",
+    "next3days": "Nächste 3 Tage",
+    "next7days": "Nächste 7 Tage",
+    "thisweek": "Diese Woche"
+  },
+  "upcomingDays": {
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "inDays": "In {{count}} Tagen"
+  },
   "emailDelivery": {
     "sectionTitle": "Lieferinformationen",
     "deliveryType": "Lieferart",

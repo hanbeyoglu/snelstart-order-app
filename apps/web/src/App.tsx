@@ -30,6 +30,7 @@ import CreateUserPage from './pages/CreateUserPage';
 import EditUserPage from './pages/EditUserPage';
 import ReportsPage from './pages/ReportsPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import UpcomingOrdersPage from './pages/UpcomingOrdersPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import Layout from './components/Layout';
@@ -113,6 +114,7 @@ function App() {
             <Route path="/customers/:customerId/edit" element={page('customers.manage', <EditCustomerPage />)} />
             <Route path="/orders" element={page('orders.view', <OrdersPage />)} />
             <Route path="/orders/:orderId" element={page('orders.view', <OrderDetailPage />)} />
+            <Route path="/upcoming-orders" element={page('orders.view', <UpcomingOrdersPage />)} />
             <Route path="/user" element={<UserPage />} />
             <Route path="/reports" element={page('reports.view', <ReportsPage />)} />
             <Route path="/audit" element={guarded(hasPermission(user, 'audit.view'), <AuditLogsPage />)} />

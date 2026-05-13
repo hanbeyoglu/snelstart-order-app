@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Benachrichtigungen",
+  "unreadCount": "{{count}} ungelesen",
+  "markAllRead": "Alle als gelesen markieren",
+  "viewAll": "Alle Benachrichtigungen anzeigen",
+  "loading": "Laden...",
+  "empty": "Noch keine Benachrichtigungen",
+  "types": {
+    "new_order": "Neue Bestellung",
+    "upcoming_reminder": "Bevorstehende Lieferung",
+    "order_cancelled": "Bestellung storniert",
+    "order_updated": "Bestellung aktualisiert",
+    "system": "System"
+  },
+  "time": {
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo": "vor {{count}} Std.",
+    "yesterday": "Gestern",
+    "daysAgo": "vor {{count}} Tagen"
+  }
+}

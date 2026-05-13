@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Notifications",
+  "unreadCount": "{{count}} unread",
+  "markAllRead": "Mark all as read",
+  "viewAll": "View all notifications",
+  "loading": "Loading...",
+  "empty": "No notifications yet",
+  "types": {
+    "new_order": "New Order",
+    "upcoming_reminder": "Upcoming Delivery",
+    "order_cancelled": "Order Cancelled",
+    "order_updated": "Order Updated",
+    "system": "System"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hr ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago"
+  }
+}

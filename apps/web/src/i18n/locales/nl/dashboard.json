@@ -30,5 +30,13 @@
     "orders_one": "{{count}} bestelling",
     "orders_other": "{{count}} bestellingen",
     "pieces": "{{count}} stuks"
+  },
+  "upcoming": {
+    "title": "Aankomende leveringen",
+    "viewAll": "Aankomende bekijken",
+    "today": "Vandaag gepland",
+    "tomorrow": "Morgen",
+    "next7days": "Volgende 7 dagen",
+    "overdue": "Te laat"
   }
 }

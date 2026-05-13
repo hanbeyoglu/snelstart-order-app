@@ -22,6 +22,33 @@ export class OrdersController {
     return this.ordersService.getDashboardStats(period, req.user);
   }
 
+  @Get('upcoming')
+  @ApiOperation({ summary: 'Get upcoming (future-dated scheduled) orders' })
+  async getUpcomingOrders(
+    @Query('deliveryDateFrom') deliveryDateFrom: string | undefined,
+    @Query('deliveryDateTo') deliveryDateTo: string | undefined,
+    @Query('customerId') customerId: string | undefined,
+    @Query('deliveryType') deliveryType: string | undefined,
+    @Query('status') status: string | undefined,
+    @Query('search') search: string | undefined,
+    @Query('quickFilter') quickFilter: string | undefined,
+    @Query('page') page: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Req() req: any,
+  ) {
+    const filters: Record<string, any> = {};
+    if (deliveryDateFrom) filters.deliveryDateFrom = deliveryDateFrom;
+    if (deliveryDateTo) filters.deliveryDateTo = deliveryDateTo;
+    if (customerId) filters.customerId = customerId;
+    if (deliveryType) filters.deliveryType = deliveryType;
+    if (status) filters.status = status;
+    if (search) filters.search = search;
+    if (quickFilter) filters.quickFilter = quickFilter;
+    if (page !== undefined) filters.page = Number(page);
+    if (limit !== undefined) filters.limit = Number(limit);
+    return this.ordersService.getUpcomingOrders(filters, req.user);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get orders' })
   async getOrders(

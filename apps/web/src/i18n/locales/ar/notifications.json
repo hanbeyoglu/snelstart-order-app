@@ -1,1 +1,22 @@
-{}
+{
+  "title": "الإشعارات",
+  "unreadCount": "{{count}} غير مقروء",
+  "markAllRead": "تحديد الكل كمقروء",
+  "viewAll": "عرض جميع الإشعارات",
+  "loading": "جار التحميل...",
+  "empty": "لا توجد إشعارات بعد",
+  "types": {
+    "new_order": "طلب جديد",
+    "upcoming_reminder": "تسليم قادم",
+    "order_cancelled": "تم إلغاء الطلب",
+    "order_updated": "تم تحديث الطلب",
+    "system": "النظام"
+  },
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} دقيقة",
+    "hoursAgo": "منذ {{count}} ساعة",
+    "yesterday": "أمس",
+    "daysAgo": "منذ {{count}} أيام"
+  }
+}
