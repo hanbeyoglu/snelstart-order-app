@@ -12,13 +12,17 @@ import {
   buildSnelStartOrderOmschrijving,
   buildSnelStartOrderMemo,
   createOrderSchema,
+  resolveOrderEmailLocale,
   sanitizeSyncErrorMessage,
+  type OrderEmailLocale,
 } from '@snelstart-order-app/shared';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
 import { PricingService } from '../pricing/pricing.service';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
 import { OrderNotificationService } from './order-notification.service';
+import { CustomerOrderConfirmationService } from './customer-order-confirmation.service';
+import { customerHasValidEmail, resolveCustomerEmails } from '@snelstart-order-app/shared';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PriceOverridePolicyService } from '../auth/price-override-policy.service';
 import { User, UserDocument } from '../auth/schemas/user.schema';
@@ -62,8 +66,44 @@ export class OrdersService {
     private categoriesService: CategoriesService,
     private priceOverridePolicyService: PriceOverridePolicyService,
     @Optional() private orderNotificationService?: OrderNotificationService,
+    @Optional() private customerOrderConfirmationService?: CustomerOrderConfirmationService,
     @Optional() private notificationsService?: NotificationsService,
   ) {}
+
+  /** Email locale snapshot at order creation (UI language + fallbacks). */
+  private async resolveOrderLocaleForCreate(
+    payloadLocale: string | undefined,
+    user: { userId?: string; preferredLanguage?: string | null } | undefined,
+    customerId: string,
+  ): Promise<OrderEmailLocale> {
+    let userPreferred = user?.preferredLanguage ?? undefined;
+    if (user?.userId && userPreferred == null) {
+      const dbUser = await this.userModel
+        .findById(user.userId)
+        .select('preferredLanguage')
+        .lean()
+        .exec();
+      userPreferred = dbUser?.preferredLanguage;
+    }
+
+    let customerPreferred: string | undefined;
+    try {
+      const customer = await this.customersService.getCustomerById(customerId);
+      const raw = (customer as Record<string, unknown>)?.preferredLanguage;
+      if (typeof raw === 'string' && raw.trim()) {
+        customerPreferred = raw;
+      }
+    } catch {
+      // customer lookup optional for locale fallback
+    }
+
+    return resolveOrderEmailLocale({
+      orderLocale: payloadLocale,
+      userPreferredLanguage: userPreferred,
+      customerPreferredLanguage: customerPreferred,
+      envLocale: process.env.ORDER_NOTIFICATION_LOCALE,
+    });
+  }
 
   private async resolvePricePolicyUser(user?: any) {
     if (!user?.userId) {
@@ -297,6 +337,11 @@ export class OrdersService {
     }
 
     const creatorSnapshot = await this.buildOrderCreatorSnapshot(user, effectiveCustomerId);
+    const orderLocale = await this.resolveOrderLocaleForCreate(
+      requested.locale,
+      user,
+      effectiveCustomerId,
+    );
 
     const trustedItems = await this.buildTrustedOrderItems(
       requested.items,
@@ -319,6 +364,7 @@ export class OrdersService {
     // Create local order
     const order = new this.orderModel({
       ...validated,
+      locale: orderLocale,
       orderNumber: this.generateOrderNumber(),
       subtotal: totals.subtotalExclVat,
       total: totals.totalInclVat,
@@ -647,7 +693,85 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
     this.assertCanAccessOrder(order, user);
-    return order;
+
+    let customerEmailAvailable = false;
+    try {
+      const customer = await this.customersService.getCustomerById(order.customerId);
+      customerEmailAvailable = customerHasValidEmail(customer as Record<string, unknown>);
+    } catch {
+      customerEmailAvailable = false;
+    }
+
+    const doc = order.toObject();
+    return {
+      ...doc,
+      customerEmailAvailable,
+    };
+  }
+
+  async sendCustomerConfirmationEmail(id: string, user?: any) {
+    this.assertCanSendCustomerConfirmationEmail(user);
+
+    const order = await this.orderModel.findById(id).exec();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== 'SYNCED') {
+      throw new BadRequestException('Sipariş senkronize edilmeden müşteri maili gönderilemez.');
+    }
+
+    const customer = await this.customersService.getCustomerById(order.customerId);
+    const emails = resolveCustomerEmails(customer as Record<string, unknown>);
+    if (emails.length === 0) {
+      throw new BadRequestException('Müşteri için geçerli e-posta adresi bulunamadı.');
+    }
+
+    const wasSentBefore = !!order.customerConfirmationEmailSentAt;
+    const now = new Date();
+    order.customerConfirmationEmailLastAttemptAt = now;
+
+    try {
+      if (!this.customerOrderConfirmationService) {
+        throw new Error('Customer order confirmation service unavailable');
+      }
+      await this.customerOrderConfirmationService.send(order, customer);
+      order.customerConfirmationEmailSentAt = now;
+      order.customerConfirmationEmailError = undefined;
+      await order.save();
+
+      await this.auditService.log({
+        action: wasSentBefore
+          ? 'CUSTOMER_CONFIRMATION_EMAIL_RESENT'
+          : 'CUSTOMER_CONFIRMATION_EMAIL_SENT',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        userId: user?.userId,
+        actorRole: user?.role,
+        metadata: { customerId: order.customerId, to: emails, trigger: 'manual' },
+      });
+
+      return {
+        success: true,
+        sentAt: order.customerConfirmationEmailSentAt,
+        resent: wasSentBefore,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      order.customerConfirmationEmailError = message;
+      await order.save();
+
+      await this.auditService.log({
+        action: 'CUSTOMER_CONFIRMATION_EMAIL_FAILED',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        userId: user?.userId,
+        actorRole: user?.role,
+        metadata: { customerId: order.customerId, error: message, trigger: 'manual' },
+      });
+
+      throw new BadRequestException(message || 'Mail gönderilemedi');
+    }
   }
 
   /**
@@ -951,8 +1075,62 @@ export class OrdersService {
         entityId: order._id.toString(),
         metadata: { customerId: order.customerId, trigger: 'sync_success' },
       });
+
+      await this.sendCustomerConfirmationAfterSync(order, customer);
     } catch (error: any) {
       this.logger.error(`Post-sync order notification failed: ${error?.message}`);
+    }
+  }
+
+  private async sendCustomerConfirmationAfterSync(order: LocalOrderDocument, customer: any): Promise<void> {
+    const orderId = order._id.toString();
+
+    if (order.customerConfirmationEmailSentAt) {
+      return;
+    }
+
+    const emails = resolveCustomerEmails(customer as Record<string, unknown>);
+    if (emails.length === 0) {
+      await this.auditService.log({
+        action: 'CUSTOMER_CONFIRMATION_EMAIL_SKIPPED_NO_EMAIL',
+        entityType: 'LocalOrder',
+        entityId: orderId,
+        metadata: { customerId: order.customerId, trigger: 'sync_success' },
+      });
+      return;
+    }
+
+    const now = new Date();
+    order.customerConfirmationEmailLastAttemptAt = now;
+
+    try {
+      if (!this.customerOrderConfirmationService) {
+        throw new Error('Customer order confirmation service unavailable');
+      }
+      await this.customerOrderConfirmationService.send(order, customer);
+      order.customerConfirmationEmailSentAt = now;
+      order.customerConfirmationEmailError = undefined;
+      await order.save();
+
+      await this.auditService.log({
+        action: 'CUSTOMER_CONFIRMATION_EMAIL_SENT',
+        entityType: 'LocalOrder',
+        entityId: orderId,
+        metadata: { customerId: order.customerId, to: emails, trigger: 'sync_success' },
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      order.customerConfirmationEmailError = message;
+      await order.save();
+
+      await this.auditService.log({
+        action: 'CUSTOMER_CONFIRMATION_EMAIL_FAILED',
+        entityType: 'LocalOrder',
+        entityId: orderId,
+        metadata: { customerId: order.customerId, error: message, trigger: 'sync_success' },
+      });
+
+      this.logger.error(`Customer confirmation email failed for ${orderId}: ${message}`);
     }
   }
 
@@ -1332,6 +1510,16 @@ export class OrdersService {
   private assertManageOrderAccess(user?: any) {
     if (user?.role === 'customer') {
       throw new ForbiddenException('Customer kullanıcı sipariş yönetimi yapamaz');
+    }
+  }
+
+  private assertCanSendCustomerConfirmationEmail(user?: any) {
+    if (user?.role === 'customer') {
+      throw new ForbiddenException('Customer kullanıcı müşteri maili gönderemez');
+    }
+    const perms = getEffectivePermissions(user?.role, user?.permissions);
+    if (!perms.includes('orders.email.send') && !perms.includes('orders.manage')) {
+      throw new ForbiddenException();
     }
   }
 

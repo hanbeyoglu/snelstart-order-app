@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
+import { hasAnyPermission } from '../utils/permissions';
 import { useCartStore } from '../store/cartStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
@@ -24,6 +25,7 @@ export default function OrderDetailPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const isCustomer = user?.role === 'customer';
+  const canSendCustomerMail = hasAnyPermission(user, ['orders.email.send', 'orders.manage']);
   const addItemsToCart = useCartStore((state) => state.addItems);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -58,7 +60,7 @@ export default function OrderDetailPage() {
     refetchOnWindowFocus: true,
   });
 
-  useOrderDetailSyncTransitionToast(orderId, order?.status, showToast, t);
+  useOrderDetailSyncTransitionToast(orderId, order?.status, showToast, t, { customerFacing: isCustomer });
 
   // Fetch SnelStart order to check procesStatus
   const shouldFetchSnelStartDetail =
@@ -153,6 +155,24 @@ export default function OrderDetailPage() {
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.message || error?.message || 'Sipariş güncellenirken bir hata oluştu';
       showToast(errorMessage, 'error', 5000);
+    },
+  });
+
+  const sendCustomerMailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/orders/${orderId}/send-customer-confirmation-email`);
+      return response.data;
+    },
+    onSuccess: () => {
+      showToast(t('orders:customerMail.sendSuccess'), 'success');
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message || error?.message || t('orders:customerMail.sendFailed');
+      showToast(message, 'error', 6000);
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
     },
   });
 
@@ -746,6 +766,55 @@ export default function OrderDetailPage() {
               </div>
             </div>
           ) : null}
+
+          {!isCustomer && canSendCustomerMail && order.status === 'SYNCED' && (
+            <div
+              style={{
+                marginBottom: '1rem',
+                padding: '1rem 1.15rem',
+                borderRadius: '16px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid rgba(148, 163, 184, 0.22)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.85rem',
+              }}
+            >
+              <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  {t('orders:customerMail.sectionTitle')}
+                </div>
+                {order.customerConfirmationEmailSentAt && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {t('orders:customerMail.lastSent')}:{' '}
+                    {new Date(order.customerConfirmationEmailSentAt).toLocaleString(locale)}
+                  </div>
+                )}
+                {order.customerConfirmationEmailError && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--danger)', marginTop: '0.25rem', overflowWrap: 'anywhere' }}>
+                    {order.customerConfirmationEmailError}
+                  </div>
+                )}
+              </div>
+              <motion.button
+                type="button"
+                className="btn-primary"
+                style={{ minHeight: '44px', flexShrink: 0 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={!order.customerEmailAvailable || sendCustomerMailMutation.isPending}
+                title={!order.customerEmailAvailable ? t('orders:customerMail.noEmailTooltip') : undefined}
+                onClick={() => sendCustomerMailMutation.mutate()}
+              >
+                {sendCustomerMailMutation.isPending
+                  ? t('orders:customerMail.sending')
+                  : order.customerConfirmationEmailSentAt
+                    ? t('orders:customerMail.resend')
+                    : t('orders:customerMail.send')}
+              </motion.button>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.9rem', marginBottom: '1rem' }}>
             {orderDetailItems.map((item) => (

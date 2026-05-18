@@ -4,6 +4,7 @@ import {
   type OrderNotificationEmailLocale,
   type OrderNotificationEmailStrings,
 } from './i18n/order-notification-email';
+import { buildOrderEmailLogoHtmlBlock, resolveOrderEmailLogoUrl } from './order-email-logo';
 
 function escapeHtml(value: string | undefined | null): string {
   if (value == null) return '';
@@ -244,8 +245,12 @@ export function buildOrderNotificationHtml(
     : '';
 
   const dir = intlTag === 'ar' ? 'rtl' : 'ltr';
+  const logoUrl = resolveOrderEmailLogoUrl(appUrl);
+  const logoHeader = logoUrl
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:640px;margin:0 auto 16px;border-collapse:collapse;">${buildOrderEmailLogoHtmlBlock(logoUrl)}</table>`
+    : '';
 
-  return `<!DOCTYPE html><html lang="${intlTag}"><head><meta charset="utf-8"/><title>${escapeHtml(t.docTitle)}</title></head><body style="margin:0;padding:16px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#222;" dir="${dir}"><div style="max-width:640px;margin:0 auto;"><h1 style="font-size:18px;margin:0 0 12px;">${escapeHtml(t.heading)}</h1><table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;"><tr><td style="padding:4px 0;color:#555;width:40%;">${escapeHtml(t.labelOrderRef)}</td><td style="padding:4px 0;"><strong>#${escapeHtml(orderRef(order))}</strong></td></tr>${
+  return `<!DOCTYPE html><html lang="${intlTag}"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escapeHtml(t.docTitle)}</title></head><body style="margin:0;padding:16px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#222;" dir="${dir}"><div style="max-width:640px;margin:0 auto;">${logoHeader}<h1 style="font-size:18px;margin:0 0 12px;">${escapeHtml(t.heading)}</h1><table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;"><tr><td style="padding:4px 0;color:#555;width:40%;">${escapeHtml(t.labelOrderRef)}</td><td style="padding:4px 0;"><strong>#${escapeHtml(orderRef(order))}</strong></td></tr>${
     order.snelstartOrderId
       ? `<tr><td style="padding:4px 0;color:#555;">${escapeHtml(t.labelSnelstart)}</td><td style="padding:4px 0;">${escapeHtml(String(order.snelstartOrderId))}</td></tr>`
       : ''

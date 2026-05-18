@@ -59,6 +59,7 @@
     "selectDelivery": "يرجى اختيار طريقة التسليم",
     "selectDeliveryTime": "يرجى اختيار وقت التسليم",
     "orderCreated": "تم إنشاء الطلب بنجاح!",
+    "orderSubmittedSyncPending": "تم استلام طلبك، والمزامنة قيد التنفيذ",
     "orderCreateError": "حدث خطأ أثناء إنشاء الطلب",
     "cartCleared": "تم مسح السلة",
     "priceRestored": "تمت استعادة السعر الأصلي لـ {{name}}",

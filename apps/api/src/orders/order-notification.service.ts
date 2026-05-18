@@ -4,6 +4,7 @@ import {
   buildOrderNotificationHtml,
   buildOrderNotificationSubject,
   buildOrderNotificationText,
+  resolveOrderEmailLocaleFromOrder,
 } from '@snelstart-order-app/shared';
 
 @Injectable()
@@ -19,7 +20,10 @@ export class OrderNotificationService {
       return false;
     }
 
-    const locale = settings.orderNotificationLocale;
+    const locale = resolveOrderEmailLocaleFromOrder(order, {
+      settingsLocale: settings.orderNotificationLocale,
+      envLocale: process.env.ORDER_NOTIFICATION_LOCALE,
+    });
     const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || '';
 
     try {

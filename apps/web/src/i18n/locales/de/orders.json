@@ -98,7 +98,9 @@
     "reorderError": "Die Bestellung konnte nicht erneut aufgegeben werden.",
     "reordering": "Wird zum Warenkorb hinzugefügt...",
     "syncSuccess": "Bestellung mit SnelStart synchronisiert.",
+    "syncSuccessCustomer": "Ihre Bestellung wurde synchronisiert.",
     "syncFailed": "Bestellung konnte nicht synchronisiert werden.",
+    "syncFailedCustomer": "Synchronisierungsfehler",
     "loadMore": "Mehr laden",
     "page": "Seite",
     "of": "/"
@@ -123,6 +125,20 @@
     "today": "Heute",
     "tomorrow": "Morgen",
     "inDays": "In {{count}} Tagen"
+  },
+  "customerMail": {
+    "sectionTitle": "Kunden-Bestätigungs-E-Mail",
+    "send": "E-Mail an Kunden senden",
+    "resend": "E-Mail erneut an Kunden senden",
+    "sending": "Wird gesendet...",
+    "sendSuccess": "E-Mail erfolgreich gesendet",
+    "sendFailed": "E-Mail konnte nicht gesendet werden",
+    "lastSent": "Letzte E-Mail gesendet",
+    "noEmailTooltip": "Keine gültige Kunden-E-Mail-Adresse gefunden.",
+    "notSynced": "Kunden-E-Mail kann erst nach Synchronisierung gesendet werden.",
+    "badgeSent": "E-Mail gesendet",
+    "badgeFailed": "E-Mail fehlgeschlagen",
+    "badgeNoEmail": "Keine E-Mail"
   },
   "emailDelivery": {
     "sectionTitle": "Lieferinformationen",

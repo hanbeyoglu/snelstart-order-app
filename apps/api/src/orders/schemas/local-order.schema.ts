@@ -108,6 +108,9 @@ export class LocalOrder extends Document {
     totalInclVat: number;
   }>;
 
+  @Prop({ enum: ['tr', 'en', 'nl', 'de', 'ar'] })
+  locale?: string;
+
   @Prop({
     required: true,
     enum: ['DRAFT', 'PENDING_SYNC', 'SYNCED', 'SYNC_FAILED', 'FAILED'],
@@ -135,6 +138,15 @@ export class LocalOrder extends Document {
 
   @Prop()
   syncedAt?: Date;
+
+  @Prop()
+  customerConfirmationEmailSentAt?: Date;
+
+  @Prop()
+  customerConfirmationEmailError?: string;
+
+  @Prop()
+  customerConfirmationEmailLastAttemptAt?: Date;
 }
 
 export const LocalOrderSchema = SchemaFactory.createForClass(LocalOrder);

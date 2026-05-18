@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeOrderNotificationLocale } from '../i18n/order-notification-email';
 import { ORDER_NOTE_MAX_LENGTH, sanitizeOrderNote } from '../order-note';
 
 // SnelStart API Validators
@@ -93,17 +94,33 @@ const optionalOrderNoteSchema = z
   .optional()
   .transform((value) => sanitizeOrderNote(value == null ? undefined : String(value)));
 
-export const createOrderSchema = z.object({
-  idempotencyKey: z.string().uuid(),
-  customerId: z.string(),
-  items: z.array(cartItemSchema),
-  note: optionalOrderNoteSchema,
-  deliveryType: z.enum(['warehouse_pickup', 'market_delivery']).optional(),
-  deliveryTiming: z.enum(['asap', 'scheduled']).optional(),
-  deliveryDate: z
-    .union([z.string().datetime(), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)])
-    .optional(),
-});
+const optionalOrderLocaleSchema = z
+  .union([z.string(), z.undefined(), z.null()])
+  .optional()
+  .transform((value) => {
+    if (value == null || String(value).trim() === '') return undefined;
+    return normalizeOrderNotificationLocale(String(value));
+  });
+
+export const createOrderSchema = z
+  .object({
+    idempotencyKey: z.string().uuid(),
+    customerId: z.string(),
+    items: z.array(cartItemSchema),
+    note: optionalOrderNoteSchema,
+    deliveryType: z.enum(['warehouse_pickup', 'market_delivery']).optional(),
+    deliveryTiming: z.enum(['asap', 'scheduled']).optional(),
+    deliveryDate: z
+      .union([z.string().datetime(), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)])
+      .optional(),
+    locale: optionalOrderLocaleSchema,
+    language: optionalOrderLocaleSchema,
+  })
+  .transform((data) => {
+    const locale = data.locale ?? data.language;
+    const { language: _language, ...rest } = data;
+    return { ...rest, locale };
+  });
 
 export const createOrderRequestSchema = z.object({
   idempotencyKey: z.string().uuid(),

@@ -98,7 +98,9 @@
     "reorderError": "Could not reorder this order.",
     "reordering": "Adding to cart...",
     "syncSuccess": "Order synced to SnelStart.",
+    "syncSuccessCustomer": "Your order has been synchronized.",
     "syncFailed": "Order could not be synced.",
+    "syncFailedCustomer": "Synchronization error",
     "loadMore": "Load more",
     "page": "Page",
     "of": "/"
@@ -123,6 +125,20 @@
     "today": "Today",
     "tomorrow": "Tomorrow",
     "inDays": "In {{count}} days"
+  },
+  "customerMail": {
+    "sectionTitle": "Customer confirmation email",
+    "send": "Send email to customer",
+    "resend": "Resend email to customer",
+    "sending": "Sending...",
+    "sendSuccess": "Email sent successfully",
+    "sendFailed": "Failed to send email",
+    "lastSent": "Last email sent",
+    "noEmailTooltip": "No customer email address found.",
+    "notSynced": "Customer email cannot be sent until the order is synced.",
+    "badgeSent": "Email sent",
+    "badgeFailed": "Email failed",
+    "badgeNoEmail": "No email"
   },
   "emailDelivery": {
     "sectionTitle": "Delivery information",

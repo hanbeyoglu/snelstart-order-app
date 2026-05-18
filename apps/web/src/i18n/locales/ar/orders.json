@@ -98,7 +98,9 @@
     "reorderError": "تعذّر إعادة هذا الطلب.",
     "reordering": "جارٍ الإضافة إلى السلة...",
     "syncSuccess": "تمت مزامنة الطلب مع SnelStart.",
+    "syncSuccessCustomer": "تمت مزامنة طلبك.",
     "syncFailed": "تعذرت مزامنة الطلب.",
+    "syncFailedCustomer": "خطأ في المزامنة",
     "loadMore": "تحميل المزيد",
     "page": "صفحة",
     "of": "/"
@@ -123,6 +125,20 @@
     "today": "اليوم",
     "tomorrow": "غداً",
     "inDays": "خلال {{count}} أيام"
+  },
+  "customerMail": {
+    "sectionTitle": "بريد تأكيد العميل",
+    "send": "إرسال بريد للعميل",
+    "resend": "إعادة إرسال البريد للعميل",
+    "sending": "جارٍ الإرسال...",
+    "sendSuccess": "تم إرسال البريد بنجاح",
+    "sendFailed": "تعذر إرسال البريد",
+    "lastSent": "آخر بريد مُرسَل",
+    "noEmailTooltip": "لم يتم العثور على بريد إلكتروني للعميل.",
+    "notSynced": "لا يمكن إرسال بريد العميل قبل مزامنة الطلب.",
+    "badgeSent": "تم إرسال البريد",
+    "badgeFailed": "فشل البريد",
+    "badgeNoEmail": "لا يوجد بريد"
   },
   "emailDelivery": {
     "sectionTitle": "معلومات التسليم",

@@ -59,6 +59,7 @@
     "selectDelivery": "Lütfen teslimat kararını seçin",
     "selectDeliveryTime": "Lütfen teslimat zamanını seçin",
     "orderCreated": "Sipariş başarıyla oluşturuldu!",
+    "orderSubmittedSyncPending": "Siparişiniz alındı, senkronizasyon devam ediyor",
     "orderCreateError": "Sipariş oluşturulurken bir hata oluştu",
     "cartCleared": "Sepet temizlendi",
     "priceRestored": "{{name}} orijinal fiyatına döndürüldü",

@@ -2,11 +2,16 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import nodemailer from 'nodemailer';
 import {
+  buildCustomerOrderConfirmationHtml,
+  buildCustomerOrderConfirmationSubject,
+  buildCustomerOrderConfirmationText,
   buildOrderNotificationHtml,
   buildOrderNotificationSubject,
   buildOrderNotificationText,
   buildSnelStartApiHeaders,
   normalizeOrderNotificationLocale,
+  resolveOrderEmailLocaleFromOrder,
+  resolveCustomerEmails,
   resolveSnelStartUrls,
   type OrderNotificationEmailLocale,
 } from '@snelstart-order-app/shared';
@@ -159,7 +164,10 @@ async function sendOrderNotification(order: any, customer?: any): Promise<boolea
     return false;
   }
 
-  const locale = settings.orderNotificationLocale;
+  const locale = resolveOrderEmailLocaleFromOrder(order, {
+    settingsLocale: settings.orderNotificationLocale,
+    envLocale: process.env.ORDER_NOTIFICATION_LOCALE,
+  });
   const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || '';
 
   await sendMail(settings, {
@@ -215,6 +223,76 @@ export async function handleOrderSyncSuccess(
     orderId,
     { customerId: order.customerId, trigger: 'worker_sync_success' },
   );
+
+  await sendCustomerConfirmationAfterSync(order, customer);
+}
+
+async function sendCustomerConfirmationAfterSync(order: any, customer?: any): Promise<void> {
+  const orderId = order._id.toString();
+
+  if (order.customerConfirmationEmailSentAt) {
+    return;
+  }
+
+  const emails = resolveCustomerEmails(customer);
+  if (emails.length === 0) {
+    await writeAudit('CUSTOMER_CONFIRMATION_EMAIL_SKIPPED_NO_EMAIL', orderId, {
+      customerId: order.customerId,
+      trigger: 'worker_sync_success',
+    });
+    return;
+  }
+
+  const settings = await getActiveMailConfig();
+  if (!settings?.smtpHost) {
+    const err = 'Mail settings not configured';
+    order.customerConfirmationEmailLastAttemptAt = new Date();
+    order.customerConfirmationEmailError = err;
+    await order.save();
+    await writeAudit('CUSTOMER_CONFIRMATION_EMAIL_FAILED', orderId, {
+      customerId: order.customerId,
+      error: err,
+      trigger: 'worker_sync_success',
+    });
+    return;
+  }
+
+  const locale = resolveOrderEmailLocaleFromOrder(order, {
+    settingsLocale: settings.orderNotificationLocale,
+    envLocale: process.env.ORDER_NOTIFICATION_LOCALE,
+  });
+  const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || '';
+  const now = new Date();
+  order.customerConfirmationEmailLastAttemptAt = now;
+
+  try {
+    await sendMail(settings, {
+      to: emails,
+      subject: buildCustomerOrderConfirmationSubject(order, locale),
+      text: buildCustomerOrderConfirmationText(order, locale, customer),
+      html: buildCustomerOrderConfirmationHtml(order, locale, customer, appUrl),
+    });
+
+    order.customerConfirmationEmailSentAt = now;
+    order.customerConfirmationEmailError = undefined;
+    await order.save();
+
+    await writeAudit('CUSTOMER_CONFIRMATION_EMAIL_SENT', orderId, {
+      customerId: order.customerId,
+      to: emails,
+      trigger: 'worker_sync_success',
+    });
+  } catch (error: any) {
+    const message = error?.message || String(error);
+    order.customerConfirmationEmailError = message;
+    await order.save();
+    console.error(`Customer confirmation email failed for ${orderId}:`, message);
+    await writeAudit('CUSTOMER_CONFIRMATION_EMAIL_FAILED', orderId, {
+      customerId: order.customerId,
+      error: message,
+      trigger: 'worker_sync_success',
+    });
+  }
 }
 
 export async function handleOrderSyncFinalFailure(order: any, errorMessage: string): Promise<void> {

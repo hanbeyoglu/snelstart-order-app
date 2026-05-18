@@ -10,6 +10,7 @@ import { useAdminPriceOverride } from '../components/AdminPriceOverrideProvider'
 import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { normalizeLanguage } from '../i18n/constants';
 import { validatePrice } from '../utils/priceValidation';
 import { usePriceOverridePolicy } from '../hooks/usePriceOverridePolicy';
 
@@ -31,7 +32,7 @@ const getLocalDateInputValue = (date: Date) => {
 };
 
 export default function CartPage() {
-  const { t } = useAppTranslation(['common', 'cart', 'products', 'errors']);
+  const { t, i18n } = useAppTranslation(['common', 'cart', 'products', 'errors']);
   const { formatCurrency } = useLocaleFormat();
   const { items, customerId, updateQuantity, updateUnitPrice, resetToOriginalPrice, removeItem, setCustomer, clear } = useCartStore();
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ export default function CartPage() {
   const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('');
   const [showCustomerList, setShowCustomerList] = useState(false);
   const customerSearchRef = useRef<HTMLDivElement>(null);
+  const submitIdempotencyKeyRef = useRef<string | null>(null);
+  const submitInFlightRef = useRef(false);
   const [localUnitPrices, setLocalUnitPrices] = useState<Record<string, string>>({});
   const [itemToRemove, setItemToRemove] = useState<{ productId: string; productName: string } | null>(null);
   const [deliveryDecision, setDeliveryDecision] = useState('');
@@ -243,6 +246,17 @@ export default function CartPage() {
     };
   };
 
+  const getSubmitIdempotencyKey = () => {
+    if (!submitIdempotencyKeyRef.current) {
+      submitIdempotencyKeyRef.current = generateUUID();
+    }
+    return submitIdempotencyKeyRef.current;
+  };
+
+  const resetSubmitIdempotencyKey = () => {
+    submitIdempotencyKeyRef.current = null;
+  };
+
   const createOrderMutation = useMutation({
     mutationFn: async () => {
       if (!selectedCustomerId) {
@@ -286,8 +300,9 @@ export default function CartPage() {
       });
 
       const response = await api.post('/orders', {
-        idempotencyKey: generateUUID(),
+        idempotencyKey: getSubmitIdempotencyKey(),
         customerId: selectedCustomerId,
+        locale: normalizeLanguage(i18n.resolvedLanguage || i18n.language),
         ...(trimmedNote ? { note: trimmedNote } : {}),
         items: orderItems,
         deliveryType: deliveryDecision,
@@ -297,7 +312,8 @@ export default function CartPage() {
       });
       return response.data;
     },
-    onSuccess: async (createdOrder) => {
+    onSuccess: (createdOrder) => {
+      resetSubmitIdempotencyKey();
       queryClient.getQueriesData({ queryKey: ['orders'] }).forEach(([queryKey, data]) => {
         const statusFilter = Array.isArray(queryKey) ? queryKey[5] : undefined;
         if (statusFilter && createdOrder?.status !== statusFilter) {
@@ -332,11 +348,16 @@ export default function CartPage() {
       setDeliveryTiming('');
       setDeliveryDate('');
       setOrderNote('');
-      await queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
-      await queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
-      showToast(t('cart:messages.orderCreated'), 'success');
+      const successMessage = isCustomer
+        ? t('cart:messages.orderSubmittedSyncPending')
+        : t('cart:messages.orderCreated');
+      showToast(successMessage, 'success');
       navigate(isCustomer ? '/my-orders' : '/orders');
+      void queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
+      if (!isCustomer) {
+        void queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
+        void queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
+      }
     },
     onError: (error: any) => {
       const status = error?.response?.status;
@@ -346,13 +367,19 @@ export default function CartPage() {
       // connection. The order was likely saved locally and the sync job enqueued. Don't
       // show a false failure — navigate away and let the orders page reflect the real state.
       if (status === 504 || status === 503 || error?.code === 'ECONNABORTED') {
+        resetSubmitIdempotencyKey();
         clear();
         setOrderNote('');
-        void queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
-        showToast(t('cart:messages.orderCreated'), 'success');
+        const successMessage = isCustomer
+          ? t('cart:messages.orderSubmittedSyncPending')
+          : t('cart:messages.orderCreated');
+        showToast(successMessage, 'success');
         navigate(isCustomer ? '/my-orders' : '/orders');
+        void queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
         return;
       }
+
+      resetSubmitIdempotencyKey();
 
       const message =
         apiMessage === 'PRICE_BELOW_MINIMUM'
@@ -363,6 +390,26 @@ export default function CartPage() {
       showToast(message, 'error', 4000);
     },
   });
+
+  const handleCreateOrder = () => {
+    if (
+      submitInFlightRef.current ||
+      createOrderMutation.isPending ||
+      !selectedCustomerId ||
+      !deliveryDecision ||
+      !deliveryTimeComplete ||
+      hasPriceErrors
+    ) {
+      return;
+    }
+
+    submitInFlightRef.current = true;
+    createOrderMutation.mutate(undefined, {
+      onSettled: () => {
+        submitInFlightRef.current = false;
+      },
+    });
+  };
 
   if (items.length === 0) {
     return (
@@ -1264,7 +1311,8 @@ export default function CartPage() {
             <span>{formatCurrency(cartTotals.totalInclVat)}</span>
           </div>
           <motion.button
-            onClick={() => selectedCustomerId && deliveryDecision && deliveryTimeComplete && !hasPriceErrors && createOrderMutation.mutate()}
+            type="button"
+            onClick={handleCreateOrder}
             className="btn-success"
             style={{ 
               width: '100%', 

@@ -98,7 +98,9 @@
     "reorderError": "Sipariş tekrar oluşturulamadı.",
     "reordering": "Sepete ekleniyor...",
     "syncSuccess": "Sipariş SnelStart ile senkronize edildi.",
+    "syncSuccessCustomer": "Siparişiniz senkronize edildi.",
     "syncFailed": "Sipariş senkronize edilemedi.",
+    "syncFailedCustomer": "Senkronizasyon hatası",
     "loadMore": "Daha Fazla",
     "page": "Sayfa",
     "of": "/"
@@ -123,6 +125,20 @@
     "today": "Bugün",
     "tomorrow": "Yarın",
     "inDays": "{{count}} gün sonra"
+  },
+  "customerMail": {
+    "sectionTitle": "Müşteri onay e-postası",
+    "send": "Müşteriye mail gönder",
+    "resend": "Müşteriye tekrar mail gönder",
+    "sending": "Gönderiliyor...",
+    "sendSuccess": "Mail başarıyla gönderildi",
+    "sendFailed": "Mail gönderilemedi",
+    "lastSent": "Son mail gönderimi",
+    "noEmailTooltip": "Müşteri e-posta adresi bulunamadı.",
+    "notSynced": "Sipariş senkronize edilmeden müşteri maili gönderilemez.",
+    "badgeSent": "Mail gönderildi",
+    "badgeFailed": "Mail gönderilemedi",
+    "badgeNoEmail": "Mail yok"
   },
   "emailDelivery": {
     "sectionTitle": "Teslimat Bilgileri",

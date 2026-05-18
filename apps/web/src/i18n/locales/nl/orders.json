@@ -98,7 +98,9 @@
     "reorderError": "De bestelling kon niet opnieuw worden geplaatst.",
     "reordering": "Toevoegen aan winkelwagen...",
     "syncSuccess": "Bestelling gesynchroniseerd met SnelStart.",
+    "syncSuccessCustomer": "Uw bestelling is gesynchroniseerd.",
     "syncFailed": "Bestelling kon niet worden gesynchroniseerd.",
+    "syncFailedCustomer": "Synchronisatiefout",
     "loadMore": "Meer laden",
     "page": "Pagina",
     "of": "/"
@@ -123,6 +125,20 @@
     "today": "Vandaag",
     "tomorrow": "Morgen",
     "inDays": "Over {{count}} dagen"
+  },
+  "customerMail": {
+    "sectionTitle": "Bevestigingsmail klant",
+    "send": "Mail naar klant sturen",
+    "resend": "Mail opnieuw naar klant sturen",
+    "sending": "Verzenden...",
+    "sendSuccess": "E-mail succesvol verzonden",
+    "sendFailed": "E-mail verzenden mislukt",
+    "lastSent": "Laatste e-mail verzonden",
+    "noEmailTooltip": "Geen geldig e-mailadres van klant gevonden.",
+    "notSynced": "Klantmail kan niet worden verzonden voordat de bestelling is gesynchroniseerd.",
+    "badgeSent": "Mail verzonden",
+    "badgeFailed": "Mail mislukt",
+    "badgeNoEmail": "Geen mail"
   },
   "emailDelivery": {
     "sectionTitle": "Leveringsinformatie",

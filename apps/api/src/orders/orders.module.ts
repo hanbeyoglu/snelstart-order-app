@@ -12,6 +12,7 @@ import { ProductsModule } from '../products/products.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { OrderNotificationService } from './order-notification.service';
+import { CustomerOrderConfirmationService } from './customer-order-confirmation.service';
 import { MailSettingsModule } from '../mail-settings/mail-settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuthModule } from '../auth/auth.module';
@@ -36,7 +37,7 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
     NotificationsModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrderNotificationService],
+  providers: [OrdersService, OrderNotificationService, CustomerOrderConfirmationService],
   exports: [OrdersService],
 })
 export class OrdersModule {}

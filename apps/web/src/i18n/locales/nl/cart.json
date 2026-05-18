@@ -59,6 +59,7 @@
     "selectDelivery": "Selecteer een leveringsoptie",
     "selectDeliveryTime": "Selecteer een levertijd",
     "orderCreated": "Bestelling succesvol aangemaakt!",
+    "orderSubmittedSyncPending": "Uw bestelling is ontvangen; synchronisatie is bezig",
     "orderCreateError": "Er is een fout opgetreden bij het maken van de bestelling",
     "cartCleared": "Winkelwagen geleegd",
     "priceRestored": "{{name}} hersteld naar oorspronkelijke prijs",

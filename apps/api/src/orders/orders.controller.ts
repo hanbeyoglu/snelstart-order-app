@@ -2,6 +2,10 @@ import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, Req,
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireAnyPermission } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -96,6 +100,15 @@ export class OrdersController {
   @ApiOperation({ summary: 'Retry failed order sync' })
   async retryOrder(@Param('id') id: string, @Req() req: any) {
     return this.ordersService.retryOrder(id, req.user);
+  }
+
+  @Post(':id/send-customer-confirmation-email')
+  @Roles('admin', 'sales_rep')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @RequireAnyPermission('orders.email.send', 'orders.manage')
+  @ApiOperation({ summary: 'Send customer order confirmation email' })
+  async sendCustomerConfirmationEmail(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.sendCustomerConfirmationEmail(id, req.user);
   }
 
   @Delete(':id')

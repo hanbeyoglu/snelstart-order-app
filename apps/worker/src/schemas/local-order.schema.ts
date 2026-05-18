@@ -41,6 +41,10 @@ export interface LocalOrder extends Document {
   errorMessage?: string;
   retryCount: number;
   syncedAt?: Date;
+  customerConfirmationEmailSentAt?: Date;
+  customerConfirmationEmailError?: string;
+  customerConfirmationEmailLastAttemptAt?: Date;
+  locale?: 'tr' | 'en' | 'nl' | 'de' | 'ar';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +77,10 @@ export const LocalOrderSchema = new Schema<LocalOrder>(
     errorMessage: String,
     retryCount: { type: Number, default: 0 },
     syncedAt: Date,
+    customerConfirmationEmailSentAt: Date,
+    customerConfirmationEmailError: String,
+    customerConfirmationEmailLastAttemptAt: Date,
+    locale: { type: String, enum: ['tr', 'en', 'nl', 'de', 'ar'] },
   },
   { timestamps: true },
 );

@@ -196,7 +196,7 @@ export default function OrdersPage() {
     [orders],
   );
 
-  useOrdersSyncTransitionToasts(orders, showToast, t);
+  useOrdersSyncTransitionToasts(orders, showToast, t, { customerFacing: isCustomer });
 
   const pagination = useMemo(() => {
     if (!ordersResponse || Array.isArray(ordersResponse)) {
@@ -780,18 +780,30 @@ export default function OrdersPage() {
                         )}
                       </td>
                       <td className="orders-cell-status">
-                        <span
-                          className="orders-status-chip"
-                          style={{
-                            background: statusConfig.bg,
-                            border: `1px solid ${statusConfig.color}`,
-                            color: statusConfig.color,
-                            transition: 'color 0.25s ease, background 0.25s ease, border-color 0.25s ease',
-                          }}
-                        >
-                          <span aria-hidden="true">{statusConfig.icon}</span>
-                          <span>{statusConfig.text}</span>
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.35rem' }}>
+                          <span
+                            className="orders-status-chip"
+                            style={{
+                              background: statusConfig.bg,
+                              border: `1px solid ${statusConfig.color}`,
+                              color: statusConfig.color,
+                              transition: 'color 0.25s ease, background 0.25s ease, border-color 0.25s ease',
+                            }}
+                          >
+                            <span aria-hidden="true">{statusConfig.icon}</span>
+                            <span>{statusConfig.text}</span>
+                          </span>
+                          {!isCustomer && order.status === 'SYNCED' && order.customerConfirmationEmailSentAt && !order.customerConfirmationEmailError && (
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)' }}>
+                              {t('orders:customerMail.badgeSent')}
+                            </span>
+                          )}
+                          {!isCustomer && order.status === 'SYNCED' && order.customerConfirmationEmailError && (
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--danger)' }}>
+                              {t('orders:customerMail.badgeFailed')}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="orders-cell-total">
                         <div className="orders-cell-total-primary">{formatCurrency(totalAmount)}</div>

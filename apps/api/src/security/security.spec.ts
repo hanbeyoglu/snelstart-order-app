@@ -206,7 +206,18 @@ function execResult<T>(value: T) {
   return { exec: async () => value };
 }
 
-function createOrderTestHarness(customersService: any = {}) {
+/** Plain order fixture with Mongoose-like toObject() for service tests. */
+function orderDoc<T extends Record<string, unknown>>(plain: T) {
+  return {
+    ...plain,
+    toObject: () => ({ ...plain }),
+  };
+}
+
+function createOrderTestHarness(
+  customersService: any = {},
+  userModelOverride?: any,
+) {
   let lastOrder: any;
   let lastPayload: any;
 
@@ -240,7 +251,7 @@ function createOrderTestHarness(customersService: any = {}) {
       artikelgroepId: 'cat-1',
     }),
   };
-  const userModel = {
+  const userModel = userModelOverride ?? {
     findById: () => ({
       select: () => ({
         lean: () => ({
@@ -406,6 +417,73 @@ test('customer order creation uses user customerId and customer name snapshot', 
   assert.match(payload.memo, /Aangemaakt door:\nDHY Food BV/);
 });
 
+test('order creation stores UI locale from payload', async () => {
+  const { service, getLastOrder } = createOrderTestHarness();
+
+  await service.createOrder(
+    createOrderPayload({
+      idempotencyKey: '55555555-5555-4555-8555-555555555555',
+      locale: 'nl',
+    }),
+    {
+      userId: 'admin-1',
+      username: 'halil',
+      role: 'admin',
+    },
+  );
+
+  assert.equal(getLastOrder().locale, 'nl');
+});
+
+test('order creation stores Arabic locale from payload', async () => {
+  const { service, getLastOrder } = createOrderTestHarness();
+
+  await service.createOrder(
+    createOrderPayload({
+      idempotencyKey: '66666666-6666-4666-8666-666666666666',
+      locale: 'ar',
+    }),
+    {
+      userId: 'admin-1',
+      username: 'halil',
+      role: 'admin',
+    },
+  );
+
+  assert.equal(getLastOrder().locale, 'ar');
+});
+
+test('order creation falls back to user preferred language when locale omitted', async () => {
+  const userModel = {
+    findById: () => ({
+      select: () => ({
+        lean: () => ({
+          exec: async () => ({
+            role: 'admin',
+            permissions: ['price.override.full'],
+            priceOverrideLimitPercent: null,
+            preferredLanguage: 'de',
+          }),
+        }),
+      }),
+    }),
+  };
+  const { service, getLastOrder } = createOrderTestHarness({}, userModel);
+
+  await service.createOrder(
+    createOrderPayload({
+      idempotencyKey: '77777777-7777-4777-8777-777777777777',
+    }),
+    {
+      userId: 'admin-1',
+      username: 'halil',
+      role: 'admin',
+    },
+  );
+
+  assert.equal(getLastOrder().locale, 'de');
+});
+
 test('order note is stored and included in SnelStart memo', async () => {
   const { service, getLastOrder } = createOrderTestHarness();
 
@@ -486,11 +564,11 @@ test('customer order detail blocks same-customer orders created by another user'
 });
 
 test('customer order detail allows own created order', async () => {
-  const ownOrder = {
+  const ownOrder = orderDoc({
     _id: 'order-1',
     customerId: 'customer-1',
     createdByUserId: 'portal-1',
-  };
+  });
   const model = {
     findById: () => execResult(ownOrder),
   };
@@ -502,7 +580,12 @@ test('customer order detail allows own created order', async () => {
     customerId: 'customer-1',
   });
 
-  assert.equal(result, ownOrder);
+  assert.deepEqual(result, {
+    _id: 'order-1',
+    customerId: 'customer-1',
+    createdByUserId: 'portal-1',
+    customerEmailAvailable: false,
+  });
 });
 
 test('reorderOrder rejects access to another customer order', async () => {

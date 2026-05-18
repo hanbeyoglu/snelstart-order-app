@@ -13,7 +13,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
       },
-      includeAssets: ['favicon.png', 'robots.txt', 'icons/*.png'],
+      includeAssets: ['favicon.png', 'DHY-logo.jpg', 'robots.txt', 'icons/*.png'],
       manifest: {
         name: 'DHY Order App',
         short_name: 'SnelStart',

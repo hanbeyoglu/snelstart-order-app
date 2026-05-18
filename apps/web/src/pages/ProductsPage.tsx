@@ -1030,7 +1030,7 @@ export default function ProductsPage() {
       )}
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.total > 0 && (
         <Pagination
           page={pagination.page}
           totalPages={pagination.totalPages}

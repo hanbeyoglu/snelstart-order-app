@@ -59,6 +59,7 @@
     "selectDelivery": "Bitte wahlen Sie eine Lieferoption",
     "selectDeliveryTime": "Bitte wahlen Sie eine Lieferzeit",
     "orderCreated": "Bestellung erfolgreich erstellt!",
+    "orderSubmittedSyncPending": "Ihre Bestellung wurde empfangen; die Synchronisierung läuft",
     "orderCreateError": "Beim Erstellen der Bestellung ist ein Fehler aufgetreten",
     "cartCleared": "Warenkorb geleert",
     "priceRestored": "{{name}} auf Originalpreis zuruckgesetzt",

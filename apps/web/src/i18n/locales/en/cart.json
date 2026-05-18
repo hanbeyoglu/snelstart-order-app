@@ -59,6 +59,7 @@
     "selectDelivery": "Please select a delivery option",
     "selectDeliveryTime": "Please select a delivery time",
     "orderCreated": "Order created successfully!",
+    "orderSubmittedSyncPending": "Your order was received; synchronization is in progress",
     "orderCreateError": "An error occurred while creating the order",
     "cartCleared": "Cart cleared",
     "priceRestored": "{{name}} restored to original price",
