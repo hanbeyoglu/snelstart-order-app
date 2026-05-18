@@ -12,6 +12,7 @@ import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { validatePrice } from '../utils/priceValidation';
 import { usePriceOverridePolicy } from '../hooks/usePriceOverridePolicy';
+import Pagination from '../components/Pagination';
 
 function getValidContentQuantity(product: any): number | null {
   const contentQuantity = Number(product?.contentQuantity);
@@ -1030,86 +1031,13 @@ export default function ProductsPage() {
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginTop: '2rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <motion.button
-            onClick={() => setPage(page - 1)}
-            disabled={!pagination.hasPrevPage}
-            className="btn-secondary"
-            style={{
-              padding: '0.5rem 1rem',
-              opacity: pagination.hasPrevPage ? 1 : 0.5,
-              cursor: pagination.hasPrevPage ? 'pointer' : 'not-allowed',
-            }}
-            whileTap={pagination.hasPrevPage ? { scale: 0.95 } : {}}
-          >
-            ← {t('pagination.previous')}
-          </motion.button>
-
-          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (pagination.totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= pagination.totalPages - 2) {
-                pageNum = pagination.totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
-
-              return (
-                <motion.button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={page === pageNum ? 'btn-primary' : 'btn-secondary'}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    minWidth: '40px',
-                  }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  {pageNum}
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <motion.button
-            onClick={() => setPage(page + 1)}
-            disabled={!pagination.hasNextPage}
-            className="btn-secondary"
-            style={{
-              padding: '0.5rem 1rem',
-              opacity: pagination.hasNextPage ? 1 : 0.5,
-              cursor: pagination.hasNextPage ? 'pointer' : 'not-allowed',
-            }}
-            whileTap={pagination.hasNextPage ? { scale: 0.95 } : {}}
-          >
-            {t('pagination.next')} →
-          </motion.button>
-
-          <div
-            style={{
-              marginLeft: '1rem',
-              color: 'var(--text-secondary)',
-              fontSize: '0.9rem',
-            }}
-          >
-            {t('products:pageSummary', { page: pagination.page, totalPages: pagination.totalPages, total: pagination.total })}
-          </div>
-        </motion.div>
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          onPageChange={setPage}
+          summary={t('products:pageSummary', { page: pagination.page, totalPages: pagination.totalPages, total: pagination.total })}
+        />
       )}
     </div>
   );

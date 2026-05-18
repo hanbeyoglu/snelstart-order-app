@@ -13,6 +13,7 @@ import {
   getPortalAssignablePermissions,
   normalizePortalPermissionSelection,
 } from '../utils/permissions';
+import Pagination from '../components/Pagination';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -615,17 +616,13 @@ export default function PortalAccountsPage() {
           </div>
 
           {totalPages > 1 && (
-            <nav className="portal-accounts-pagination card" aria-label={t('common:pagination.page')}>
-              <button type="button" className="btn-secondary portal-pag-btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                {t('common:pagination.previous')}
-              </button>
-              <span className="portal-pag-info">
-                {t('common:portalAccounts.pageOf', { page, totalPages })}
-              </span>
-              <button type="button" className="btn-secondary portal-pag-btn" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                {t('common:pagination.next')}
-              </button>
-            </nav>
+            <Pagination
+              className="portal-accounts-pagination card"
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              summary={t('common:portalAccounts.pageOf', { page, totalPages })}
+            />
           )}
         </>
       )}

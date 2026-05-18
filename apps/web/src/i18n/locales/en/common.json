@@ -141,8 +141,13 @@
   "pagination": {
     "page": "Page",
     "pageSize": "Per page",
+    "first": "First",
     "previous": "Previous",
     "next": "Next",
+    "last": "Last",
+    "go": "Go",
+    "totalPages": "Total pages: {{totalPages}}",
+    "totalItems": "Total: {{total}}",
     "of": "of",
     "showing": "Showing {{from}}-{{to}} of {{total}}"
   },

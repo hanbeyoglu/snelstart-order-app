@@ -19,7 +19,7 @@
     "deleting": "Loschen...", "empty": "Keine Eintrage gefunden", "error": "Fehler", "success": "Erfolgreich", "warning": "Warnung",
     "unknown": "Unbekannt", "notAvailable": "N/V"
   },
-  "pagination": { "page": "Seite", "pageSize": "Pro Seite", "previous": "Zuruck", "next": "Weiter", "of": "von", "showing": "{{from}}-{{to}} von {{total}} angezeigt" },
+  "pagination": { "page": "Seite", "pageSize": "Pro Seite", "first": "Erste", "previous": "Zuruck", "next": "Weiter", "last": "Letzte", "go": "Gehe", "totalPages": "Seiten gesamt: {{totalPages}}", "totalItems": "Gesamt: {{total}}", "of": "von", "showing": "{{from}}-{{to}} von {{total}} angezeigt" },
   "forms": {
     "required": "Pflichtfeld", "name": "Name", "firstName": "Vorname", "lastName": "Nachname", "username": "Benutzername", "email": "E-Mail",
     "password": "Passwort", "confirmPassword": "Passwort bestatigen", "role": "Rolle", "phone": "Telefon", "address": "Adresse", "street": "Strasse",

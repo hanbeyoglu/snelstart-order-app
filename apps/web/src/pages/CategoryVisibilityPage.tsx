@@ -5,6 +5,7 @@ import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useCartStore } from '../store/cartStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import Pagination from '../components/Pagination';
 
 type VisibilityStatus = 'all' | 'active' | 'inactive';
 
@@ -375,23 +376,7 @@ export default function CategoryVisibilityPage() {
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             {t('categories:visibility.rangeSummary', { start: startItem, end: endItem, total })}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button className="btn-secondary" onClick={() => goToPage(1)} disabled={page <= 1} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              {t('categories:visibility.pagination.first')}
-            </button>
-            <button className="btn-secondary" onClick={() => goToPage(page - 1)} disabled={page <= 1} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              {t('categories:visibility.pagination.prev')}
-            </button>
-            <span style={{ fontWeight: 700, minWidth: '96px', textAlign: 'center' }}>
-              {page} / {totalPages}
-            </span>
-            <button className="btn-secondary" onClick={() => goToPage(page + 1)} disabled={page >= totalPages} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              {t('common:pagination.next')}
-            </button>
-            <button className="btn-secondary" onClick={() => goToPage(totalPages)} disabled={page >= totalPages} style={{ padding: '0.45rem 0.7rem', borderRadius: '6px' }}>
-              {t('categories:visibility.pagination.last')}
-            </button>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
         </div>
       </motion.div>
     </div>

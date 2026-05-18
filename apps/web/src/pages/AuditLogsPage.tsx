@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import Pagination from '../components/Pagination';
 
 type AuditStatus = 'success' | 'failed';
 
@@ -307,23 +308,7 @@ export default function AuditLogsPage() {
           </div>
         )}
 
-        <div style={styles.pagination}>
-          <button type="button" className="btn-secondary" style={styles.compactButton} disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
-            {t('audit.previous', 'Önceki')}
-          </button>
-          <span style={styles.pageText}>
-            {page} / {Math.max(1, pagination?.totalPages || 1)}
-          </span>
-          <button
-            type="button"
-            className="btn-secondary"
-            style={styles.compactButton}
-            disabled={page >= (pagination?.totalPages || 1)}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            {t('audit.next', 'Sonraki')}
-          </button>
-        </div>
+        <Pagination page={page} totalPages={Math.max(1, pagination?.totalPages || 1)} onPageChange={setPage} />
       </section>
 
       {selectedLog && (

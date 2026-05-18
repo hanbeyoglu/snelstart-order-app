@@ -17,6 +17,7 @@ import {
   ORDER_LIST_SYNC_POLL_MS,
   type OrdersListQueryParams,
 } from '../utils/orderSyncStatus';
+import Pagination from '../components/Pagination';
 
 type QuickRange = '' | 'today' | 'last7' | 'last30' | 'thisMonth';
 
@@ -860,29 +861,7 @@ export default function OrdersPage() {
                 total: pagination.total,
               })}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                type="button"
-                disabled={!pagination.hasPrev}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="btn-secondary"
-                style={{ minHeight: '36px', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: pagination.hasPrev ? 1 : 0.5 }}
-              >
-                ← {t('orders:pagination.previous')}
-              </button>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                {t('orders:messages.page')} {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={!pagination.hasNext}
-                onClick={() => setPage((p) => p + 1)}
-                className="btn-secondary"
-                style={{ minHeight: '36px', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: pagination.hasNext ? 1 : 0.5 }}
-              >
-                {t('orders:pagination.next')} →
-              </button>
-            </div>
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} onPageChange={setPage} />
           </div>
         </>
       )}

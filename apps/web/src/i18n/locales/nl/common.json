@@ -75,7 +75,7 @@
     "deleting": "Verwijderen...", "empty": "Geen records gevonden", "error": "Fout", "success": "Gelukt", "warning": "Waarschuwing",
     "unknown": "Onbekend", "notAvailable": "N.v.t."
   },
-  "pagination": { "page": "Pagina", "pageSize": "Per pagina", "previous": "Vorige", "next": "Volgende", "of": "van", "showing": "{{from}}-{{to}} van {{total}} weergegeven" },
+  "pagination": { "page": "Pagina", "pageSize": "Per pagina", "first": "Eerste", "previous": "Vorige", "next": "Volgende", "last": "Laatste", "go": "Ga", "totalPages": "Totaal pagina's: {{totalPages}}", "totalItems": "Totaal: {{total}}", "of": "van", "showing": "{{from}}-{{to}} van {{total}} weergegeven" },
   "forms": {
     "required": "Verplicht", "name": "Naam", "firstName": "Voornaam", "lastName": "Achternaam", "username": "Gebruikersnaam", "email": "E-mail",
     "password": "Wachtwoord", "confirmPassword": "Bevestig wachtwoord", "role": "Rol", "phone": "Telefoon", "address": "Adres", "street": "Straat",

@@ -141,8 +141,13 @@
   "pagination": {
     "page": "Sayfa",
     "pageSize": "Sayfa başına",
+    "first": "İlk",
     "previous": "Önceki",
     "next": "Sonraki",
+    "last": "Son",
+    "go": "Git",
+    "totalPages": "Toplam sayfa: {{totalPages}}",
+    "totalItems": "Toplam: {{total}}",
     "of": "/",
     "showing": "{{total}} kayıttan {{from}}-{{to}} arası"
   },

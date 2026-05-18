@@ -75,7 +75,7 @@
     "deleting": "جار الحذف...", "empty": "لا توجد سجلات", "error": "خطأ", "success": "تم بنجاح", "warning": "تحذير",
     "unknown": "غير معروف", "notAvailable": "غير متاح"
   },
-  "pagination": { "page": "صفحة", "pageSize": "لكل صفحة", "previous": "السابق", "next": "التالي", "of": "من", "showing": "عرض {{from}}-{{to}} من {{total}}" },
+  "pagination": { "page": "صفحة", "pageSize": "لكل صفحة", "first": "الأولى", "previous": "السابق", "next": "التالي", "last": "الأخيرة", "go": "اذهب", "totalPages": "إجمالي الصفحات: {{totalPages}}", "totalItems": "الإجمالي: {{total}}", "of": "من", "showing": "عرض {{from}}-{{to}} من {{total}}" },
   "forms": {
     "required": "مطلوب", "name": "الاسم", "firstName": "الاسم الأول", "lastName": "اسم العائلة", "username": "اسم المستخدم", "email": "البريد الإلكتروني",
     "password": "كلمة المرور", "confirmPassword": "تأكيد كلمة المرور", "role": "الدور", "phone": "الهاتف", "address": "العنوان", "street": "الشارع",

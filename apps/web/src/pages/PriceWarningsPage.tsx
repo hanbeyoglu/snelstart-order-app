@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import Pagination from '../components/Pagination';
 
 interface PriceWarningProduct {
   id: string;
@@ -217,29 +218,7 @@ export default function PriceWarningsPage() {
               <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 {startItem}-{endItem} / {total} {t('legacy:warnings.product').toLocaleLowerCase()}
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  onClick={() => goToPage(1)}
-                  disabled={page <= 1}
-                  style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}
-                >««</button>
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page <= 1}
-                  style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}
-                >«</button>
-                <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>{t('pagination.page')} {page} / {totalPages}</span>
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page >= totalPages}
-                  style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}
-                >»</button>
-                <button
-                  onClick={() => goToPage(totalPages)}
-                  disabled={page >= totalPages}
-                  style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'white', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}
-                >»»</button>
-              </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
             </div>
           )}
         </motion.div>

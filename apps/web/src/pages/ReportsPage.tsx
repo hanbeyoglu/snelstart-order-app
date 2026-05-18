@@ -22,6 +22,7 @@ import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { useToastStore } from '../store/toastStore';
+import Pagination from '../components/Pagination';
 
 type ProfitFilter = 'all' | 'profitable' | 'loss' | 'missing-cost';
 type PurchaseFilter = 'all' | 'with-price' | 'without-price';
@@ -501,11 +502,7 @@ export default function ReportsPage() {
               </table>
             </div>
             <div className="reports-pagination">
-              <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(1)}>«</button>
-              <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
-              <span>{page} / {totalPages}</span>
-              <button className="btn-secondary" disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>›</button>
-              <button className="btn-secondary" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</button>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </div>
           </section>
 

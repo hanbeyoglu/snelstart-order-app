@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import Pagination from '../components/Pagination';
 
 type QuickFilter = '' | 'tomorrow' | 'next3days' | 'next7days' | 'thisweek';
 
@@ -425,29 +426,7 @@ export default function UpcomingOrdersPage() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginTop: '2rem', alignItems: 'center' }}>
-              <motion.button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={!pagination.hasPrev}
-                className="btn-secondary"
-                style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem', fontWeight: 600, opacity: pagination.hasPrev ? 1 : 0.4 }}
-                whileHover={pagination.hasPrev ? { scale: 1.04 } : {}}
-              >
-                ← {t('orders:pagination.previous')}
-              </motion.button>
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {t('orders:messages.page')} {pagination.page} {t('orders:messages.of')} {pagination.totalPages}
-              </span>
-              <motion.button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!pagination.hasNext}
-                className="btn-secondary"
-                style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem', fontWeight: 600, opacity: pagination.hasNext ? 1 : 0.4 }}
-                whileHover={pagination.hasNext ? { scale: 1.04 } : {}}
-              >
-                {t('orders:pagination.next')} →
-              </motion.button>
-            </div>
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} onPageChange={setPage} />
           )}
         </>
       )}
