@@ -6,6 +6,8 @@ import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from '../utils/permissions';
+import PriceOverrideSettingsFields from '../components/PriceOverrideSettingsFields';
+import { PRICE_OVERRIDE_PERMISSIONS } from '../utils/priceOverridePolicy';
 
 type UserRole = 'customer' | 'sales_rep' | 'admin' | 'super_admin';
 
@@ -23,6 +25,8 @@ export default function EditUserPage() {
   const [useEmail, setUseEmail] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [initialPermissions, setInitialPermissions] = useState<string[]>([]);
+  const [priceOverrideLimitPercent, setPriceOverrideLimitPercent] = useState('10');
+  const [initialPriceOverrideLimitPercent, setInitialPriceOverrideLimitPercent] = useState('10');
   const [customerId, setCustomerId] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
 
@@ -64,11 +68,25 @@ export default function EditUserPage() {
       setCustomerId(user.customerId || '');
       setPermissions(user.permissions || []);
       setInitialPermissions(user.permissions || []);
+      const limit =
+        user.priceOverrideLimitPercent !== undefined && user.priceOverrideLimitPercent !== null
+          ? String(user.priceOverrideLimitPercent)
+          : '10';
+      setPriceOverrideLimitPercent(limit);
+      setInitialPriceOverrideLimitPercent(limit);
     }
   }, [user]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { username?: string; email?: string; password?: string; role?: UserRole; permissions?: string[]; customerId?: string }) => {
+    mutationFn: async (data: {
+      username?: string;
+      email?: string;
+      password?: string;
+      role?: UserRole;
+      permissions?: string[];
+      customerId?: string;
+      priceOverrideLimitPercent?: number | null;
+    }) => {
       const { permissions: nextPermissions, ...profileData } = data;
       const response = await api.put(`/users/${userId}`, profileData);
       if (nextPermissions && user?.role !== 'super_admin') {
@@ -108,7 +126,13 @@ export default function EditUserPage() {
       return;
     }
 
-    const updateData: { username?: string; email?: string | null; password?: string; role?: UserRole; customerId?: string } = {
+    const updateData: {
+      username?: string;
+      email?: string | null;
+      password?: string;
+      role?: UserRole;
+      customerId?: string;
+    } = {
       username: username.trim(),
       role,
       ...(role === 'customer' ? { customerId } : {}),
@@ -142,17 +166,47 @@ export default function EditUserPage() {
     }
 
     // null değerlerini undefined'a çevir (TypeScript tip uyumu için)
-    const normalizedPermissions = permissions.filter((permission) =>
-      (permissionCatalog || []).includes(permission),
+    const catalogPermissions = (permissionCatalog || []).filter(
+      (p) => p !== PRICE_OVERRIDE_PERMISSIONS.full && p !== PRICE_OVERRIDE_PERMISSIONS.limited
     );
+    const normalizedPermissions = permissions.filter((permission) =>
+      [
+        ...catalogPermissions,
+        PRICE_OVERRIDE_PERMISSIONS.full,
+        PRICE_OVERRIDE_PERMISSIONS.limited,
+      ].includes(permission)
+    );
+    const hasLimited = normalizedPermissions.includes(PRICE_OVERRIDE_PERMISSIONS.limited);
+    if (hasLimited) {
+      const percent = Number(priceOverrideLimitPercent);
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        showToast('Limitli fiyat değiştirme için 0-100 arası limit girin', 'error');
+        return;
+      }
+    }
+
     const permissionsChanged =
       normalizedPermissions.length !== initialPermissions.length ||
       normalizedPermissions.some((permission) => !initialPermissions.includes(permission));
+    const limitChanged = priceOverrideLimitPercent !== initialPriceOverrideLimitPercent;
 
-    const finalUpdateData: { username?: string; email?: string; password?: string; role?: UserRole; permissions?: string[]; customerId?: string } = {
+    const finalUpdateData: {
+      username?: string;
+      email?: string;
+      password?: string;
+      role?: UserRole;
+      permissions?: string[];
+      customerId?: string;
+      priceOverrideLimitPercent?: number | null;
+    } = {
       ...updateData,
       email: updateData.email === null ? undefined : updateData.email,
       ...(permissionsChanged ? { permissions: normalizedPermissions } : {}),
+      ...(permissionsChanged || limitChanged
+        ? {
+            priceOverrideLimitPercent: hasLimited ? Number(priceOverrideLimitPercent) : null,
+          }
+        : {}),
     };
 
     updateMutation.mutate(finalUpdateData);
@@ -161,7 +215,14 @@ export default function EditUserPage() {
   if (isLoading) {
     return (
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '60vh',
+          }}
+        >
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -367,9 +428,7 @@ export default function EditUserPage() {
             >
               <option value="sales_rep">👤 Çalışan</option>
               <option value="customer">🛒 Customer</option>
-              {currentUser?.role === 'super_admin' && (
-                <option value="admin">👑 Admin</option>
-              )}
+              {currentUser?.role === 'super_admin' && <option value="admin">👑 Admin</option>}
               {currentUser?.role === 'super_admin' && (
                 <option value="super_admin">🔐 Super Admin</option>
               )}
@@ -378,7 +437,15 @@ export default function EditUserPage() {
 
           {role === 'customer' && (
             <div style={{ marginBottom: '2rem' }}>
-              <label htmlFor="customerSearch" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <label
+                htmlFor="customerSearch"
+                style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
                 Bağlı Müşteri *
               </label>
               <input
@@ -400,14 +467,31 @@ export default function EditUserPage() {
                 <option value="">Müşteri seçin</option>
                 {customers.map((customer: any) => (
                   <option key={customer.id} value={customer.id}>
-                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''} {customer.email ? `- ${customer.email}` : customer.telefoon ? `- ${customer.telefoon}` : ''}
+                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''}{' '}
+                    {customer.email
+                      ? `- ${customer.email}`
+                      : customer.telefoon
+                        ? `- ${customer.telefoon}`
+                        : ''}
                   </option>
                 ))}
               </select>
-              <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              <p
+                style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
+              >
                 Aynı müşteri kaydına birden fazla customer kullanıcı bağlanabilir.
               </p>
             </div>
+          )}
+
+          {role !== 'super_admin' && role !== 'customer' && (
+            <PriceOverrideSettingsFields
+              role={role}
+              permissions={permissions}
+              priceOverrideLimitPercent={priceOverrideLimitPercent}
+              onPermissionsChange={setPermissions}
+              onLimitPercentChange={setPriceOverrideLimitPercent}
+            />
           )}
 
           {user.role !== 'super_admin' && permissionCatalog && permissionCatalog.length > 0 && (
@@ -429,49 +513,70 @@ export default function EditUserPage() {
                   gap: '0.75rem',
                 }}
               >
-                {permissionCatalog.map((permission) => (
-                  <label
-                    key={permission}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      minHeight: '44px',
-                      padding: '0.7rem 0.8rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      background: 'var(--surface)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={permissions.includes(permission)}
-                      onChange={(e) => {
-                        setPermissions((current) =>
-                          e.target.checked
-                            ? [...new Set([...current, permission])]
-                            : current.filter((item) => item !== permission),
-                        );
-                      }}
+                {permissionCatalog
+                  .filter(
+                    (p) =>
+                      p !== PRICE_OVERRIDE_PERMISSIONS.full &&
+                      p !== PRICE_OVERRIDE_PERMISSIONS.limited
+                  )
+                  .map((permission) => (
+                    <label
+                      key={permission}
                       style={{
-                        width: '18px',
-                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        minHeight: '44px',
+                        padding: '0.7rem 0.8rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        background: 'var(--surface)',
                         cursor: 'pointer',
-                        accentColor: 'var(--primary)',
-                        flexShrink: 0,
                       }}
-                    />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600 }}>
-                        {PERMISSION_LABELS[permission] || permission}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes(permission)}
+                        onChange={(e) => {
+                          setPermissions((current) =>
+                            e.target.checked
+                              ? [...new Set([...current, permission])]
+                              : current.filter((item) => item !== permission)
+                          );
+                        }}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          accentColor: 'var(--primary)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: 'block',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {PERMISSION_LABELS[permission] || permission}
+                        </span>
+                        <span
+                          style={{
+                            display: 'block',
+                            marginTop: '0.2rem',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.82rem',
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {PERMISSION_DESCRIPTIONS[permission] || permission}
+                        </span>
                       </span>
-                      <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.35 }}>
-                        {PERMISSION_DESCRIPTIONS[permission] || permission}
-                      </span>
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  ))}
               </div>
             </div>
           )}
@@ -494,7 +599,14 @@ export default function EditUserPage() {
               whileTap={!updateMutation.isPending ? { scale: 0.98 } : {}}
             >
               {updateMutation.isPending ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
                   <span className="loading" />
                   Güncelleniyor...
                 </span>

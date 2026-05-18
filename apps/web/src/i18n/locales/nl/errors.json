@@ -7,5 +7,6 @@
   "visibilityUpdate": "Zichtbaarheid kon niet worden bijgewerkt",
   "priceBelowMinimum": "Prijs ligt onder het minimumcriterium. Minimumprijs: {{minPrice}}",
   "priceBelowMinimumNoValue": "Prijs ligt onder de minimale verkoopcriteria.",
-  "adminPriceOverrideRequired": "Alleen een admin kan deze lage prijs met override verzenden."
+  "adminPriceOverrideRequired": "Alleen een admin kan deze lage prijs met override verzenden.",
+  "priceOverrideNotAllowed": "U heeft geen toestemming om prijzen te wijzigen."
 }

@@ -34,9 +34,22 @@ export class ConnectionSettingsController {
   private async getConnectionStatus() {
     const settings = await this.connectionSettingsService.getSettings();
     if (!settings) {
-      return { exists: false, isTokenValid: false };
+      return {
+        exists: false,
+        isTokenValid: false,
+        isRefreshing: this.connectionSettingsService.isRefreshInProgress(),
+      };
     }
-    const isTokenValid = await this.connectionSettingsService.isTokenValid();
+
+    const wasRefreshing = this.connectionSettingsService.isRefreshInProgress();
+    await this.connectionSettingsService.getValidAccessToken();
+    const updatedSettings = await this.connectionSettingsService.getSettings();
+    const isTokenValid = !!(
+      updatedSettings?.accessToken &&
+      updatedSettings.tokenExpiresAt &&
+      updatedSettings.tokenExpiresAt > new Date()
+    );
+
     return {
       exists: true,
       isActive: settings.isActive,
@@ -44,7 +57,8 @@ export class ConnectionSettingsController {
       lastTestStatus: settings.lastTestStatus,
       lastTestError: settings.lastTestError,
       isTokenValid,
-      tokenExpiresAt: settings.tokenExpiresAt,
+      isRefreshing: wasRefreshing || this.connectionSettingsService.isRefreshInProgress(),
+      tokenExpiresAt: updatedSettings?.tokenExpiresAt ?? settings.tokenExpiresAt,
     };
   }
 
@@ -118,17 +132,15 @@ export class ConnectionSettingsController {
         ...this.auditService.requestContext(req),
         metadata: { success },
       });
-      
-      // If connection test is successful, fetch company info automatically
+
       if (success) {
         try {
           await this.companyInfoService.getCompanyInfo();
         } catch (error) {
-          // Log error but don't fail the connection test
           console.error('Failed to fetch company info after connection test:', error);
         }
       }
-      
+
       return { success };
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
@@ -148,54 +160,38 @@ export class ConnectionSettingsController {
 
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  @Roles('super_admin')
+  @Roles('super_admin', 'admin')
   @ApiOperation({ summary: 'Refresh SnelStart access token (admin only)' })
   async refreshToken(@Request() req: any) {
-    const settings = await this.connectionSettingsService.getActiveSettings();
-    if (!settings) {
-      return { success: false, error: 'Connection settings not found' };
-    }
-    if (!settings.integrationKey) {
-      return { success: false, error: 'Integration key not found' };
-    }
-    try {
-      const tokenResponse = await this.snelStartService.getToken(settings.integrationKey);
-      if (tokenResponse && tokenResponse.access_token && tokenResponse.expires_in) {
-        await this.connectionSettingsService.saveAccessToken(
-          tokenResponse.access_token,
-          tokenResponse.expires_in,
-        );
+    const refreshResult = await this.connectionSettingsService.refreshAccessToken();
 
-        // After token is saved, fetch company info automatically
-        try {
-          await this.companyInfoService.getCompanyInfo();
-        } catch (error) {
-          // Log error but don't fail the token refresh
-          console.error('Failed to fetch company info after token refresh:', error);
-        }
-        
-        // Token kaydedildikten sonra güncel durumu döndür
-        const isTokenValid = await this.connectionSettingsService.isTokenValid();
-        const updatedSettings = await this.connectionSettingsService.getSettings();
-        await this.auditService.log({
-          action: 'SNELSTART_TOKEN_REFRESHED',
-          entityType: 'ConnectionSettings',
-          entityId: 'active',
-          userId: req.user.userId,
-          actorRole: req.user.role,
-          ...this.auditService.requestContext(req),
-          metadata: { tokenExpiresAt: updatedSettings?.tokenExpiresAt },
-        });
-        return { 
-          success: true,
-          isTokenValid,
-          tokenExpiresAt: updatedSettings?.tokenExpiresAt,
-        };
-      }
-      return { success: false, error: 'Invalid token response' };
-    } catch (error: any) {
-      return { success: false, error: 'Token refresh failed' };
+    if (!refreshResult.success) {
+      return { success: false, error: refreshResult.error ?? 'Token refresh failed' };
     }
+
+    try {
+      await this.companyInfoService.getCompanyInfo();
+    } catch (error) {
+      console.error('Failed to fetch company info after token refresh:', error);
+    }
+
+    const isTokenValid = await this.connectionSettingsService.isTokenValid();
+    const updatedSettings = await this.connectionSettingsService.getSettings();
+    await this.auditService.log({
+      action: 'SNELSTART_TOKEN_REFRESHED',
+      entityType: 'ConnectionSettings',
+      entityId: 'active',
+      userId: req.user.userId,
+      actorRole: req.user.role,
+      ...this.auditService.requestContext(req),
+      metadata: { tokenExpiresAt: updatedSettings?.tokenExpiresAt },
+    });
+
+    return {
+      success: true,
+      isTokenValid,
+      tokenExpiresAt: updatedSettings?.tokenExpiresAt,
+    };
   }
 
   @Get('company-info')

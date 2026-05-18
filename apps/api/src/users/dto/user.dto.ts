@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEmail, IsIn, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 import { UserRole } from '../../auth/schemas/user.schema';
 
 export class UpdateCurrentUserDto {
@@ -54,6 +54,12 @@ export class CreateUserDto extends UpdateCurrentUserDto {
   @IsOptional()
   @IsString()
   preferredLanguage?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  priceOverrideLimitPercent?: number;
 }
 
 export class UpdateUserDto extends UpdateCurrentUserDto {
@@ -72,6 +78,12 @@ export class UpdateUserDto extends UpdateCurrentUserDto {
   @IsOptional()
   @IsString()
   preferredLanguage?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  priceOverrideLimitPercent?: number | null;
 }
 
 export class UpdateUserPermissionsDto {

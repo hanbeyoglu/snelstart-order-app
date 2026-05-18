@@ -18,7 +18,39 @@ import { ConnectionSettingsController } from '../connection-settings/connection-
 import { OrdersService } from '../orders/orders.service';
 import { ReportsController } from '../reports/reports.controller';
 import { UsersService } from '../users/users.service';
+import { PriceOverridePolicyService } from '../auth/price-override-policy.service';
 import { CreateUserDto, UpdateCurrentUserDto } from '../users/dto/user.dto';
+
+const priceOverridePolicyService = new PriceOverridePolicyService();
+
+function createOrdersService(
+  orderModel: any = {},
+  productModel: any = {},
+  userModel: any = {},
+  orderSyncQueue: any = {},
+  snelStartService: any = {},
+  auditService: any = { log: async () => undefined },
+  customersService: any = {},
+  productsService: any = {},
+  pricingService: any = {},
+  categoriesService: any = {},
+) {
+  return new OrdersService(
+    orderModel as any,
+    productModel as any,
+    userModel as any,
+    orderSyncQueue as any,
+    snelStartService as any,
+    auditService as any,
+    customersService as any,
+    productsService as any,
+    pricingService as any,
+    categoriesService as any,
+    priceOverridePolicyService,
+    undefined,
+    undefined,
+  );
+}
 
 function contextFor(handler: Function, user: any) {
   return {
@@ -63,7 +95,10 @@ test('super_admin-only endpoint metadata is present on sensitive routes', () => 
   assert.deepEqual(Reflect.getMetadata('roles', ReportsController.prototype.getReport), ['super_admin']);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.saveSettings), ['super_admin']);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.testConnection), ['super_admin']);
-  assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.refreshToken), ['super_admin']);
+  assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.refreshToken), [
+    'super_admin',
+    'admin',
+  ]);
   assert.deepEqual(Reflect.getMetadata('roles', ConnectionSettingsController.prototype.getCompanyInfo), ['super_admin']);
 });
 
@@ -144,17 +179,7 @@ test('order creation rebuilds prices server-side and ignores client overrides', 
       artikelgroepId: 'cat-1',
     }),
   };
-  const service = new OrdersService(
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    productsService as any,
-    {} as any,
-    {} as any,
-  );
+  const service = createOrdersService({}, {}, {}, {}, {}, {}, {}, productsService);
 
   const items = await (service as any).buildTrustedOrderItems(
     [{ productId: 'product-1', quantity: 2, unitPrice: 12 }],
@@ -173,7 +198,7 @@ test('order creation rebuilds prices server-side and ignores client overrides', 
         'customer-1',
         { role: 'sales_rep' },
       ),
-    /ADMIN_PRICE_OVERRIDE_REQUIRED/,
+    /PRICE_OVERRIDE_NOT_ALLOWED/,
   );
 });
 
@@ -215,22 +240,36 @@ function createOrderTestHarness(customersService: any = {}) {
       artikelgroepId: 'cat-1',
     }),
   };
+  const userModel = {
+    findById: () => ({
+      select: () => ({
+        lean: () => ({
+          exec: async () => ({
+            role: 'admin',
+            permissions: ['price.override.full'],
+            priceOverrideLimitPercent: null,
+          }),
+        }),
+      }),
+    }),
+  };
 
-  const service = new OrdersService(
-    TestOrderModel as any,
-    {} as any,
-    { add: async () => undefined } as any,
+  const service = createOrdersService(
+    TestOrderModel,
+    {},
+    userModel,
+    { add: async () => undefined },
     {
       createSalesOrder: async (payload: any) => {
         lastPayload = payload;
         return { id: 'snel-order-1' };
       },
-    } as any,
-    { log: async () => undefined } as any,
-    customersService as any,
-    productsService as any,
-    { } as any,
-    { getActiveCategoryIds: async () => [] } as any,
+    },
+    { log: async () => undefined },
+    customersService,
+    productsService,
+    {},
+    { getActiveCategoryIds: async () => [] },
   );
 
   return {
@@ -268,7 +307,7 @@ test('admin users list filters out super_admin users', async () => {
       return { select: () => execResult([]) };
     },
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await service.getAllUsers('admin');
 
@@ -283,7 +322,7 @@ test('super_admin users list can include super_admin users', async () => {
       return { select: () => execResult([]) };
     },
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await service.getAllUsers('super_admin');
 
@@ -388,17 +427,7 @@ test('customer order list is limited to orders created by that portal user', asy
     },
     countDocuments: () => execResult(0),
   };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-  );
+  const service = createOrdersService(model);
 
   await service.getOrders({}, {
     userId: 'portal-1',
@@ -420,17 +449,7 @@ test('customer order detail blocks same-customer orders created by another user'
       createdByUserId: 'portal-2',
     }),
   };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-  );
+  const service = createOrdersService(model);
 
   await assert.rejects(
     () => service.getOrderById('order-1', {
@@ -451,17 +470,7 @@ test('customer order detail allows own created order', async () => {
   const model = {
     findById: () => execResult(ownOrder),
   };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-  );
+  const service = createOrdersService(model);
 
   const result = await service.getOrderById('order-1', {
     userId: 'portal-1',
@@ -482,17 +491,7 @@ test('reorderOrder rejects access to another customer order', async () => {
   const model = {
     findById: () => execResult(foreignOrder),
   };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    { log: async () => undefined } as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    {} as any,
-  );
+  const service = createOrdersService(model);
 
   await assert.rejects(
     () =>
@@ -545,16 +544,17 @@ test('reorderOrder recomputes prices from current product data, not stored item'
     getActiveCategoryIds: async () => ['cat-1'],
   };
   const auditService = { log: async () => undefined };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    auditService as any,
-    {} as any,
-    productsService as any,
-    {} as any,
-    categoriesService as any,
+  const service = createOrdersService(
+    model,
+    {},
+    {},
+    {},
+    {},
+    auditService,
+    {},
+    productsService,
+    {},
+    categoriesService,
   );
 
   const result = await service.reorderOrder('order-1', {
@@ -630,16 +630,17 @@ test('reorderOrder skips items when product is inactive or not found', async () 
     getActiveCategoryIds: async () => ['cat-1'],
   };
   const auditService = { log: async () => undefined };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    auditService as any,
-    {} as any,
-    productsService as any,
-    {} as any,
-    categoriesService as any,
+  const service = createOrdersService(
+    model,
+    {},
+    {},
+    {},
+    {},
+    auditService,
+    {},
+    productsService,
+    {},
+    categoriesService,
   );
 
   const result = await service.reorderOrder('order-2', {
@@ -683,16 +684,17 @@ test('reorderOrder skips items whose category is no longer active', async () => 
   const categoriesService = {
     getActiveCategoryIds: async () => ['cat-other'],
   };
-  const service = new OrdersService(
-    model as any,
-    {} as any,
-    {} as any,
-    {} as any,
-    { log: async () => undefined } as any,
-    {} as any,
-    productsService as any,
-    {} as any,
-    categoriesService as any,
+  const service = createOrdersService(
+    model,
+    {},
+    {},
+    {},
+    {},
+    { log: async () => undefined },
+    {},
+    productsService,
+    {},
+    categoriesService,
   );
 
   const result = await service.reorderOrder('order-3', {
@@ -714,7 +716,7 @@ test('admin cannot assign super_admin role but can create admin users', async ()
       toObject: () => ({ _id: 'new-admin', ...data }),
     }),
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await assert.rejects(
     () => service.createUser('new-user', undefined, 'password123', 'super_admin', undefined, undefined, 'admin', 'admin-1'),
@@ -772,7 +774,7 @@ test('admin can create customer portal accounts without owning customer default 
       }),
     }),
   };
-  const service = new UsersService(model as any, customerModel as any);
+  const service = new UsersService(model as any, priceOverridePolicyService, customerModel as any);
 
   const created = await service.createUser(
     'portal-user',
@@ -804,7 +806,7 @@ test('admin cannot update or delete super_admin users', async () => {
   const model = {
     findById: () => execResult(superAdminUser),
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await assert.rejects(
     () => service.updateUser('user-1', { username: 'changed' }, true, 'admin'),
@@ -821,7 +823,7 @@ test('admin cannot manage equal or higher role users', async () => {
   const model = {
     findById: () => execResult(adminUser),
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await assert.rejects(
     () => service.updateUser('admin-1', { username: 'changed' }, true, 'admin'),
@@ -857,7 +859,7 @@ test('permission updates enforce requester permission subset', async () => {
       };
     },
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await assert.rejects(
     () =>
@@ -882,7 +884,7 @@ test('super_admin permissions cannot be updated', async () => {
   const model = {
     findById: () => execResult(superAdminUser),
   };
-  const service = new UsersService(model as any);
+  const service = new UsersService(model as any, priceOverridePolicyService);
 
   await assert.rejects(
     () =>

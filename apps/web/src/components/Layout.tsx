@@ -46,13 +46,20 @@ export default function Layout() {
       }
     },
     enabled: !!user, // Sadece kullanıcı giriş yaptıysa
-    refetchInterval: 30000, // 30 saniyede bir kontrol et
+    refetchInterval: 45000, // Aktif kullanımda bağlantı durumunu periyodik kontrol et
   });
 
+  const isRefreshing = connectionStatus?.isRefreshing === true;
   const isTokenValid = connectionStatus?.isTokenValid === true;
   const tokenExpiresAt = connectionStatus?.tokenExpiresAt
     ? new Date(connectionStatus.tokenExpiresAt)
     : null;
+
+  const connectionVisualState: 'valid' | 'refreshing' | 'invalid' = isRefreshing
+    ? 'refreshing'
+    : isTokenValid
+      ? 'valid'
+      : 'invalid';
 
   // Kalan süreyi hesapla
   const getRemainingTime = () => {
@@ -392,7 +399,7 @@ export default function Layout() {
               }}
               onMouseEnter={() => {
                 setUserMenuOpen(false); // User menu'yu kapat
-                if (isTokenValid && remainingTime) {
+                if (connectionVisualState === 'valid' && remainingTime) {
                   setTokenTooltipOpen(true);
                 }
               }}
@@ -405,33 +412,45 @@ export default function Layout() {
             >
               <motion.div
                 animate={{
-                  scale: isTokenValid ? [1, 1.1, 1] : 1,
+                  scale: connectionVisualState === 'valid' ? [1, 1.1, 1] : 1,
                 }}
                 transition={{
                   duration: 2,
-                  repeat: isTokenValid ? Infinity : 0,
+                  repeat: connectionVisualState === 'valid' ? Infinity : 0,
                   ease: 'easeInOut',
                 }}
                 style={{
                   width: '44px',
                   height: '44px',
                   borderRadius: '50%',
-                  background: isTokenValid
-                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%)'
-                    : 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%)',
-                  border: `2.5px solid ${isTokenValid ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                  background:
+                    connectionVisualState === 'valid'
+                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%)'
+                      : connectionVisualState === 'refreshing'
+                        ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%)'
+                        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%)',
+                  border: `2.5px solid ${
+                    connectionVisualState === 'valid'
+                      ? 'rgba(16, 185, 129, 0.4)'
+                      : connectionVisualState === 'refreshing'
+                        ? 'rgba(245, 158, 11, 0.5)'
+                        : 'rgba(239, 68, 68, 0.4)'
+                  }`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: isTokenValid
-                    ? '0 4px 12px rgba(16, 185, 129, 0.25)'
-                    : '0 4px 12px rgba(239, 68, 68, 0.25)',
+                  boxShadow:
+                    connectionVisualState === 'valid'
+                      ? '0 4px 12px rgba(16, 185, 129, 0.25)'
+                      : connectionVisualState === 'refreshing'
+                        ? '0 4px 12px rgba(245, 158, 11, 0.25)'
+                        : '0 4px 12px rgba(239, 68, 68, 0.25)',
                   cursor: 'pointer',
                 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isTokenValid && remainingTime) {
+                  if (connectionVisualState === 'valid' && remainingTime) {
                     setTokenTooltipOpen(!tokenTooltipOpen);
                   } else {
                     navigate('/user');
@@ -440,11 +459,19 @@ export default function Layout() {
               >
                 <motion.div
                   animate={{
-                    rotate: isTokenValid ? [0, 360] : 0,
+                    rotate:
+                      connectionVisualState === 'valid'
+                        ? [0, 360]
+                        : connectionVisualState === 'refreshing'
+                          ? [0, 360]
+                          : 0,
                   }}
                   transition={{
-                    duration: 3,
-                    repeat: isTokenValid ? Infinity : 0,
+                    duration: connectionVisualState === 'refreshing' ? 1.2 : 3,
+                    repeat:
+                      connectionVisualState === 'valid' || connectionVisualState === 'refreshing'
+                        ? Infinity
+                        : 0,
                     ease: 'linear',
                   }}
                   style={{
@@ -455,15 +482,17 @@ export default function Layout() {
                     lineHeight: 1,
                   }}
                 >
-                  {isTokenValid ? (
+                  {connectionVisualState === 'valid' ? (
                     <span style={{ fontSize: '1.5rem' }}>🔗</span>
+                  ) : connectionVisualState === 'refreshing' ? (
+                    <span style={{ fontSize: '1.5rem' }}>🟡</span>
                   ) : (
                     <span style={{ fontSize: '1.5rem' }}>🔴</span>
                   )}
                 </motion.div>
               </motion.div>
               {/* Pulse efekti - sadece aktif olduğunda */}
-              {isTokenValid && (
+              {connectionVisualState === 'valid' && (
                 <motion.div
                   animate={{
                     scale: [1, 1.5, 1],
@@ -488,7 +517,7 @@ export default function Layout() {
 
               {/* Tooltip - Kalan Süre */}
               <AnimatePresence>
-                {tokenTooltipOpen && isTokenValid && remainingTime && (
+                {tokenTooltipOpen && connectionVisualState === 'valid' && remainingTime && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}

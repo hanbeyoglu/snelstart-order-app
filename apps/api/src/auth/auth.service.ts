@@ -97,6 +97,9 @@ export class AuthService {
     payload.isActive = user.isActive !== false;
     if (user.preferredLanguage) payload.preferredLanguage = user.preferredLanguage;
     if (user.lastLoginAt) payload.lastLoginAt = user.lastLoginAt;
+    if (user.priceOverrideLimitPercent !== undefined && user.priceOverrideLimitPercent !== null) {
+      payload.priceOverrideLimitPercent = user.priceOverrideLimitPercent;
+    }
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -111,6 +114,7 @@ export class AuthService {
         isActive: user.isActive !== false,
         preferredLanguage: user.preferredLanguage || null,
         lastLoginAt: user.lastLoginAt || null,
+        priceOverrideLimitPercent: user.priceOverrideLimitPercent ?? null,
       },
     };
   }

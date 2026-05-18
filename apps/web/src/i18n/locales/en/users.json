@@ -42,6 +42,13 @@
       "updateError": "An error occurred while updating your profile"
     }
   },
+  "priceOverride": {
+    "sectionTitle": "Price override permissions",
+    "full": "Unlimited price override",
+    "limited": "Limited price override",
+    "limitPercent": "Limit percent (%)",
+    "limitHint": "With purchase price: purchase × (1 + limit%). Otherwise: list price × (1 − limit%)."
+  },
   "messages": {
     "deleted": "User deleted successfully",
     "deleteError": "An error occurred while deleting the user",

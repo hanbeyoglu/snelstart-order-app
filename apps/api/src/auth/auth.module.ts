@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { AuthService } from './auth.service';
+import { PriceOverridePolicyService } from './price-override-policy.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User, UserSchema } from './schemas/user.schema';
@@ -28,8 +29,8 @@ import { getJwtSecret } from '../security/env';
     ProductsModule,
     CacheModule,
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PriceOverridePolicyService],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, PriceOverridePolicyService],
 })
 export class AuthModule {}

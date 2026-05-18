@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import {
@@ -10,6 +10,14 @@ import {
 } from '@snelstart-order-app/shared';
 import { ConnectionSettingsService } from '../connection-settings/connection-settings.service';
 
+export const SNELSTART_AUTH_ERROR_MESSAGE = 'SnelStart authentication failed';
+
+type RequestWithRetryOptions = {
+  maxRetries?: number;
+  baseDelay?: number;
+  authRetried?: boolean;
+};
+
 @Injectable()
 export class SnelStartClient {
   private readonly logger = new Logger(SnelStartClient.name);
@@ -17,7 +25,10 @@ export class SnelStartClient {
   private limiter: Bottleneck;
   private mockMode: boolean;
 
-  constructor(private connectionSettingsService: ConnectionSettingsService) {
+  constructor(
+    @Inject(forwardRef(() => ConnectionSettingsService))
+    private readonly connectionSettingsService: ConnectionSettingsService,
+  ) {
     this.mockMode = process.env.SNELSTART_MOCK === 'true';
     const maxConcurrent = parseInt(process.env.SNELSTART_MAX_CONCURRENT || '5');
     this.limiter = new Bottleneck({ maxConcurrent });
@@ -113,11 +124,15 @@ export class SnelStartClient {
     );
   }
 
+  private createAuthError(): Error {
+    return new Error(SNELSTART_AUTH_ERROR_MESSAGE);
+  }
+
   private async requestWithRetry<T>(
     fn: () => Promise<T>,
-    maxRetries = 3,
-    baseDelay = 1000
+    options: RequestWithRetryOptions = {},
   ): Promise<T> {
+    const { maxRetries = 3, baseDelay = 1000, authRetried = false } = options;
     let lastError: Error;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -127,15 +142,29 @@ export class SnelStartClient {
         lastError = error;
         const status = error.response?.status;
 
+        if (status === 401 && !this.mockMode) {
+          if (!authRetried) {
+            this.logger.warn('SnelStart token expired during request, retrying after refresh');
+            const refreshResult = await this.connectionSettingsService.refreshAccessToken();
+            if (!refreshResult.success) {
+              await this.connectionSettingsService.markConnectionInvalid();
+              throw this.createAuthError();
+            }
+            return this.requestWithRetry(fn, { maxRetries, baseDelay, authRetried: true });
+          }
+
+          await this.connectionSettingsService.markConnectionInvalid();
+          throw this.createAuthError();
+        }
+
         // Retry on 429 (rate limit) or 5xx errors
         if (status === 429 || (status >= 500 && status < 600)) {
-          const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000; // Exponential backoff + jitter
+          const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
           this.logger.warn(`Retrying after ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
 
-        // Don't retry on 4xx errors (except 429)
         throw error;
       }
     }

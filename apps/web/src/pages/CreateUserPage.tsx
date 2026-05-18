@@ -6,6 +6,8 @@ import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { PERMISSION_DESCRIPTIONS, PERMISSION_LABELS } from '../utils/permissions';
+import PriceOverrideSettingsFields from '../components/PriceOverrideSettingsFields';
+import { PRICE_OVERRIDE_PERMISSIONS } from '../utils/priceOverridePolicy';
 
 type UserRole = 'customer' | 'sales_rep' | 'admin' | 'super_admin';
 
@@ -21,6 +23,7 @@ export default function CreateUserPage() {
   const [role, setRole] = useState<UserRole>('sales_rep');
   const [useEmail, setUseEmail] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [priceOverrideLimitPercent, setPriceOverrideLimitPercent] = useState('10');
   const [customerId, setCustomerId] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
 
@@ -45,7 +48,15 @@ export default function CreateUserPage() {
   const customers = customersResponse?.data || [];
 
   const createMutation = useMutation({
-    mutationFn: async (data: { username: string; email?: string; password: string; role: UserRole; permissions?: string[]; customerId?: string }) => {
+    mutationFn: async (data: {
+      username: string;
+      email?: string;
+      password: string;
+      role: UserRole;
+      permissions?: string[];
+      customerId?: string;
+      priceOverrideLimitPercent?: number;
+    }) => {
       const response = await api.post('/users', data);
       return response.data;
     },
@@ -58,10 +69,10 @@ export default function CreateUserPage() {
       console.error('Create user error:', error);
       console.error('Error response:', error?.response?.data);
       console.error('Error status:', error?.response?.status);
-      
+
       // Hata mesajını al
       let message = 'Kullanıcı oluşturulurken bir hata oluştu';
-      
+
       if (error?.response?.data) {
         if (error.response.data.message) {
           message = error.response.data.message;
@@ -73,10 +84,10 @@ export default function CreateUserPage() {
       } else if (error?.message) {
         message = error.message;
       }
-      
+
       console.error('Showing error toast:', message);
       showToast(message, 'error', 7000); // 7 saniye göster
-      
+
       // Hata durumunda navigate yapma - kullanıcı formu düzeltebilsin
     },
   });
@@ -106,21 +117,47 @@ export default function CreateUserPage() {
       return;
     }
 
-    const userData: { username: string; password: string; role: UserRole; email?: string; permissions?: string[]; customerId?: string } = {
-      username: username.trim(), 
-      password, 
+    const catalogPermissions = (permissionCatalog || []).filter(
+      (p) => p !== PRICE_OVERRIDE_PERMISSIONS.full && p !== PRICE_OVERRIDE_PERMISSIONS.limited
+    );
+    const normalizedPermissions = permissions.filter((permission) =>
+      [
+        ...catalogPermissions,
+        PRICE_OVERRIDE_PERMISSIONS.full,
+        PRICE_OVERRIDE_PERMISSIONS.limited,
+      ].includes(permission)
+    );
+    const hasLimited = normalizedPermissions.includes(PRICE_OVERRIDE_PERMISSIONS.limited);
+    if (hasLimited) {
+      const percent = Number(priceOverrideLimitPercent);
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        showToast('Limitli fiyat değiştirme için 0-100 arası limit girin', 'error');
+        return;
+      }
+    }
+
+    const userData: {
+      username: string;
+      password: string;
+      role: UserRole;
+      email?: string;
+      permissions?: string[];
+      customerId?: string;
+      priceOverrideLimitPercent?: number;
+    } = {
+      username: username.trim(),
+      password,
       role,
-      ...(role !== 'super_admin'
-        ? { permissions: permissions.filter((permission) => (permissionCatalog || []).includes(permission)) }
-        : {}),
+      ...(role !== 'super_admin' ? { permissions: normalizedPermissions } : {}),
       ...(role === 'customer' ? { customerId } : {}),
+      ...(hasLimited ? { priceOverrideLimitPercent: Number(priceOverrideLimitPercent) } : {}),
     };
-    
+
     // useEmail false ise email'i hiç gönderme
     if (useEmail && email && email.trim()) {
       userData.email = email.trim();
     }
-    
+
     console.log('Creating user with data:', { ...userData, password: '***' }); // Password'u gizle
     createMutation.mutate(userData);
   };
@@ -304,7 +341,15 @@ export default function CreateUserPage() {
 
           {role === 'customer' && (
             <div style={{ marginBottom: '2rem' }}>
-              <label htmlFor="customerSearch" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <label
+                htmlFor="customerSearch"
+                style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
                 Bağlı Müşteri *
               </label>
               <input
@@ -326,14 +371,31 @@ export default function CreateUserPage() {
                 <option value="">Müşteri seçin</option>
                 {customers.map((customer: any) => (
                   <option key={customer.id} value={customer.id}>
-                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''} {customer.email ? `- ${customer.email}` : customer.telefoon ? `- ${customer.telefoon}` : ''}
+                    {customer.naam} {customer.adres?.plaats ? `- ${customer.adres.plaats}` : ''}{' '}
+                    {customer.email
+                      ? `- ${customer.email}`
+                      : customer.telefoon
+                        ? `- ${customer.telefoon}`
+                        : ''}
                   </option>
                 ))}
               </select>
-              <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              <p
+                style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
+              >
                 Aynı müşteri kaydına birden fazla customer kullanıcı bağlanabilir.
               </p>
             </div>
+          )}
+
+          {role !== 'super_admin' && role !== 'customer' && (
+            <PriceOverrideSettingsFields
+              role={role}
+              permissions={permissions}
+              priceOverrideLimitPercent={priceOverrideLimitPercent}
+              onPermissionsChange={setPermissions}
+              onLimitPercentChange={setPriceOverrideLimitPercent}
+            />
           )}
 
           {role !== 'super_admin' && permissionCatalog && permissionCatalog.length > 0 && (
@@ -355,49 +417,70 @@ export default function CreateUserPage() {
                   gap: '0.75rem',
                 }}
               >
-                {permissionCatalog.map((permission) => (
-                  <label
-                    key={permission}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      minHeight: '44px',
-                      padding: '0.7rem 0.8rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      background: 'var(--surface)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={permissions.includes(permission)}
-                      onChange={(e) => {
-                        setPermissions((current) =>
-                          e.target.checked
-                            ? [...new Set([...current, permission])]
-                            : current.filter((item) => item !== permission),
-                        );
-                      }}
+                {permissionCatalog
+                  .filter(
+                    (p) =>
+                      p !== PRICE_OVERRIDE_PERMISSIONS.full &&
+                      p !== PRICE_OVERRIDE_PERMISSIONS.limited
+                  )
+                  .map((permission) => (
+                    <label
+                      key={permission}
                       style={{
-                        width: '18px',
-                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        minHeight: '44px',
+                        padding: '0.7rem 0.8rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        background: 'var(--surface)',
                         cursor: 'pointer',
-                        accentColor: 'var(--primary)',
-                        flexShrink: 0,
                       }}
-                    />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600 }}>
-                        {PERMISSION_LABELS[permission] || permission}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes(permission)}
+                        onChange={(e) => {
+                          setPermissions((current) =>
+                            e.target.checked
+                              ? [...new Set([...current, permission])]
+                              : current.filter((item) => item !== permission)
+                          );
+                        }}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          accentColor: 'var(--primary)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: 'block',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {PERMISSION_LABELS[permission] || permission}
+                        </span>
+                        <span
+                          style={{
+                            display: 'block',
+                            marginTop: '0.2rem',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.82rem',
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {PERMISSION_DESCRIPTIONS[permission] || permission}
+                        </span>
                       </span>
-                      <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.35 }}>
-                        {PERMISSION_DESCRIPTIONS[permission] || permission}
-                      </span>
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  ))}
               </div>
             </div>
           )}
@@ -420,7 +503,14 @@ export default function CreateUserPage() {
               whileTap={!createMutation.isPending ? { scale: 0.98 } : {}}
             >
               {createMutation.isPending ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
                   <span className="loading" />
                   Oluşturuluyor...
                 </span>

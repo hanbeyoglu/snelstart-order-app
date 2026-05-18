@@ -180,7 +180,8 @@
   "token": {
     "connectionStatus": "Bağlantı Durumu",
     "valid": "Bağlantı aktif",
-    "invalid": "Bağlantı pasif"
+    "invalid": "Bağlantı pasif",
+    "refreshing": "Token yenileniyor..."
   },
   "notFound": {
     "title": "Sayfa bulunamadı",

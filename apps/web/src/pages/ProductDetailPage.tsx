@@ -11,6 +11,7 @@ import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { validatePrice } from '../utils/priceValidation';
+import { usePriceOverridePolicy } from '../hooks/usePriceOverridePolicy';
 
 function getValidContentQuantity(product: any): number | null {
   const contentQuantity = Number(product?.contentQuantity);
@@ -45,7 +46,15 @@ export default function ProductDetailPage() {
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const { isFullOverride } = usePriceOverridePolicy();
   const { confirmPriceOverride } = useAdminPriceOverride();
+  const priceUser = user
+    ? {
+        role: user.role,
+        permissions: user.permissions,
+        priceOverrideLimitPercent: user.priceOverrideLimitPercent,
+      }
+    : null;
   const cartItem = cartItems.find((item) => item.productId === productId);
 
   const { data: product, isLoading } = useQuery({
@@ -83,28 +92,21 @@ export default function ProductDetailPage() {
       price: finalPrice,
       basePrice,
       purchasePrice: product.inkoopprijs,
+      user: priceUser,
     });
     let adminOverride = false;
     let adminPriceOverrideConfirmed = cartItem?.adminPriceOverrideConfirmed || false;
 
     if (!validation.isValid) {
-      if (!isAdmin) {
-        if (validation.rule === 'base-price') {
-        showToast(
-            `⚠️ ${t('products:messages.belowBasePrice', { basePrice: formatCurrency(basePrice), minPrice: formatCurrency(validation.minPrice) })}`,
-          'error',
-          5000
-        );
-        } else {
-        showToast(
-            `⚠️ ${t('products:messages.belowPurchasePrice', { purchasePrice: '', minPrice: formatCurrency(validation.minPrice) })}`,
-          'error',
-          5000
-        );
-      }
-        return;
-      }
+      showToast(
+        t('errors:priceBelowMinimum', { minPrice: formatCurrency(validation.minPrice) }),
+        'error',
+        5000,
+      );
+      return;
+    }
 
+    if (validation.requiresConfirmation && isFullOverride) {
       adminOverride = true;
       if (!adminPriceOverrideConfirmed) {
         adminPriceOverrideConfirmed = await confirmPriceOverride({ minPrice: formatCurrency(validation.minPrice) });

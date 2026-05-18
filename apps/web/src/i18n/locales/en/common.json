@@ -180,7 +180,8 @@
   "token": {
     "connectionStatus": "Connection Status",
     "valid": "Connection active",
-    "invalid": "Connection inactive"
+    "invalid": "Connection inactive",
+    "refreshing": "Refreshing token..."
   },
   "notFound": {
     "title": "Page not found",

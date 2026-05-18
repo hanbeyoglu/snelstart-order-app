@@ -26,6 +26,9 @@ export class User extends Document {
   @Prop({ type: [String], default: [] })
   permissions: string[];
 
+  @Prop({ required: false, min: 0, max: 100 })
+  priceOverrideLimitPercent?: number;
+
   @Prop({ required: false })
   customerId?: string;
 

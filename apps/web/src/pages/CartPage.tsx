@@ -11,6 +11,7 @@ import QuantityInput from '../components/QuantityInput';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { validatePrice } from '../utils/priceValidation';
+import { usePriceOverridePolicy } from '../hooks/usePriceOverridePolicy';
 
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -47,9 +48,16 @@ export default function CartPage() {
   const [deliveryDate, setDeliveryDate] = useState('');
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const { canOverridePrice, isFullOverride } = usePriceOverridePolicy();
   const isCustomer = user?.role === 'customer';
   const { confirmPriceOverride } = useAdminPriceOverride();
+  const priceUser = user
+    ? {
+        role: user.role,
+        permissions: user.permissions,
+        priceOverrideLimitPercent: user.priceOverrideLimitPercent,
+      }
+    : null;
   const deliveryOptions = [
     {
       value: 'market_delivery',
@@ -123,10 +131,14 @@ export default function CartPage() {
         price: val,
         basePrice: item.basePrice || item.unitPrice,
         purchasePrice: item.inkoopprijs,
+        user: priceUser,
       });
-      return !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed);
+      if (!validation.canEditPrice) {
+        return val !== (item.basePrice || item.unitPrice);
+      }
+      return !validation.isValid && !(isFullOverride && item.adminPriceOverrideConfirmed);
     });
-  }, [items, localUnitPrices, isAdmin]);
+  }, [items, localUnitPrices, isFullOverride, priceUser]);
 
   const { data: customersResponse, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ['customers', debouncedCustomerSearch],
@@ -319,8 +331,8 @@ export default function CartPage() {
       const message =
         apiMessage === 'PRICE_BELOW_MINIMUM'
           ? t('errors:priceBelowMinimumNoValue')
-          : apiMessage === 'ADMIN_PRICE_OVERRIDE_REQUIRED'
-            ? t('errors:adminPriceOverrideRequired')
+          : apiMessage === 'ADMIN_PRICE_OVERRIDE_REQUIRED' || apiMessage === 'PRICE_OVERRIDE_NOT_ALLOWED'
+            ? t('errors:priceOverrideNotAllowed')
             : error?.message || t('cart:messages.orderCreateError');
       showToast(message, 'error', 4000);
     },
@@ -734,13 +746,14 @@ export default function CartPage() {
                 price: numericPrice,
                 basePrice: item.basePrice || item.unitPrice,
                 purchasePrice: item.inkoopprijs,
+                user: priceUser,
               });
           const lineTotals = getLineTotals(item);
           const hasPriceErrorForItem =
             !isChildItem &&
             (rawPrice === '' ||
               Number.isNaN(numericPrice) ||
-              (!!validation && !validation.isValid && !(isAdmin && item.adminPriceOverrideConfirmed)));
+              (!!validation && !validation.isValid && !(isFullOverride && item.adminPriceOverrideConfirmed)));
           const lineUnitPriceExclVat = Number.isNaN(numericPrice) ? (item.customUnitPrice ?? item.unitPrice) : numericPrice;
           const lineSubtotalExclVat = money(lineUnitPriceExclVat * item.quantity);
           const lineVatRate = Number(item.vatRate ?? item.vatPercentage ?? 0) || 0;
@@ -866,7 +879,7 @@ export default function CartPage() {
                       step="0.01"
                       inputMode="decimal"
                       value={displayPrice}
-                      disabled={isChildItem || isCustomer}
+                      disabled={isChildItem || isCustomer || !canOverridePrice}
                       onChange={async (e) => {
                         if (isChildItem) return;
                         const displayValue = e.target.value;
@@ -886,24 +899,34 @@ export default function CartPage() {
                         if (Number.isNaN(newPrice)) {
                           return;
                         }
+                        if (!canOverridePrice) {
+                          showToast(t('errors:priceOverrideNotAllowed'), 'error', 4000);
+                          return;
+                        }
+
                         const priceValidation = validatePrice({
                           price: newPrice,
                           basePrice: item.basePrice || item.unitPrice,
                           purchasePrice: item.inkoopprijs,
+                          user: priceUser,
                         });
                         let adminOverride = false;
                         let adminPriceOverrideConfirmed = item.adminPriceOverrideConfirmed;
 
                         if (!priceValidation.isValid) {
-                          if (!isAdmin) {
-                            showToast(
-                              `⚠️ ${t('errors:priceBelowMinimum', { minPrice: formatCurrency(priceValidation.minPrice) })}`,
-                              'error',
-                              4000,
-                            );
-                            return;
-                          }
+                          showToast(
+                            t('errors:priceBelowMinimum', { minPrice: formatCurrency(priceValidation.minPrice) }),
+                            'error',
+                            4000,
+                          );
+                          setLocalUnitPrices((prev) => ({
+                            ...prev,
+                            [item.productId]: (item.customUnitPrice ?? item.unitPrice).toFixed(2),
+                          }));
+                          return;
+                        }
 
+                        if (priceValidation.requiresConfirmation) {
                           adminOverride = true;
                           if (!adminPriceOverrideConfirmed) {
                             adminPriceOverrideConfirmed = await confirmPriceOverride({

@@ -7,5 +7,6 @@
   "visibilityUpdate": "Sichtbarkeit konnte nicht aktualisiert werden",
   "priceBelowMinimum": "Der Preis liegt unter dem Mindestkriterium. Mindestpreis: {{minPrice}}",
   "priceBelowMinimumNoValue": "Der Preis liegt unter den Mindestverkaufskriterien.",
-  "adminPriceOverrideRequired": "Nur ein Admin kann diese Niedrigpreis-Ubersteuerung senden."
+  "adminPriceOverrideRequired": "Nur ein Admin kann diese Niedrigpreis-Ubersteuerung senden.",
+  "priceOverrideNotAllowed": "Sie haben keine Berechtigung, Preise zu ändern."
 }

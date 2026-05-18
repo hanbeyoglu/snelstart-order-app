@@ -7,5 +7,6 @@
   "visibilityUpdate": "تعذر تحديث الظهور",
   "priceBelowMinimum": "السعر أقل من الحد الأدنى للمعايير. الحد الأدنى للسعر: {{minPrice}}",
   "priceBelowMinimumNoValue": "السعر أقل من الحد الأدنى لمعايير البيع.",
-  "adminPriceOverrideRequired": "يمكن للمسؤول فقط إرسال تجاوز لهذا السعر المنخفض."
+  "adminPriceOverrideRequired": "يمكن للمسؤول فقط إرسال تجاوز لهذا السعر المنخفض.",
+  "priceOverrideNotAllowed": "ليس لديك إذن لتغيير الأسعار."
 }

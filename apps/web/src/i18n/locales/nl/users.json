@@ -42,6 +42,13 @@
       "updateError": "Er is een fout opgetreden bij het bijwerken van uw profiel"
     }
   },
+  "priceOverride": {
+    "sectionTitle": "Prijsaanpassingsrechten",
+    "full": "Onbeperkte prijsaanpassing",
+    "limited": "Beperkte prijsaanpassing",
+    "limitPercent": "Limietpercentage (%)",
+    "limitHint": "Met inkoopprijs: inkoop × (1 + limiet%). Anders: lijstprijs × (1 − limiet%)."
+  },
   "messages": {
     "deleted": "Gebruiker succesvol verwijderd",
     "deleteError": "Er is een fout opgetreden bij het verwijderen van de gebruiker",

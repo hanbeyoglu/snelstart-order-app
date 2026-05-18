@@ -7,5 +7,6 @@
   "visibilityUpdate": "Visibility could not be updated",
   "priceBelowMinimum": "Price is below the minimum criteria. Minimum price: {{minPrice}}",
   "priceBelowMinimumNoValue": "Price is below the minimum sales criteria.",
-  "adminPriceOverrideRequired": "Only an admin can submit this low-price override."
+  "adminPriceOverrideRequired": "Only an admin can submit this low-price override.",
+  "priceOverrideNotAllowed": "You do not have permission to change prices."
 }

@@ -7,5 +7,6 @@
   "visibilityUpdate": "Görünürlük güncellenemedi",
   "priceBelowMinimum": "Fiyat minimum kriterin altında. Minimum fiyat: {{minPrice}}",
   "priceBelowMinimumNoValue": "Fiyat minimum satış kriterlerinin altında.",
-  "adminPriceOverrideRequired": "Bu düşük fiyatı sadece admin onayıyla gönderebilirsiniz."
+  "adminPriceOverrideRequired": "Bu düşük fiyatı sadece admin onayıyla gönderebilirsiniz.",
+  "priceOverrideNotAllowed": "Fiyat değiştirme izniniz yok."
 }

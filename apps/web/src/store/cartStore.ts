@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CartItem } from '@snelstart-order-app/shared';
+import type { CartItem } from '@snelstart-order-app/shared';
 
 const CART_KEY_PREFIX = 'cart-user-';
 const LEGACY_CART_KEY = 'cart-storage';

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -7,25 +12,47 @@ import {
   ConnectionSettingsDocument,
 } from './schemas/connection-settings.schema';
 import { EncryptionService } from './encryption.service';
+import { SnelStartClient } from '../snelstart/snelstart.client';
+
+/** Refresh when stored expiry is within this window (ms). */
+export const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+
+export type TokenRefreshResult = {
+  success: boolean;
+  accessToken?: string;
+  tokenExpiresAt?: Date;
+  error?: string;
+};
 
 @Injectable()
 export class ConnectionSettingsService {
+  private readonly logger = new Logger(ConnectionSettingsService.name);
+  private refreshPromise: Promise<TokenRefreshResult> | null = null;
+
   constructor(
     @InjectModel(ConnectionSettings.name)
     private connectionSettingsModel: Model<ConnectionSettingsDocument>,
     private encryptionService: EncryptionService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => SnelStartClient))
+    private snelStartClient: SnelStartClient,
   ) {}
+
+  isRefreshInProgress(): boolean {
+    return this.refreshPromise !== null;
+  }
 
   async getActiveSettings(): Promise<ConnectionSettingsDocument | null> {
     const settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
-    
-    // If no settings in DB, use env variables
+
     if (!settings) {
-      // ConfigService kullanarak env değişkenlerini oku
-      const envSubscriptionKey = this.configService.get<string>('SNELSTART_API_SUB_KEY') || process.env.SNELSTART_API_SUB_KEY;
-      const envIntegrationKey = this.configService.get<string>('SNELSTART_CLIENTKEY') || process.env.SNELSTART_CLIENTKEY;
-      
+      const envSubscriptionKey =
+        this.configService.get<string>('SNELSTART_API_SUB_KEY') ||
+        process.env.SNELSTART_API_SUB_KEY;
+      const envIntegrationKey =
+        this.configService.get<string>('SNELSTART_CLIENTKEY') ||
+        process.env.SNELSTART_CLIENTKEY;
+
       if (envSubscriptionKey && envIntegrationKey) {
         return {
           subscriptionKey: envSubscriptionKey,
@@ -36,7 +63,6 @@ export class ConnectionSettingsService {
       return null;
     }
 
-    // Decrypt keys
     const decrypted = {
       ...settings.toObject(),
       subscriptionKey: this.encryptionService.decrypt(settings.subscriptionKey),
@@ -46,22 +72,18 @@ export class ConnectionSettingsService {
   }
 
   async getSettings(): Promise<ConnectionSettingsDocument | null> {
-    const settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
-    return settings;
+    return this.connectionSettingsModel.findOne({ isActive: true }).exec();
   }
 
   async saveSettings(
     subscriptionKey: string,
     integrationKey: string,
   ): Promise<ConnectionSettingsDocument> {
-    // Encrypt keys
     const encryptedSubscriptionKey = this.encryptionService.encrypt(subscriptionKey);
     const encryptedIntegrationKey = this.encryptionService.encrypt(integrationKey);
 
-    // Deactivate all existing settings
     await this.connectionSettingsModel.updateMany({}, { isActive: false }).exec();
 
-    // Create new active settings
     const settings = new this.connectionSettingsModel({
       subscriptionKey: encryptedSubscriptionKey,
       integrationKey: encryptedIntegrationKey,
@@ -81,60 +103,132 @@ export class ConnectionSettingsService {
     }
   }
 
+  /** Clears stored token and marks connection offline after unrecoverable auth failure. */
+  async markConnectionInvalid(reason = 'SnelStart authentication failed'): Promise<void> {
+    const settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
+    if (settings) {
+      settings.accessToken = undefined;
+      settings.tokenExpiresAt = new Date(0);
+      await settings.save();
+    }
+    await this.updateTestStatus(false, reason);
+    this.logger.warn(`SnelStart connection marked invalid: ${reason}`);
+  }
+
   async saveAccessToken(accessToken: string, expiresIn: number): Promise<void> {
     let settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
-    
-    // Eğer database'de settings yoksa, env'den al ve database'e kaydet
+
     if (!settings) {
-      const envSubscriptionKey = this.configService.get<string>('SNELSTART_API_SUB_KEY') || process.env.SNELSTART_API_SUB_KEY;
-      const envIntegrationKey = this.configService.get<string>('SNELSTART_CLIENTKEY') || process.env.SNELSTART_CLIENTKEY;
-      
+      const envSubscriptionKey =
+        this.configService.get<string>('SNELSTART_API_SUB_KEY') ||
+        process.env.SNELSTART_API_SUB_KEY;
+      const envIntegrationKey =
+        this.configService.get<string>('SNELSTART_CLIENTKEY') ||
+        process.env.SNELSTART_CLIENTKEY;
+
       if (envSubscriptionKey && envIntegrationKey) {
-        // Settings'i database'e kaydet
         await this.saveSettings(envSubscriptionKey, envIntegrationKey);
-        // Kaydedilen settings'i tekrar çek
         settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
       } else {
-        // Settings yok ve env'de de yok, token kaydedilemez
-        console.warn('Cannot save token: No connection settings found in database or environment');
+        this.logger.warn('Cannot save token: no connection settings in database or environment');
         return;
       }
     }
-    
-    // Settings hala yoksa token kaydedilemez
+
     if (!settings) {
-      console.warn('Cannot save token: Settings could not be created or found');
+      this.logger.warn('Cannot save token: settings could not be created or found');
       return;
     }
-    
-    // Token'ı kaydet
+
     const encryptedToken = this.encryptionService.encrypt(accessToken);
-    const expiresAt = new Date(Date.now() + (expiresIn - 300) * 1000); // 5 dakika önceden expire et
+    const expiresAt = new Date(Date.now() + (expiresIn - 300) * 1000);
     settings.accessToken = encryptedToken;
     settings.tokenExpiresAt = expiresAt;
     await settings.save();
   }
 
+  private tokenNeedsRefresh(tokenExpiresAt?: Date | null): boolean {
+    if (!tokenExpiresAt) {
+      return true;
+    }
+    const refreshBy = Date.now() + TOKEN_REFRESH_THRESHOLD_MS;
+    return tokenExpiresAt.getTime() <= refreshBy;
+  }
+
+  /**
+   * Obtain a fresh access token from SnelStart and persist it.
+   * Concurrent callers share one in-flight refresh.
+   */
+  async refreshAccessToken(): Promise<TokenRefreshResult> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.refreshPromise = this.performTokenRefresh().finally(() => {
+      this.refreshPromise = null;
+    });
+
+    return this.refreshPromise;
+  }
+
+  private async performTokenRefresh(): Promise<TokenRefreshResult> {
+    const settings = await this.getActiveSettings();
+    if (!settings?.integrationKey) {
+      return { success: false, error: 'Connection settings not found' };
+    }
+
+    try {
+      const tokenResponse = await this.snelStartClient.getToken(settings.integrationKey);
+      if (!tokenResponse?.access_token || !tokenResponse.expires_in) {
+        this.logger.warn('SnelStart token refresh returned invalid response');
+        return { success: false, error: 'Invalid token response' };
+      }
+
+      await this.saveAccessToken(tokenResponse.access_token, tokenResponse.expires_in);
+      const updated = await this.getSettings();
+
+      return {
+        success: true,
+        accessToken: tokenResponse.access_token,
+        tokenExpiresAt: updated?.tokenExpiresAt,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Token refresh failed';
+      this.logger.warn(`SnelStart token refresh failed: ${message}`);
+      return { success: false, error: 'Token refresh failed' };
+    }
+  }
+
+  /**
+   * Returns a usable access token, refreshing automatically when expired or near expiry.
+   */
   async getValidAccessToken(): Promise<string | null> {
     const settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
-    if (!settings || !settings.accessToken) {
-      return null;
+    if (!settings?.accessToken) {
+      const refreshed = await this.refreshAccessToken();
+      return refreshed.success && refreshed.accessToken
+        ? refreshed.accessToken
+        : null;
     }
 
-    // Check if token is expired or will expire soon (within 5 minutes)
-    if (settings.tokenExpiresAt && settings.tokenExpiresAt <= new Date()) {
-      return null;
+    if (!this.tokenNeedsRefresh(settings.tokenExpiresAt)) {
+      return this.encryptionService.decrypt(settings.accessToken);
     }
 
-    return this.encryptionService.decrypt(settings.accessToken);
+    const refreshed = await this.refreshAccessToken();
+    if (refreshed.success && refreshed.accessToken) {
+      return refreshed.accessToken;
+    }
+
+    if (settings.tokenExpiresAt && settings.tokenExpiresAt > new Date()) {
+      return this.encryptionService.decrypt(settings.accessToken);
+    }
+
+    return null;
   }
 
   async isTokenValid(): Promise<boolean> {
-    const settings = await this.connectionSettingsModel.findOne({ isActive: true }).exec();
-    if (!settings || !settings.accessToken || !settings.tokenExpiresAt) {
-      return false;
-    }
-    return settings.tokenExpiresAt > new Date();
+    const token = await this.getValidAccessToken();
+    return token !== null;
   }
 }
-

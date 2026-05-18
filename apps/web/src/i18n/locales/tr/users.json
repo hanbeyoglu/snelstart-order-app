@@ -42,6 +42,13 @@
       "updateError": "Profil güncellenirken bir hata oluştu"
     }
   },
+  "priceOverride": {
+    "sectionTitle": "Fiyat değiştirme izinleri",
+    "full": "Sınırsız fiyat değiştirme",
+    "limited": "Limitli fiyat değiştirme",
+    "limitPercent": "Limit yüzdesi (%)",
+    "limitHint": "Alış fiyatı varsa: alış × (1 + limit%). Yoksa: liste fiyatı × (1 − limit%)."
+  },
   "messages": {
     "deleted": "Kullanıcı başarıyla silindi",
     "deleteError": "Kullanıcı silinirken bir hata oluştu",

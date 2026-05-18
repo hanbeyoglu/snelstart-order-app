@@ -25,6 +25,14 @@ export interface CartItem {
   adminOverride?: boolean;
   adminPriceOverrideConfirmed?: boolean;
   adminOverrideReason?: string;
+  manualPriceOverride?: {
+    previousUnitPrice: number;
+    newUnitPrice: number;
+    overrideType: 'full' | 'limited';
+    changedByUserId?: string;
+    changedByUsername?: string;
+    limitPercent?: number;
+  };
   isChildItem?: boolean;
   lineType?: 'product' | 'recipe_child';
   parentProductId?: string;

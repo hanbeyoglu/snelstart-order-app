@@ -29,6 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       isActive: payload.isActive !== false,
       preferredLanguage: payload.preferredLanguage || null,
       lastLoginAt: payload.lastLoginAt || null,
+      priceOverrideLimitPercent: payload.priceOverrideLimitPercent ?? null,
     };
   }
 }

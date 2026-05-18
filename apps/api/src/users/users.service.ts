@@ -11,6 +11,7 @@ import {
   getEffectivePermissions,
   normalizePermissions,
 } from '../auth/permissions';
+import { PriceOverridePolicyService } from '../auth/price-override-policy.service';
 import { Customer, CustomerDocument } from '../customers/schemas/customer.schema';
 
 export type ListUsersSortBy = 'customerName' | 'username' | 'createdAt' | 'lastLoginAt';
@@ -43,6 +44,7 @@ export type GetUsersPaginatedFilters = GetAllUsersFilters & {
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private priceOverridePolicyService: PriceOverridePolicyService,
     @InjectModel(Customer.name) private customerModel?: Model<CustomerDocument>,
   ) {}
 
@@ -319,6 +321,7 @@ export class UsersService {
     customerId?: string,
     isActive: boolean = true,
     preferredLanguage?: string,
+    priceOverrideLimitPercent?: number,
   ) {
     try {
       // Username validation
@@ -356,7 +359,19 @@ export class UsersService {
             requesterId,
             validRole,
           );
-      const userData: any = { username: trimmedUsername, passwordHash, role: validRole, permissions: normalizedPermissions };
+      const validatedLimitPercent = validRole === 'super_admin'
+        ? undefined
+        : this.priceOverridePolicyService.validateLimitPercentForPermissions(
+            normalizedPermissions,
+            priceOverrideLimitPercent,
+          );
+      const userData: any = {
+        username: trimmedUsername,
+        passwordHash,
+        role: validRole,
+        permissions: normalizedPermissions,
+        ...(validatedLimitPercent !== undefined ? { priceOverrideLimitPercent: validatedLimitPercent } : {}),
+      };
       userData.isActive = isActive !== false;
       if (preferredLanguage?.trim()) userData.preferredLanguage = preferredLanguage.trim();
       if (validRole === 'customer') {
@@ -438,7 +453,18 @@ export class UsersService {
 
   async updateUser(
     id: string,
-    data: { username?: string; email?: string | null; firstName?: string; lastName?: string; password?: string; role?: UserRole; customerId?: string | null; isActive?: boolean; preferredLanguage?: string },
+    data: {
+      username?: string;
+      email?: string | null;
+      firstName?: string;
+      lastName?: string;
+      password?: string;
+      role?: UserRole;
+      customerId?: string | null;
+      isActive?: boolean;
+      preferredLanguage?: string;
+      priceOverrideLimitPercent?: number | null;
+    },
     allowRoleChange: boolean = true,
     requesterRole?: UserRole,
   ) {
@@ -531,8 +557,17 @@ export class UsersService {
         const nextCustomerId = data.customerId !== undefined ? data.customerId : user.customerId;
         user.customerId = await this.validateCustomerId(nextCustomerId);
         user.permissions = this.filterCustomerPermissions(user.permissions);
+        user.priceOverrideLimitPercent = undefined;
       } else if (data.customerId !== undefined) {
         user.customerId = undefined;
+      }
+
+      if (nextRole !== 'customer' && data.priceOverrideLimitPercent !== undefined) {
+        const effectivePermissions = getEffectivePermissions(nextRole, user.permissions);
+        user.priceOverrideLimitPercent = this.priceOverridePolicyService.validateLimitPercentForPermissions(
+          effectivePermissions,
+          data.priceOverrideLimitPercent,
+        );
       }
 
       await user.save();
@@ -592,6 +627,14 @@ export class UsersService {
 
     const previousPermissions = getEffectivePermissions(targetUser.role, targetUser.permissions);
     targetUser.permissions = nextPermissions;
+    if (!nextPermissions.includes('price.override.limited')) {
+      targetUser.priceOverrideLimitPercent = undefined;
+    } else if (
+      targetUser.priceOverrideLimitPercent === undefined ||
+      targetUser.priceOverrideLimitPercent === null
+    ) {
+      throw new BadRequestException('Limitli fiyat değiştirme için limit yüzdesi tanımlanmalıdır');
+    }
     await targetUser.save();
 
     const { passwordHash: _, ...result } = targetUser.toObject();

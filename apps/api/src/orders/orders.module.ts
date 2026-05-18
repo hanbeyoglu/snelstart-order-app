@@ -14,12 +14,16 @@ import { CategoriesModule } from '../categories/categories.module';
 import { OrderNotificationService } from './order-notification.service';
 import { MailSettingsModule } from '../mail-settings/mail-settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
+import { User, UserSchema } from '../auth/schemas/user.schema';
 
 @Module({
   imports: [
+    AuthModule,
     MongooseModule.forFeature([
       { name: LocalOrder.name, schema: LocalOrderSchema },
       { name: Product.name, schema: ProductSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     SnelStartModule,
     BullModule.registerQueue({

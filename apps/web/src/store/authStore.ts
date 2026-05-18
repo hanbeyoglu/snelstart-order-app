@@ -14,6 +14,7 @@ interface User {
   customerId?: string | null;
   isActive?: boolean;
   preferredLanguage?: string | null;
+  priceOverrideLimitPercent?: number | null;
 }
 
 interface AuthState {

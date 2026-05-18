@@ -42,6 +42,13 @@
       "updateError": "Beim Aktualisieren Ihres Profils ist ein Fehler aufgetreten"
     }
   },
+  "priceOverride": {
+    "sectionTitle": "Preisänderungsberechtigungen",
+    "full": "Unbegrenzte Preisänderung",
+    "limited": "Begrenzte Preisänderung",
+    "limitPercent": "Limitprozent (%)",
+    "limitHint": "Mit Einkaufspreis: Einkauf × (1 + Limit%). Sonst: Listenpreis × (1 − Limit%)."
+  },
   "messages": {
     "deleted": "Benutzer erfolgreich gelöscht",
     "deleteError": "Beim Löschen des Benutzers ist ein Fehler aufgetreten",

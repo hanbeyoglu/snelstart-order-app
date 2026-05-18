@@ -15,6 +15,9 @@ import { PricingService } from '../pricing/pricing.service';
 import { parseOrBadRequest } from '../common/validation/zod-validation';
 import { OrderNotificationService } from './order-notification.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PriceOverridePolicyService } from '../auth/price-override-policy.service';
+import { User, UserDocument } from '../auth/schemas/user.schema';
+import { getEffectivePermissions } from '../auth/permissions';
 import { randomUUID } from 'node:crypto';
 
 export interface OrderListFilters {
@@ -44,6 +47,7 @@ export class OrdersService {
   constructor(
     @InjectModel(LocalOrder.name) private orderModel: Model<LocalOrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectQueue('order-sync') private orderSyncQueue: Queue,
     private snelStartService: SnelStartService,
     private auditService: AuditService,
@@ -51,15 +55,29 @@ export class OrdersService {
     private productsService: ProductsService,
     private pricingService: PricingService,
     private categoriesService: CategoriesService,
+    private priceOverridePolicyService: PriceOverridePolicyService,
     @Optional() private orderNotificationService?: OrderNotificationService,
     @Optional() private notificationsService?: NotificationsService,
   ) {}
 
-  private getMinimumAllowedPrice(basePrice: number, purchasePrice?: number | null) {
-    if (purchasePrice && purchasePrice > 0) {
-      return purchasePrice * 1.05;
+  private async resolvePricePolicyUser(user?: any) {
+    if (!user?.userId) {
+      return user;
     }
-    return basePrice * 0.95;
+    const dbUser = await this.userModel
+      .findById(user.userId)
+      .select('role permissions priceOverrideLimitPercent')
+      .lean()
+      .exec();
+    if (!dbUser) {
+      return user;
+    }
+    return {
+      ...user,
+      role: user.role ?? dbUser.role,
+      permissions: getEffectivePermissions(dbUser.role, dbUser.permissions),
+      priceOverrideLimitPercent: dbUser.priceOverrideLimitPercent,
+    };
   }
 
   private positiveNumber(value: unknown, fallback: number): number {
@@ -269,6 +287,7 @@ export class OrdersService {
   }
 
   private async validateOrderPrices(items: any[], user?: any) {
+    const policyUser = await this.resolvePricePolicyUser(user);
     const productIds = items
       .filter((item) => item.isChildItem !== true)
       .map((item) => item.productId);
@@ -286,21 +305,36 @@ export class OrdersService {
         continue;
       }
       const product = productById.get(item.productId);
-      const unitPrice = item.unitPrice;
+      const unitPrice = Number(item.unitPrice);
       const basePrice = product?.verkoopprijs ?? item.basePrice ?? unitPrice;
       const purchasePrice = product?.inkoopprijs;
-      const minPrice = this.getMinimumAllowedPrice(basePrice, purchasePrice);
+      const trustedUnitPrice = Number(item.basePrice ?? basePrice);
 
-      if (unitPrice >= minPrice) {
+      if (!Number.isFinite(unitPrice) || unitPrice === trustedUnitPrice) {
         continue;
       }
 
-      if (!item.adminOverride && !item.adminPriceOverrideConfirmed) {
-        throw new BadRequestException('PRICE_BELOW_MINIMUM');
-      }
-
-      if (user?.role !== 'admin' && user?.role !== 'super_admin') {
-        throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
+      try {
+        this.priceOverridePolicyService.assertCanOverridePrice(
+          policyUser,
+          unitPrice,
+          basePrice,
+          purchasePrice,
+        );
+      } catch (error) {
+        void this.auditService.log({
+          action: 'PRICE_OVERRIDE_REJECTED',
+          entityType: 'LocalOrder',
+          entityId: item.productId,
+          userId: user?.userId,
+          actorRole: user?.role,
+          metadata: {
+            requestedUnitPrice: unitPrice,
+            basePrice,
+            purchasePrice,
+          },
+        });
+        throw error;
       }
     }
   }
@@ -549,6 +583,7 @@ export class OrdersService {
     customerId: string,
     user?: any,
   ) {
+    const policyUser = await this.resolvePricePolicyUser(user);
     const trustedItems = [];
 
     for (const item of items.filter((cartItem) => cartItem.isChildItem !== true)) {
@@ -559,26 +594,36 @@ export class OrdersService {
       const requestedUnitPrice = Number(item.unitPrice);
       const hasRequestedPrice = Number.isFinite(requestedUnitPrice);
       const priceChanged = hasRequestedPrice && requestedUnitPrice !== trustedUnitPrice;
-      const hasAdminOverride =
-        item.adminOverride === true ||
-        item.adminPriceOverrideConfirmed === true ||
-        item.customUnitPrice !== undefined;
 
       let unitPrice = trustedUnitPrice;
-      if (priceChanged) {
-        if (user?.role !== 'admin' && user?.role !== 'super_admin') {
-          throw new ForbiddenException('ADMIN_PRICE_OVERRIDE_REQUIRED');
-        }
-        if (!hasAdminOverride) {
-          throw new BadRequestException('PRICE_OVERRIDE_CONFIRMATION_REQUIRED');
-        }
+      let manualPriceOverride: Record<string, unknown> | undefined;
 
-        const minPrice = this.getMinimumAllowedPrice(basePrice, product.inkoopprijs);
-        if (requestedUnitPrice < minPrice && !item.adminPriceOverrideConfirmed) {
-          throw new BadRequestException('PRICE_BELOW_MINIMUM');
-        }
+      if (priceChanged) {
+        const validation = this.priceOverridePolicyService.assertCanOverridePrice(
+          policyUser,
+          requestedUnitPrice,
+          basePrice,
+          product.inkoopprijs,
+        );
 
         unitPrice = requestedUnitPrice;
+        manualPriceOverride = {
+          previousUnitPrice: trustedUnitPrice,
+          newUnitPrice: unitPrice,
+          overrideType: validation.overrideType,
+          changedByUserId: user?.userId,
+          changedByUsername: user?.username,
+          limitPercent: validation.policy.limitPercent,
+        };
+
+        void this.auditService.log({
+          action: 'PRICE_OVERRIDE_APPLIED',
+          entityType: 'Product',
+          entityId: product.id || item.productId,
+          userId: user?.userId,
+          actorRole: user?.role,
+          metadata: manualPriceOverride,
+        });
       }
 
       trustedItems.push({
@@ -605,6 +650,7 @@ export class OrdersService {
               adminOverride: true,
               adminPriceOverrideConfirmed: item.adminPriceOverrideConfirmed === true,
               adminOverrideReason: item.adminOverrideReason,
+              manualPriceOverride,
             }
           : {}),
       });

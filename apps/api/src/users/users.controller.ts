@@ -112,6 +112,7 @@ export class UsersController {
       body.customerId,
       body.isActive,
       body.preferredLanguage,
+      body.priceOverrideLimitPercent,
     );
     await this.auditService.log({
       action: 'USER_CREATED',
