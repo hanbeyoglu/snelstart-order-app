@@ -7,6 +7,8 @@ import {
   SnelStartCustomer,
   SnelStartSalesOrder,
   SnelStartArtikelOmzetGroep,
+  fetchSnelStartAccessToken,
+  resolveSnelStartUrls,
 } from '@snelstart-order-app/shared';
 import { ConnectionSettingsService } from '../connection-settings/connection-settings.service';
 
@@ -42,31 +44,11 @@ export class SnelStartClient {
     integrationKey: string,
   ): Promise<{ access_token: string; expires_in: number }> {
     try {
-      const params = new URLSearchParams();
-      params.append('grant_type', 'clientkey');
-      params.append('clientkey', integrationKey);
-  
-      const authUrl =
-        process.env.SNELSTART_API_AUTH_URL ||
-        'https://auth.snelstart.nl/b2b/token';
-  
-      const response = await axios.post(authUrl, params.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-  
-      return response.data;
+      const { authUrl } = resolveSnelStartUrls();
+      return await fetchSnelStartAccessToken(integrationKey, authUrl);
     } catch (error: any) {
-      this.logger.error(
-        'Failed to get token',
-        error.response?.data,
-      );
-      throw new Error(
-        `Token alınamadı: ${
-          error.response?.data?.error || error.message
-        }`,
-      );
+      this.logger.error('Failed to get token', error?.message);
+      throw new Error(`Token alınamadı: ${error?.message || 'unknown error'}`);
     }
   }
 

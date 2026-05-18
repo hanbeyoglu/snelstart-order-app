@@ -5,7 +5,11 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@snelstart-order-app/shared": ["../../packages/shared/dist"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

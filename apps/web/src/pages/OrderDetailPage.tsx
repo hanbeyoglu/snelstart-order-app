@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,12 @@ import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
 import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
+import { useOrderDetailSyncTransitionToast } from '../hooks/useOrderSyncTransitionToasts';
+import {
+  isOrderSyncInProgress,
+  logOrderDetailPollResponse,
+  ORDER_DETAIL_SYNC_POLL_MS,
+} from '../utils/orderSyncStatus';
 
 export default function OrderDetailPage() {
   const { t } = useAppTranslation(['cart', 'orders']);
@@ -25,30 +31,53 @@ export default function OrderDetailPage() {
   const [canEdit, setCanEdit] = useState(true);
   const [canDelete, setCanDelete] = useState(true);
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, isFetching } = useQuery({
     queryKey: ['order', orderId],
     queryFn: async () => {
       const response = await api.get(`/orders/${orderId}`);
-      return response.data;
+      const data = response.data;
+      if (isOrderSyncInProgress(data?.status)) {
+        logOrderDetailPollResponse(orderId, data?.status);
+      }
+      return data;
     },
+    enabled: !!orderId,
+    placeholderData: keepPreviousData,
+    staleTime: (query) => {
+      const status = (query.state.data as { status?: string } | undefined)?.status;
+      return isOrderSyncInProgress(status) ? 0 : 30 * 1000;
+    },
+    refetchInterval: (query) => {
+      const status = (query.state.data as { status?: string } | undefined)?.status;
+      const polling = isOrderSyncInProgress(status);
+      if (polling) {
+        console.debug('[order-sync-debug] order detail polling active');
+      }
+      return polling ? ORDER_DETAIL_SYNC_POLL_MS : false;
+    },
+    refetchOnWindowFocus: true,
   });
 
+  useOrderDetailSyncTransitionToast(orderId, order?.status, showToast, t);
+
   // Fetch SnelStart order to check procesStatus
+  const shouldFetchSnelStartDetail =
+    !isCustomer && order?.status === 'SYNCED' && !!order?.snelstartOrderId && !!order?.customerId;
+
   const { data: snelStartOrder } = useQuery({
     queryKey: ['snelstart-order', order?.snelstartOrderId, order?.customerId],
     queryFn: async () => {
       if (!order?.snelstartOrderId || !order?.customerId) return null;
       try {
-        // Fetch orders for this specific customer
         const customerOrdersResponse = await api.get(`/customers/${order.customerId}/orders`);
         const orders = customerOrdersResponse.data || [];
         const foundOrder = orders.find((o: any) => o.id === order.snelstartOrderId);
         return foundOrder || null;
-      } catch (error) {
+      } catch {
         return null;
       }
     },
-    enabled: !isCustomer && !!order?.snelstartOrderId && !!order?.customerId,
+    enabled: shouldFetchSnelStartDetail,
   });
 
   // Check if order can be edited/deleted
@@ -174,7 +203,7 @@ export default function OrderDetailPage() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading && !order) {
     return (
       <div className="container">
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', gap: '1rem' }}>
@@ -218,26 +247,28 @@ export default function OrderDetailPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'SYNCED':
-        return {
-          color: 'var(--success)',
-          bg: 'rgba(16, 185, 129, 0.1)',
-          icon: '✅',
-          text: 'Senkronize',
-        };
+      case 'SYNCING':
       case 'PENDING_SYNC':
         return {
           color: 'var(--warning)',
           bg: 'rgba(245, 158, 11, 0.1)',
           icon: '⏳',
-          text: 'Beklemede',
+          text: t('orders:status.pending'),
         };
+      case 'SYNCED':
+        return {
+          color: 'var(--success)',
+          bg: 'rgba(16, 185, 129, 0.1)',
+          icon: '✅',
+          text: t('orders:status.synced'),
+        };
+      case 'SYNC_FAILED':
       case 'FAILED':
         return {
           color: 'var(--danger)',
           bg: 'rgba(239, 68, 68, 0.1)',
           icon: '❌',
-          text: 'Başarısız',
+          text: t('orders:status.syncFailed'),
         };
       default:
         return {
@@ -290,6 +321,10 @@ export default function OrderDetailPage() {
     : '-';
   const deliveryDecision = deliveryTypeLabel || '-';
   const deliveryTime = deliveryTimingLabel || '-';
+  const showSyncErrorBanner =
+    (order.status === 'SYNC_FAILED' || order.status === 'FAILED' || order.status === 'PENDING_SYNC') &&
+    !!order.errorMessage;
+
   const orderDetailItems = [
     {
       label: 'Oluşturulma Tarihi',
@@ -327,7 +362,34 @@ export default function OrderDetailPage() {
   ];
 
   return (
-    <div className="container">
+    <motion.div className="container">
+      {showSyncErrorBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          role="alert"
+          style={{
+            marginBottom: '1rem',
+            padding: '1rem 1.25rem',
+            borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+          }}
+        >
+          <p style={{ margin: 0, color: 'var(--danger)', fontWeight: 700, fontSize: 'clamp(0.95rem, 3vw, 1.05rem)' }}>
+            {t('orders:syncErrorBannerTitle')}
+          </p>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-primary)', fontSize: '0.95rem', overflowWrap: 'anywhere' }}>
+            {order.errorMessage}
+          </p>
+          {order.retryCount > 0 && (
+            <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              {t('orders:syncRetryCount', { count: order.retryCount })}
+            </p>
+          )}
+        </motion.div>
+      )}
+
       <div
         style={{
           display: 'flex',
@@ -589,11 +651,17 @@ export default function OrderDetailPage() {
                   fontWeight: 800,
                   color: statusConfig.color,
                   fontSize: '0.9rem',
+                  transition: 'color 0.25s ease, background 0.25s ease, border-color 0.25s ease',
                 }}
               >
                 <span>{statusConfig.icon}</span>
                 <span>{statusConfig.text}</span>
               </div>
+              {isOrderSyncInProgress(order.status) && isFetching && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }} aria-live="polite">
+                  {t('orders:syncStatusRefreshing')}
+                </span>
+              )}
               <div style={{ textAlign: 'right' }}>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700 }}>{t('cart:totalAmount')}</div>
                 <div style={{ fontSize: 'clamp(1.45rem, 4vw, 2rem)', fontWeight: 900, color: 'var(--primary)' }}>
@@ -660,6 +728,25 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
+          {order.note && String(order.note).trim() ? (
+            <div
+              style={{
+                marginBottom: '1rem',
+                padding: '1rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.04))',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+              }}
+            >
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                {t('orders:fields.orderNote')}
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                {String(order.note).trim()}
+              </div>
+            </div>
+          ) : null}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.9rem', marginBottom: '1rem' }}>
             {orderDetailItems.map((item) => (
               <div
@@ -722,21 +809,6 @@ export default function OrderDetailPage() {
         </div>
         </div>
 
-        {order.errorMessage && (
-          <div
-            style={{
-              padding: '1rem',
-              background: 'rgba(239, 68, 68, 0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <p style={{ color: 'var(--danger)', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-              ❌ Hata: {order.errorMessage}
-            </p>
-          </div>
-        )}
       </motion.div>
 
       {/* Sipariş Kalemleri */}
@@ -838,6 +910,6 @@ export default function OrderDetailPage() {
           })}
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

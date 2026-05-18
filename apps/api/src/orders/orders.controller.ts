@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, Req, Header } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -50,6 +50,7 @@ export class OrdersController {
   }
 
   @Get()
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: 'Get orders' })
   async getOrders(
     @Query('status') status: string | undefined,
@@ -85,6 +86,7 @@ export class OrdersController {
   }
 
   @Get(':id')
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: 'Get order by ID' })
   async getOrderById(@Param('id') id: string, @Req() req: any) {
     return this.ordersService.getOrderById(id, req.user);

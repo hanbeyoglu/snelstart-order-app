@@ -330,7 +330,7 @@ test('super_admin users list can include super_admin users', async () => {
 });
 
 test('admin order creation stores authenticated user snapshot and ignores client createdBy overrides', async () => {
-  const { service, getLastOrder, getLastPayload } = createOrderTestHarness();
+  const { service, getLastOrder } = createOrderTestHarness();
 
   await service.createOrder(
     createOrderPayload({
@@ -352,11 +352,12 @@ test('admin order creation stores authenticated user snapshot and ignores client
   assert.equal(getLastOrder().createdByFullName, 'Halil Selek');
   assert.equal(getLastOrder().createdByRole, 'admin');
   assert.equal(getLastOrder().createdByCustomerName, undefined);
-  assert.match(getLastPayload().memo, /Özel yazılımdan gelen sipariş\nOluşturan: Halil Selek/);
+  const payload = (service as any).buildSnelStartPayload(getLastOrder());
+  assert.match(payload.memo, /Aangemaakt door:\nHalil Selek/);
 });
 
 test('sales_rep order creation stores sales user as creator', async () => {
-  const { service, getLastOrder, getLastPayload } = createOrderTestHarness();
+  const { service, getLastOrder } = createOrderTestHarness();
 
   await service.createOrder(
     createOrderPayload({ idempotencyKey: '22222222-2222-4222-8222-222222222222' }),
@@ -372,11 +373,12 @@ test('sales_rep order creation stores sales user as creator', async () => {
   assert.equal(getLastOrder().createdByUserId, 'sales-1');
   assert.equal(getLastOrder().createdByFullName, 'Seda Yilmaz');
   assert.equal(getLastOrder().createdByRole, 'sales_rep');
-  assert.match(getLastPayload().memo, /Oluşturan: Seda Yilmaz/);
+  const payload = (service as any).buildSnelStartPayload(getLastOrder());
+  assert.match(payload.memo, /Aangemaakt door:\nSeda Yilmaz/);
 });
 
 test('customer order creation uses user customerId and customer name snapshot', async () => {
-  const { service, getLastOrder, getLastPayload } = createOrderTestHarness({
+  const { service, getLastOrder } = createOrderTestHarness({
     getCustomerById: async () => ({ id: 'customer-actual', naam: 'DHY Food BV' }),
   });
 
@@ -399,18 +401,36 @@ test('customer order creation uses user customerId and customer name snapshot', 
   assert.equal(getLastOrder().createdByRole, 'customer');
   assert.equal(getLastOrder().createdByCustomerId, 'customer-actual');
   assert.equal(getLastOrder().createdByCustomerName, 'DHY Food BV');
-  assert.match(getLastPayload().memo, /Oluşturan müşteri: DHY Food BV/);
+  const payload = (service as any).buildSnelStartPayload(getLastOrder());
+  assert.equal(payload.omschrijving, undefined);
+  assert.match(payload.memo, /Aangemaakt door:\nDHY Food BV/);
 });
 
-test('SnelStart creator note preserves existing memo content', () => {
-  const { service } = createOrderTestHarness();
+test('order note is stored and included in SnelStart memo', async () => {
+  const { service, getLastOrder } = createOrderTestHarness();
 
-  const note = (service as any).appendCreatorNote('Teslimat: Markete Teslim', {
-    createdByFullName: 'Halil Selek',
-    createdByRole: 'admin',
-  });
+  await service.createOrder(
+    createOrderPayload({
+      idempotencyKey: '44444444-4444-4444-8444-444444444444',
+      note: '  Lever eerst aan.  ',
+      deliveryType: 'market_delivery',
+      deliveryTiming: 'asap',
+    }),
+    {
+      userId: 'admin-1',
+      username: 'halil',
+      firstName: 'Halil',
+      lastName: 'Selek',
+      role: 'admin',
+    },
+  );
 
-  assert.equal(note, 'Teslimat: Markete Teslim\nOluşturan: Halil Selek');
+  assert.equal(getLastOrder().note, 'Lever eerst aan.');
+  const payload = (service as any).buildSnelStartPayload(getLastOrder());
+  assert.equal(payload.omschrijving, 'Portal bestelling bevat klantnotitie');
+  assert.match(payload.memo, /Klantnotitie:\nLever eerst aan\./);
+  assert.match(payload.memo, /Levering:\n- Type: Levering aan markt/);
+  assert.match(payload.memo, /Aangemaakt door:\nHalil Selek/);
 });
 
 test('customer order list is limited to orders created by that portal user', async () => {
@@ -419,9 +439,13 @@ test('customer order list is limited to orders created by that portal user', asy
     find: (filter: any) => {
       findFilter = filter;
       return {
-        sort: () => ({
-          limit: () => execResult([]),
-          skip: () => ({ limit: () => execResult([]) }),
+        select: () => ({
+          sort: () => ({
+            limit: () => ({
+              lean: () => execResult([]),
+            }),
+            skip: () => ({ limit: () => ({ lean: () => execResult([]) }) }),
+          }),
         }),
       };
     },

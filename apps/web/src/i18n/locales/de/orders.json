@@ -64,7 +64,9 @@
     "vat": "MwSt.",
     "total": "Gesamt",
     "createdAt": "Erstellt am",
-    "productName": "Produktname"
+    "productName": "Produktname",
+    "orderNote": "Bestellnotiz",
+    "noOrderNote": "Keine Notiz"
   },
   "actions": {
     "detail": "Details",
@@ -73,10 +75,14 @@
   },
   "status": {
     "draft": "Entwurf",
-    "pending": "Ausstehend",
-    "synced": "Synchronisiert",
+    "pending": "Wird synchronisiert",
+    "synced": "Mit SnelStart synchronisiert",
+    "syncFailed": "Synchronisierungsfehler",
     "failed": "Fehlgeschlagen"
   },
+  "syncErrorBannerTitle": "SnelStart-Synchronisierung fehlgeschlagen",
+  "syncRetryCount": "Versuche: {{count}}",
+  "syncStatusRefreshing": "Synchronisierungsstatus wird aktualisiert…",
   "messages": {
     "noCustomer": "Kein Kunde",
     "unknownProduct": "Unbekanntes Produkt",
@@ -91,6 +97,8 @@
     "reorderPricesChanged": "Die Preise wurden anhand der aktuellen Preisregeln neu berechnet.",
     "reorderError": "Die Bestellung konnte nicht erneut aufgegeben werden.",
     "reordering": "Wird zum Warenkorb hinzugefügt...",
+    "syncSuccess": "Bestellung mit SnelStart synchronisiert.",
+    "syncFailed": "Bestellung konnte nicht synchronisiert werden.",
     "loadMore": "Mehr laden",
     "page": "Seite",
     "of": "/"

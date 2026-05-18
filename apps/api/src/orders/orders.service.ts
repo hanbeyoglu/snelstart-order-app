@@ -8,7 +8,12 @@ import { SnelStartService } from '../snelstart/snelstart.service';
 import { AuditService } from '../audit/audit.service';
 import { CustomersService } from '../customers/customers.service';
 import { CategoriesService } from '../categories/categories.service';
-import { createOrderSchema } from '@snelstart-order-app/shared';
+import {
+  buildSnelStartOrderOmschrijving,
+  buildSnelStartOrderMemo,
+  createOrderSchema,
+  sanitizeSyncErrorMessage,
+} from '@snelstart-order-app/shared';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -124,33 +129,13 @@ export class OrdersService {
     return snapshot;
   }
 
-  private getCreatorNoteLine(order: Partial<LocalOrder> | Record<string, any>): string | undefined {
-    if (order.createdByRole === 'customer') {
-      const customerName = order.createdByCustomerName || order.createdByCustomerId;
-      return customerName ? `Oluşturan müşteri: ${customerName}` : undefined;
-    }
-
-    const creatorName = order.createdByFullName || order.createdByUsername;
-    return creatorName ? `Oluşturan: ${creatorName}` : undefined;
-  }
-
-  private appendCreatorNote(existingNote: string | undefined, order: Partial<LocalOrder> | Record<string, any>) {
-    const baseNote = (existingNote || '').trim();
-    const creatorLine = this.getCreatorNoteLine(order);
-
-    if (!creatorLine) {
-      return baseNote;
-    }
-
-    return baseNote ? `${baseNote}\n${creatorLine}` : creatorLine;
-  }
-
   private buildSnelStartPayload(order: Partial<LocalOrder> | Record<string, any>, date: Date = new Date()) {
     const dateOnly = new Date(
       date.getFullYear(),
       date.getMonth(),
       date.getDate(),
     ).toISOString().split('T')[0];
+    const omschrijving = buildSnelStartOrderOmschrijving(order as any);
 
     return {
       relatie: {
@@ -158,6 +143,7 @@ export class OrdersService {
       },
       datum: `${dateOnly}T00:00:00`,
       verkooporderBtwIngaveModel: 'Exclusief',
+      ...(omschrijving ? { omschrijving } : {}),
       regels: (order.items || []).map((item: any) => ({
         artikel: {
           id: item.productId,
@@ -165,49 +151,8 @@ export class OrdersService {
         aantal: item.quantity,
         stuksprijs: item.unitPrice,
       })),
-      memo: this.appendCreatorNote(
-        this.appendDeliveryNote((order as any).memo || 'Özel yazılımdan gelen sipariş', order),
-        order,
-      ),
+      memo: buildSnelStartOrderMemo(order as any),
     };
-  }
-
-  private appendDeliveryNote(
-    existingNote: string | undefined,
-    order: Partial<LocalOrder> | Record<string, any>,
-  ): string | undefined {
-    const baseNote = (existingNote || '').trim();
-    const segments: string[] = [];
-    const deliveryType = (order as any).deliveryType;
-    const deliveryTiming = (order as any).deliveryTiming;
-    const deliveryDate = (order as any).deliveryDate;
-    if (deliveryType) {
-      const label = deliveryType === 'warehouse_pickup' ? 'Depodan Teslim Alınacak' : 'Markete Teslim';
-      segments.push(`Teslimat: ${label}`);
-    }
-    if (deliveryTiming) {
-      let line = deliveryTiming === 'asap' ? 'Teslimat zamanı: Hemen' : 'Teslimat zamanı: Belirli tarih';
-      if (deliveryTiming === 'scheduled' && deliveryDate) {
-        const parsed = deliveryDate instanceof Date ? deliveryDate : new Date(deliveryDate);
-        if (!Number.isNaN(parsed.getTime())) {
-          line = `Teslimat zamanı: Belirli tarih: ${parsed.toISOString().split('T')[0]}`;
-        }
-      }
-      segments.push(line);
-    }
-    if (segments.length === 0) {
-      return baseNote || undefined;
-    }
-    const deliveryBlock = segments.join('\n');
-    if (!baseNote) {
-      return deliveryBlock;
-    }
-    // Avoid duplicating delivery lines if already present in memo
-    const baseLower = baseNote.toLowerCase();
-    if (baseLower.includes('teslimat:') || baseLower.includes('teslimat zamanı:')) {
-      return baseNote;
-    }
-    return `${baseNote}\n${deliveryBlock}`;
   }
 
   private parseDeliveryDate(value: unknown): Date | undefined {
@@ -363,7 +308,7 @@ export class OrdersService {
     const validated = {
       idempotencyKey: requested.idempotencyKey,
       customerId: effectiveCustomerId,
-      memo: requested.memo,
+      ...(requested.note ? { note: requested.note } : {}),
       items: totals.items,
       deliveryType: requested.deliveryType ?? null,
       deliveryTiming: requested.deliveryTiming ?? null,
@@ -393,59 +338,50 @@ export class OrdersService {
         entityId: order._id.toString(),
         userId: user?.userId,
         actorRole: user?.role,
-        metadata: { customerId: effectiveCustomerId, total: totals.totalInclVat, createdBy: creatorSnapshot },
+        metadata: {
+          customerId: effectiveCustomerId,
+          total: totals.totalInclVat,
+          createdBy: creatorSnapshot,
+          ...(requested.note ? { hasOrderNote: true } : {}),
+        },
+      });
+    } else if (requested.note) {
+      await this.auditService.log({
+        action: 'ORDER_CREATED_WITH_NOTE',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        userId: user?.userId,
+        actorRole: user?.role,
+        metadata: { customerId: effectiveCustomerId, hasOrderNote: true },
       });
     }
-    void this.notifyOrderCreated(order, user, effectiveCustomerId);
     void this.notificationsService?.createOrderNotification(order, user);
 
-    // Try to sync immediately
-    try {
-      // SnelStart sipariş formatını oluştur
-      const snelStartPayload = this.buildSnelStartPayload(order);
-
-      const snelStartOrder = await this.snelStartService.createSalesOrder(snelStartPayload);
-
-      order.status = 'SYNCED';
-      order.snelstartOrderId = snelStartOrder.id;
-      order.syncedAt = new Date();
-      await order.save();
-
-      await this.auditService.log({
-        action: 'ORDER_SYNCED',
-        entityType: 'LocalOrder',
-        entityId: order._id.toString(),
-        userId: user?.userId,
-        actorRole: user?.role,
-        metadata: { snelstartOrderId: snelStartOrder.id },
-      });
-
-      return order;
-    } catch (error: any) {
-      // Enqueue for retry
-      await this.orderSyncQueue.add(
-        'sync-order',
-        { orderId: order._id.toString() },
-        {
-          attempts: 5,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
+    // Always queue for async sync — never block the HTTP request on SnelStart.
+    // jobId is deterministic so a duplicate create (e.g. client retry) won't double-enqueue.
+    await this.orderSyncQueue.add(
+      'sync-order',
+      { orderId: order._id.toString() },
+      {
+        jobId: `order-sync-${order._id.toString()}`,
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
         },
-      );
+      },
+    );
 
-      await this.auditService.log({
-        action: 'ORDER_SYNC_FAILED',
-        entityType: 'LocalOrder',
-        entityId: order._id.toString(),
-        userId: user?.userId,
-        actorRole: user?.role,
-        metadata: { error: error.message },
-      });
+    await this.auditService.log({
+      action: 'ORDER_SYNC_STARTED',
+      entityType: 'LocalOrder',
+      entityId: order._id.toString(),
+      userId: user?.userId,
+      actorRole: user?.role,
+      metadata: { customerId: effectiveCustomerId },
+    });
 
-      return order;
-    }
+    return order;
   }
 
   async getOrders(filters?: OrderListFilters | any, user?: any) {
@@ -516,6 +452,7 @@ export class OrdersService {
           { orderNumber: regex },
           { snelstartOrderId: regex },
           { memo: regex },
+          { note: regex },
           { 'items.productName': regex },
           { 'items.sku': regex },
           { 'items.productId': regex },
@@ -532,17 +469,22 @@ export class OrdersService {
 
     const wantsPagination = raw.page !== undefined || raw.limit !== undefined;
 
+    const listSelect =
+      'status syncedAt errorMessage snelstartOrderId updatedAt createdAt orderNumber customerId items subtotal subtotalExclVat vatTotal vatAmount total totalInclVat vatBreakdown memo note deliveryType deliveryTiming deliveryDate createdByRole createdByUsername createdByFullName createdByCustomerName createdByCustomerId retryCount';
+
     if (!wantsPagination) {
       // Backward compatible: return array (existing staff UI still expects array)
       return this.orderModel
         .find(query)
+        .select(listSelect)
         .sort(sort)
         .limit(500)
+        .lean()
         .exec();
     }
 
     const [data, total] = await Promise.all([
-      this.orderModel.find(query).sort(sort).skip(skip).limit(limit).exec(),
+      this.orderModel.find(query).select(listSelect).sort(sort).skip(skip).limit(limit).lean().exec(),
       this.orderModel.countDocuments(query).exec(),
     ]);
 
@@ -920,8 +862,10 @@ export class OrdersService {
 
     order.status = 'PENDING_SYNC';
     order.retryCount = 0;
+    order.errorMessage = undefined;
     await order.save();
 
+    // No jobId for retries — let BullMQ generate a unique one so it's always enqueued
     await this.orderSyncQueue.add(
       'sync-order',
       { orderId: order._id.toString() },
@@ -935,11 +879,12 @@ export class OrdersService {
     );
 
     await this.auditService.log({
-      action: 'ORDER_RETRY',
+      action: 'ORDER_SYNC_STARTED',
       entityType: 'LocalOrder',
       entityId: orderId,
       userId: user?.userId,
       actorRole: user?.role,
+      metadata: { trigger: 'manual_retry' },
     });
 
     return order;
@@ -966,16 +911,48 @@ export class OrdersService {
       order.syncedAt = new Date();
       order.errorMessage = undefined;
       await order.save();
-    } catch (error: any) {
+
+      await this.auditService.log({
+        action: 'ORDER_SYNCED',
+        entityType: 'LocalOrder',
+        entityId: orderId,
+        metadata: { snelstartOrderId: snelStartOrder.id },
+      });
+
+      void this.notifyOrderSynced(order);
+    } catch (error: unknown) {
       order.retryCount += 1;
-      order.errorMessage = error.message;
+      order.errorMessage = sanitizeSyncErrorMessage(error);
 
       if (order.retryCount >= 5) {
-        order.status = 'FAILED';
+        order.status = 'SYNC_FAILED';
+        await this.auditService.log({
+          action: 'ORDER_SYNC_FAILED',
+          entityType: 'LocalOrder',
+          entityId: orderId,
+          metadata: { error: order.errorMessage, retryCount: order.retryCount },
+        });
       }
 
       await order.save();
       throw error;
+    }
+  }
+
+  async notifyOrderSynced(order: LocalOrderDocument): Promise<void> {
+    try {
+      const customer = await this.customersService.getCustomerById(order.customerId);
+      const success = this.orderNotificationService
+        ? await this.orderNotificationService.sendOrderCreatedNotification(order, null, customer)
+        : false;
+      await this.auditService.log({
+        action: success ? 'ORDER_NOTIFICATION_EMAIL_SENT' : 'ORDER_NOTIFICATION_EMAIL_FAILED',
+        entityType: 'LocalOrder',
+        entityId: order._id.toString(),
+        metadata: { customerId: order.customerId, trigger: 'sync_success' },
+      });
+    } catch (error: any) {
+      this.logger.error(`Post-sync order notification failed: ${error?.message}`);
     }
   }
 

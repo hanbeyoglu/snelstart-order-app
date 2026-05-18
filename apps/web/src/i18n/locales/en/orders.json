@@ -64,7 +64,9 @@
     "vat": "VAT",
     "total": "Total",
     "createdAt": "Created At",
-    "productName": "Product Name"
+    "productName": "Product Name",
+    "orderNote": "Order note",
+    "noOrderNote": "No note"
   },
   "actions": {
     "detail": "Details",
@@ -73,10 +75,14 @@
   },
   "status": {
     "draft": "Draft",
-    "pending": "Pending",
-    "synced": "Synced",
+    "pending": "Syncing",
+    "synced": "Synced to SnelStart",
+    "syncFailed": "Sync error",
     "failed": "Failed"
   },
+  "syncErrorBannerTitle": "SnelStart synchronization failed",
+  "syncRetryCount": "Retry attempts: {{count}}",
+  "syncStatusRefreshing": "Updating sync status…",
   "messages": {
     "noCustomer": "No customer",
     "unknownProduct": "Unknown Product",
@@ -91,6 +97,8 @@
     "reorderPricesChanged": "Prices have been recalculated using current pricing rules.",
     "reorderError": "Could not reorder this order.",
     "reordering": "Adding to cart...",
+    "syncSuccess": "Order synced to SnelStart.",
+    "syncFailed": "Order could not be synced.",
     "loadMore": "Load more",
     "page": "Page",
     "of": "/"

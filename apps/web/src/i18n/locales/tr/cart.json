@@ -15,6 +15,7 @@
   "vatRate": "KDV %{{rate}}:",
   "createOrder": "Sipariş Oluştur",
   "creatingOrder": "Sipariş oluşturuluyor...",
+  "submittingOrder": "Sipariş gönderiliyor...",
   "clearCart": "Sepeti Temizle",
   "removeProduct": "Ürünü Sepetten Çıkar",
   "restoreOriginalPrice": "Orijinal fiyata dön",
@@ -24,6 +25,13 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Ürün sepetten çıkarılsın mı?",
   "confirmRemoveDescription": "Bu ürün sepetinizden kaldırılacak.",
+  "orderNote": {
+    "label": "Sipariş Notu",
+    "placeholder": "Siparişle ilgili not ekleyin...",
+    "optionalHint": "İsteğe bağlı — teslimat veya sipariş hakkında ek bilgi.",
+    "maxLength": "Maksimum 1000 karakter",
+    "limitExceeded": "Karakter sınırı aşıldı"
+  },
   "delivery": {
     "title": "Teslimat kararı *",
     "requiredDescription": "Sipariş oluşturmadan önce teslimat şeklini seçmelisiniz.",

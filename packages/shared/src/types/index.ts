@@ -214,7 +214,9 @@ export interface LocalOrder {
   createdByRole?: 'customer' | 'sales_rep' | 'admin' | 'super_admin' | string;
   createdByCustomerId?: string;
   createdByCustomerName?: string;
+  /** @deprecated Legacy delivery text blob; use note + structured delivery fields */
   memo?: string;
+  note?: string;
   items: CartItem[];
   subtotal: number;
   total: number;
@@ -235,7 +237,7 @@ export interface LocalOrder {
   syncedAt?: Date;
 }
 
-export type OrderStatus = 'DRAFT' | 'PENDING_SYNC' | 'SYNCED' | 'FAILED';
+export type OrderStatus = 'DRAFT' | 'PENDING_SYNC' | 'SYNCED' | 'SYNC_FAILED' | 'FAILED';
 export type DeliveryType = 'warehouse_pickup' | 'market_delivery';
 export type DeliveryTiming = 'asap' | 'scheduled';
 

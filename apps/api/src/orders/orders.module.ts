@@ -26,9 +26,7 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
       { name: User.name, schema: UserSchema },
     ]),
     SnelStartModule,
-    BullModule.registerQueue({
-      name: 'order-sync',
-    }),
+    BullModule.registerQueue({ name: 'order-sync' }),
     AuditModule,
     forwardRef(() => CustomersModule),
     ProductsModule,

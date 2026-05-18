@@ -15,6 +15,7 @@
   "vatRate": "MwSt. {{rate}}%:",
   "createOrder": "Bestellung erstellen",
   "creatingOrder": "Bestellung wird erstellt...",
+  "submittingOrder": "Bestellung wird übermittelt...",
   "clearCart": "Warenkorb leeren",
   "removeProduct": "Produkt aus Warenkorb entfernen",
   "restoreOriginalPrice": "Originalpreis wiederherstellen",
@@ -24,6 +25,13 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Produkt aus Warenkorb entfernen?",
   "confirmRemoveDescription": "Dieses Produkt wird aus Ihrem Warenkorb entfernt.",
+  "orderNote": {
+    "label": "Bestellnotiz",
+    "placeholder": "Notiz zur Bestellung hinzufügen...",
+    "optionalHint": "Optional — zusätzliche Angaben zu Lieferung oder Bestellung.",
+    "maxLength": "Maximal 1000 Zeichen",
+    "limitExceeded": "Zeichenlimit überschritten"
+  },
   "delivery": {
     "title": "Lieferentscheidung *",
     "requiredDescription": "Wahlen Sie die Lieferoption, bevor Sie die Bestellung erstellen.",

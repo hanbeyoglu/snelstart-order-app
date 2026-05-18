@@ -46,6 +46,8 @@ export default function CartPage() {
   const [deliveryDecision, setDeliveryDecision] = useState('');
   const [deliveryTiming, setDeliveryTiming] = useState<'asap' | 'scheduled' | ''>('');
   const [deliveryDate, setDeliveryDate] = useState('');
+  const [orderNote, setOrderNote] = useState('');
+  const ORDER_NOTE_MAX_LENGTH = 1000;
   const showToast = useToastStore((state) => state.showToast);
   const user = useAuthStore((state) => state.user);
   const { canOverridePrice, isFullOverride } = usePriceOverridePolicy();
@@ -253,10 +255,7 @@ export default function CartPage() {
       if (!deliveryTimeComplete) {
         throw new Error(t('cart:messages.selectDeliveryTime'));
       }
-      const deliveryTimeMemo =
-        deliveryTiming === 'asap'
-          ? 'Hemen'
-          : `Belirli tarih: ${deliveryDate}`;
+      const trimmedNote = orderNote.trim().slice(0, ORDER_NOTE_MAX_LENGTH);
 
       // Eğer customUnitPrice varsa, onu kullan; yoksa cartCalculation'dan gelen fiyatı kullan
       const orderItems = items.filter((item) => !item.isChildItem).map((item) => {
@@ -289,7 +288,7 @@ export default function CartPage() {
       const response = await api.post('/orders', {
         idempotencyKey: generateUUID(),
         customerId: selectedCustomerId,
-        memo: `Teslimat: ${selectedDeliveryOption.memoLabel}\nTeslimat zamanı: ${deliveryTimeMemo}`,
+        ...(trimmedNote ? { note: trimmedNote } : {}),
         items: orderItems,
         deliveryType: deliveryDecision,
         deliveryTiming: deliveryTiming || undefined,
@@ -298,19 +297,31 @@ export default function CartPage() {
       });
       return response.data;
     },
-    onSuccess: (createdOrder) => {
+    onSuccess: async (createdOrder) => {
       queryClient.getQueriesData({ queryKey: ['orders'] }).forEach(([queryKey, data]) => {
-        if (!Array.isArray(data)) return;
-
-        const statusFilter = Array.isArray(queryKey) ? queryKey[2] : undefined;
+        const statusFilter = Array.isArray(queryKey) ? queryKey[5] : undefined;
         if (statusFilter && createdOrder?.status !== statusFilter) {
           return;
         }
 
-        queryClient.setQueryData(queryKey, [
-          createdOrder,
-          ...data.filter((cachedOrder: any) => cachedOrder?._id !== createdOrder?._id),
-        ]);
+        if (Array.isArray(data)) {
+          queryClient.setQueryData(queryKey, [
+            createdOrder,
+            ...data.filter((cachedOrder: any) => cachedOrder?._id !== createdOrder?._id),
+          ]);
+          return;
+        }
+
+        if (data && typeof data === 'object' && Array.isArray((data as { data?: unknown }).data)) {
+          const paginated = data as { data: any[]; pagination?: unknown };
+          queryClient.setQueryData(queryKey, {
+            ...paginated,
+            data: [
+              createdOrder,
+              ...paginated.data.filter((cachedOrder: any) => cachedOrder?._id !== createdOrder?._id),
+            ],
+          });
+        }
       });
       if (createdOrder?._id) {
         queryClient.setQueryData(['order', createdOrder._id], createdOrder);
@@ -320,14 +331,29 @@ export default function CartPage() {
       setDeliveryDecision('');
       setDeliveryTiming('');
       setDeliveryDate('');
-      queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
-      queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
+      setOrderNote('');
+      await queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['order-stats'], refetchType: 'all' });
       showToast(t('cart:messages.orderCreated'), 'success');
       navigate(isCustomer ? '/my-orders' : '/orders');
     },
     onError: (error: any) => {
+      const status = error?.response?.status;
       const apiMessage = error?.response?.data?.message;
+
+      // 504 / network timeout means the request reached the server but the proxy cut the
+      // connection. The order was likely saved locally and the sync job enqueued. Don't
+      // show a false failure — navigate away and let the orders page reflect the real state.
+      if (status === 504 || status === 503 || error?.code === 'ECONNABORTED') {
+        clear();
+        setOrderNote('');
+        void queryClient.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' });
+        showToast(t('cart:messages.orderCreated'), 'success');
+        navigate(isCustomer ? '/my-orders' : '/orders');
+        return;
+      }
+
       const message =
         apiMessage === 'PRICE_BELOW_MINIMUM'
           ? t('errors:priceBelowMinimumNoValue')
@@ -732,6 +758,52 @@ export default function CartPage() {
             )}
           </div>
         )}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
+        style={{ marginBottom: '1.5rem' }}
+      >
+        <label
+          htmlFor="order-note"
+          style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700, fontSize: 'clamp(0.95rem, 3vw, 1.05rem)' }}
+        >
+          {t('cart:orderNote.label')}
+        </label>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+          {t('cart:orderNote.optionalHint')}
+        </p>
+        <textarea
+          id="order-note"
+          value={orderNote}
+          maxLength={ORDER_NOTE_MAX_LENGTH}
+          rows={4}
+          placeholder={t('cart:orderNote.placeholder')}
+          onChange={(event) => setOrderNote(event.target.value.slice(0, ORDER_NOTE_MAX_LENGTH))}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '1rem',
+            resize: 'vertical',
+            minHeight: '100px',
+            fontFamily: 'inherit',
+          }}
+        />
+        <div
+          style={{
+            marginTop: '0.35rem',
+            fontSize: '0.85rem',
+            color: orderNote.length >= ORDER_NOTE_MAX_LENGTH ? 'var(--danger)' : 'var(--text-secondary)',
+            textAlign: 'right',
+          }}
+        >
+          {orderNote.length}/{ORDER_NOTE_MAX_LENGTH}
+          {orderNote.length >= ORDER_NOTE_MAX_LENGTH ? ` · ${t('cart:orderNote.limitExceeded')}` : ''}
+        </div>
       </motion.div>
 
       <AnimatePresence>
@@ -1209,7 +1281,7 @@ export default function CartPage() {
             {createOrderMutation.isPending ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
                 <span className="loading" />
-                {t('cart:creatingOrder')}
+                {t('cart:submittingOrder')}
               </span>
             ) : (
               `✅ ${t('cart:createOrder')}`

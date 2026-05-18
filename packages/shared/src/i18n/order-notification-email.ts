@@ -16,6 +16,9 @@ export interface OrderNotificationEmailStrings {
   labelDeliveryDate: string;
   labelDeliveryAddress: string;
   labelDeliveryNote: string;
+  sectionOrderNote: string;
+  labelOrderNote: string;
+  noOrderNote: string;
   typeWarehouse: string;
   typeMarket: string;
   timingAsap: string;
@@ -54,6 +57,9 @@ export const ORDER_NOTIFICATION_EMAIL_STRINGS: Record<OrderNotificationEmailLoca
     labelDeliveryDate: 'Teslimat tarihi',
     labelDeliveryAddress: 'Teslimat adresi',
     labelDeliveryNote: 'Teslimat notu',
+    sectionOrderNote: 'Sipariş notu',
+    labelOrderNote: 'Sipariş Notu',
+    noOrderNote: 'Not yok',
     typeWarehouse: 'Depodan teslim',
     typeMarket: 'Markete teslim',
     timingAsap: 'Hemen',
@@ -90,6 +96,9 @@ export const ORDER_NOTIFICATION_EMAIL_STRINGS: Record<OrderNotificationEmailLoca
     labelDeliveryDate: 'Delivery date',
     labelDeliveryAddress: 'Delivery address',
     labelDeliveryNote: 'Delivery note',
+    sectionOrderNote: 'Order note',
+    labelOrderNote: 'Order note',
+    noOrderNote: 'No note',
     typeWarehouse: 'Warehouse pickup',
     typeMarket: 'Market delivery',
     timingAsap: 'As soon as possible',
@@ -126,6 +135,9 @@ export const ORDER_NOTIFICATION_EMAIL_STRINGS: Record<OrderNotificationEmailLoca
     labelDeliveryDate: 'Leveringsdatum',
     labelDeliveryAddress: 'Leveringsadres',
     labelDeliveryNote: 'Leveringsnotitie',
+    sectionOrderNote: 'Bestelnotitie',
+    labelOrderNote: 'Bestelnotitie',
+    noOrderNote: 'Geen notitie',
     typeWarehouse: 'Afhalen magazijn',
     typeMarket: 'Levering aan markt',
     timingAsap: 'Zo snel mogelijk',
@@ -162,6 +174,9 @@ export const ORDER_NOTIFICATION_EMAIL_STRINGS: Record<OrderNotificationEmailLoca
     labelDeliveryDate: 'Lieferdatum',
     labelDeliveryAddress: 'Lieferadresse',
     labelDeliveryNote: 'Lieferhinweis',
+    sectionOrderNote: 'Bestellnotiz',
+    labelOrderNote: 'Bestellnotiz',
+    noOrderNote: 'Keine Notiz',
     typeWarehouse: 'Abholung Lager',
     typeMarket: 'Lieferung zum Markt',
     timingAsap: 'So bald wie möglich',
@@ -198,6 +213,9 @@ export const ORDER_NOTIFICATION_EMAIL_STRINGS: Record<OrderNotificationEmailLoca
     labelDeliveryDate: 'تاريخ التسليم',
     labelDeliveryAddress: 'عنوان التسليم',
     labelDeliveryNote: 'ملاحظة التسليم',
+    sectionOrderNote: 'ملاحظة الطلب',
+    labelOrderNote: 'ملاحظة الطلب',
+    noOrderNote: 'لا توجد ملاحظة',
     typeWarehouse: 'استلام من المستودع',
     typeMarket: 'تسليم إلى السوق',
     timingAsap: 'في أقرب وقت',

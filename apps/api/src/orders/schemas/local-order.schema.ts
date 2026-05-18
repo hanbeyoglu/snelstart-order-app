@@ -76,6 +76,9 @@ export class LocalOrder extends Document {
   @Prop()
   memo?: string;
 
+  @Prop()
+  note?: string;
+
   @Prop({ type: Array, required: true })
   items: CartItem[];
 
@@ -105,7 +108,11 @@ export class LocalOrder extends Document {
     totalInclVat: number;
   }>;
 
-  @Prop({ required: true, enum: ['DRAFT', 'PENDING_SYNC', 'SYNCED', 'FAILED'], default: 'DRAFT' })
+  @Prop({
+    required: true,
+    enum: ['DRAFT', 'PENDING_SYNC', 'SYNCED', 'SYNC_FAILED', 'FAILED'],
+    default: 'DRAFT',
+  })
   status: string;
 
   @Prop({ enum: ['warehouse_pickup', 'market_delivery'], default: null })

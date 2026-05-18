@@ -15,6 +15,7 @@
   "vatRate": "ضريبة {{rate}}%:",
   "createOrder": "إنشاء طلب",
   "creatingOrder": "جار إنشاء الطلب...",
+  "submittingOrder": "جار إرسال الطلب...",
   "clearCart": "مسح السلة",
   "removeProduct": "إزالة المنتج من السلة",
   "restoreOriginalPrice": "استعادة السعر الأصلي",
@@ -24,6 +25,13 @@
   "articleCode": "رمز المقال",
   "confirmRemoveTitle": "إزالة المنتج من السلة؟",
   "confirmRemoveDescription": "سيتم إزالة هذا المنتج من سلتك.",
+  "orderNote": {
+    "label": "ملاحظة الطلب",
+    "placeholder": "أضف ملاحظة حول هذا الطلب...",
+    "optionalHint": "اختياري — تفاصيل إضافية عن التسليم أو الطلب.",
+    "maxLength": "الحد الأقصى 1000 حرف",
+    "limitExceeded": "تم تجاوز حد الأحرف"
+  },
   "delivery": {
     "title": "قرار التسليم *",
     "requiredDescription": "اختر طريقة التسليم قبل إنشاء الطلب.",

@@ -64,7 +64,9 @@
     "vat": "KDV",
     "total": "Toplam Tutar",
     "createdAt": "Oluşturulma Tarihi",
-    "productName": "Ürün Adı"
+    "productName": "Ürün Adı",
+    "orderNote": "Sipariş Notu",
+    "noOrderNote": "Not yok"
   },
   "actions": {
     "detail": "Detay",
@@ -73,10 +75,14 @@
   },
   "status": {
     "draft": "Taslak",
-    "pending": "Beklemede",
-    "synced": "Senkronize",
+    "pending": "Senkronize ediliyor",
+    "synced": "Senkronize edildi",
+    "syncFailed": "Senkronizasyon hatası",
     "failed": "Başarısız"
   },
+  "syncErrorBannerTitle": "SnelStart senkronizasyonu başarısız",
+  "syncRetryCount": "Deneme sayısı: {{count}}",
+  "syncStatusRefreshing": "Senkronizasyon durumu güncelleniyor…",
   "messages": {
     "noCustomer": "Müşteri yok",
     "unknownProduct": "Bilinmeyen Ürün",
@@ -91,6 +97,8 @@
     "reorderPricesChanged": "Fiyatlar güncel fiyatlandırmaya göre yeniden hesaplandı.",
     "reorderError": "Sipariş tekrar oluşturulamadı.",
     "reordering": "Sepete ekleniyor...",
+    "syncSuccess": "Sipariş SnelStart ile senkronize edildi.",
+    "syncFailed": "Sipariş senkronize edilemedi.",
     "loadMore": "Daha Fazla",
     "page": "Sayfa",
     "of": "/"

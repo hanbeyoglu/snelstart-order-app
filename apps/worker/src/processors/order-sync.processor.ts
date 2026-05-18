@@ -1,9 +1,63 @@
 import { Job } from 'bullmq';
 import mongoose from 'mongoose';
-import axios from 'axios';
+import {
+  buildSnelStartOrderOmschrijving,
+  buildSnelStartOrderMemo,
+  buildSnelStartApiHeaders,
+  createSnelStartVerkooporder,
+  fetchSnelStartAccessToken,
+  resolveSnelStartUrls,
+  sanitizeSyncErrorMessage,
+} from '@snelstart-order-app/shared';
 import { ConnectionSettings, ConnectionSettingsSchema } from '../schemas/connection-settings.schema';
 import { LocalOrder, LocalOrderSchema } from '../schemas/local-order.schema';
 import { EncryptionService } from '../services/encryption.service';
+import { handleOrderSyncFinalFailure, handleOrderSyncSuccess } from '../services/order-post-sync';
+
+const MAX_SYNC_ATTEMPTS = 5;
+
+function buildSnelStartPayload(order: any) {
+  const createdAt: Date = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || Date.now());
+  const dateOnly = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate())
+    .toISOString()
+    .split('T')[0];
+
+  const regels = (order.items || []).map((item: any) => ({
+    artikel: { id: item.productId },
+    aantal: item.quantity,
+    stuksprijs: item.unitPrice,
+  }));
+  const omschrijving = buildSnelStartOrderOmschrijving(order);
+
+  return {
+    relatie: { id: order.customerId },
+    datum: `${dateOnly}T00:00:00`,
+    verkooporderBtwIngaveModel: 'Exclusief',
+    ...(omschrijving ? { omschrijving } : {}),
+    regels,
+    memo: buildSnelStartOrderMemo(order),
+  };
+}
+
+function resolveCredentials(
+  settings: ConnectionSettings | null,
+  encryptionService: EncryptionService,
+): { subscriptionKey: string; clientKey: string } {
+  const subscriptionKey =
+    process.env.SNELSTART_API_SUB_KEY?.trim() ||
+    (settings ? encryptionService.decrypt(settings.subscriptionKey) : '');
+  const clientKey =
+    process.env.SNELSTART_CLIENTKEY?.trim() ||
+    (settings ? encryptionService.decrypt(settings.integrationKey) : '');
+
+  if (!subscriptionKey || !clientKey) {
+    throw new Error(
+      'SnelStart credentials missing: set SNELSTART_API_SUB_KEY and SNELSTART_CLIENTKEY, or configure active connection settings',
+    );
+  }
+
+  return { subscriptionKey, clientKey };
+}
 
 export class OrderSyncProcessor {
   private encryptionService: EncryptionService;
@@ -26,65 +80,52 @@ export class OrderSyncProcessor {
       return { message: 'Order already synced', orderId };
     }
 
-    // Get connection settings
     const SettingsModel =
       mongoose.models.ConnectionSettings ||
       mongoose.model('ConnectionSettings', ConnectionSettingsSchema);
     const settings = await SettingsModel.findOne({ isActive: true }).exec();
 
-    if (!settings) {
-      throw new Error('No active SnelStart connection settings found');
-    }
+    const { subscriptionKey, clientKey } = resolveCredentials(settings, this.encryptionService);
+    const { baseUrl, authUrl } = resolveSnelStartUrls();
 
-    // Decrypt keys
-    const subscriptionKey = this.encryptionService.decrypt(settings.subscriptionKey);
-    const integrationKey = this.encryptionService.decrypt(settings.integrationKey);
-
-    // Create order in SnelStart
-    const baseURL = process.env.SNELSTART_API_BASE_URL || 'https://api.snelstart.nl/v2';
-    const snelStartOrder = {
-      relatieId: order.customerId,
-      orderdatum: order.createdAt.toISOString(),
-      regels: order.items.map((item: any) => ({
-        artikelId: item.productId,
-        aantal: item.quantity,
-        eenheidsprijs: item.unitPrice,
-        btwPercentage: item.vatPercentage,
-      })),
-    };
+    const tokenResponse = await fetchSnelStartAccessToken(clientKey, authUrl);
+    const accessToken = tokenResponse.access_token;
+    const headers = buildSnelStartApiHeaders(subscriptionKey, accessToken);
+    const payload = buildSnelStartPayload(order);
 
     try {
-      const response = await axios.post(`${baseURL}/verkooporders`, snelStartOrder, {
-        headers: {
-          'Ocp-Apim-Subscription-Key': subscriptionKey,
-          'Authorization': `Bearer ${integrationKey}`,
-          'Content-Type': 'application/json',
+      const result = await createSnelStartVerkooporder(payload, {
+        baseUrl,
+        headers,
+        onBeforeRequest: (debug) => {
+          console.log('[order-sync] SnelStart verkooporder request', JSON.stringify(debug));
         },
-        timeout: 30000,
       });
 
-      // Update order
       order.status = 'SYNCED';
-      order.snelstartOrderId = response.data.id;
+      order.snelstartOrderId = result.id;
       order.syncedAt = new Date();
       order.errorMessage = undefined;
       await order.save();
 
-      return { message: 'Order synced successfully', snelstartOrderId: response.data.id };
-    } catch (error: any) {
+      await handleOrderSyncSuccess(order, subscriptionKey, accessToken);
+
+      return { message: 'Order synced successfully', orderId, snelstartOrderId: result.id };
+    } catch (error: unknown) {
       order.retryCount = (order.retryCount || 0) + 1;
-      order.errorMessage = error.response?.data?.message || error.message;
+      order.errorMessage = sanitizeSyncErrorMessage(error);
 
-      if (order.retryCount >= 5) {
-        order.status = 'FAILED';
-      } else {
-        order.status = 'PENDING_SYNC';
-      }
+      const attemptsMade = typeof job.opts.attempts === 'number' ? job.opts.attempts : MAX_SYNC_ATTEMPTS;
+      const isFinalFailure = order.retryCount >= attemptsMade || order.retryCount >= MAX_SYNC_ATTEMPTS;
 
+      order.status = isFinalFailure ? 'SYNC_FAILED' : 'PENDING_SYNC';
       await order.save();
+
+      if (isFinalFailure) {
+        await handleOrderSyncFinalFailure(order, order.errorMessage);
+      }
 
       throw error;
     }
   }
 }
-

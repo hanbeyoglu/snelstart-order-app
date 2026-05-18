@@ -64,7 +64,9 @@
     "vat": "Btw",
     "total": "Totaal",
     "createdAt": "Aanmaakdatum",
-    "productName": "Productnaam"
+    "productName": "Productnaam",
+    "orderNote": "Bestelnotitie",
+    "noOrderNote": "Geen notitie"
   },
   "actions": {
     "detail": "Details",
@@ -73,10 +75,14 @@
   },
   "status": {
     "draft": "Concept",
-    "pending": "In behandeling",
-    "synced": "Gesynchroniseerd",
+    "pending": "Synchroniseren",
+    "synced": "Gesynchroniseerd met SnelStart",
+    "syncFailed": "Synchronisatiefout",
     "failed": "Mislukt"
   },
+  "syncErrorBannerTitle": "SnelStart-synchronisatie mislukt",
+  "syncRetryCount": "Aantal pogingen: {{count}}",
+  "syncStatusRefreshing": "Synchronisatiestatus wordt bijgewerkt…",
   "messages": {
     "noCustomer": "Geen klant",
     "unknownProduct": "Onbekend product",
@@ -91,6 +97,8 @@
     "reorderPricesChanged": "Prijzen zijn opnieuw berekend op basis van actuele prijsregels.",
     "reorderError": "De bestelling kon niet opnieuw worden geplaatst.",
     "reordering": "Toevoegen aan winkelwagen...",
+    "syncSuccess": "Bestelling gesynchroniseerd met SnelStart.",
+    "syncFailed": "Bestelling kon niet worden gesynchroniseerd.",
     "loadMore": "Meer laden",
     "page": "Pagina",
     "of": "/"

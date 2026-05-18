@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ORDER_NOTE_MAX_LENGTH, sanitizeOrderNote } from '../order-note';
 
 // SnelStart API Validators
 export const snelStartProductSchema = z.object({
@@ -87,11 +88,16 @@ export const cartItemSchema = z.object({
   parentProductId: z.string().optional(),
 });
 
+const optionalOrderNoteSchema = z
+  .union([z.string(), z.undefined(), z.null()])
+  .optional()
+  .transform((value) => sanitizeOrderNote(value == null ? undefined : String(value)));
+
 export const createOrderSchema = z.object({
   idempotencyKey: z.string().uuid(),
   customerId: z.string(),
   items: z.array(cartItemSchema),
-  memo: z.string().trim().min(1).max(1000).optional(),
+  note: optionalOrderNoteSchema,
   deliveryType: z.enum(['warehouse_pickup', 'market_delivery']).optional(),
   deliveryTiming: z.enum(['asap', 'scheduled']).optional(),
   deliveryDate: z

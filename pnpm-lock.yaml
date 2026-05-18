@@ -266,6 +266,9 @@ importers:
       mongoose:
         specifier: ^8.0.3
         version: 8.21.0
+      nodemailer:
+        specifier: ^6.9.8
+        version: 6.10.1
       sharp:
         specifier: ^0.34.5
         version: 0.34.5
@@ -273,6 +276,9 @@ importers:
       '@types/node':
         specifier: ^20.10.5
         version: 20.19.28
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.28)(typescript@5.9.3)
@@ -286,6 +292,9 @@ importers:
         specifier: ^3.22.4
         version: 3.25.76
     devDependencies:
+      '@types/node':
+        specifier: ^20.10.5
+        version: 20.19.28
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -4845,6 +4854,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   nodemailer@8.0.7:
     resolution: {integrity: sha512-pkjE4mkBzQjdJT4/UmlKl3pX0rC9fZmjh7c6C9o7lv66Ac6w9WCnzPzhbPNxwZAzlF4mdq4CSWB5+FbK6FWCow==}
@@ -11808,6 +11821,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.27: {}
+
+  nodemailer@6.10.1: {}
 
   nodemailer@8.0.7: {}
 

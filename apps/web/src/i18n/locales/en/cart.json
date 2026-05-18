@@ -15,6 +15,7 @@
   "vatRate": "VAT {{rate}}%:",
   "createOrder": "Create Order",
   "creatingOrder": "Creating order...",
+  "submittingOrder": "Submitting order...",
   "clearCart": "Clear Cart",
   "removeProduct": "Remove Product from Cart",
   "restoreOriginalPrice": "Restore original price",
@@ -24,6 +25,13 @@
   "articleCode": "Article code",
   "confirmRemoveTitle": "Remove product from cart?",
   "confirmRemoveDescription": "This product will be removed from your cart.",
+  "orderNote": {
+    "label": "Order note",
+    "placeholder": "Add a note about this order...",
+    "optionalHint": "Optional — extra details for delivery or the order.",
+    "maxLength": "Maximum 1000 characters",
+    "limitExceeded": "Character limit exceeded"
+  },
   "delivery": {
     "title": "Delivery decision *",
     "requiredDescription": "Select the delivery option before creating the order.",

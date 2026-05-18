@@ -15,6 +15,7 @@
   "vatRate": "Btw {{rate}}%:",
   "createOrder": "Bestelling maken",
   "creatingOrder": "Bestelling maken...",
+  "submittingOrder": "Bestelling verzenden...",
   "clearCart": "Winkelwagen legen",
   "removeProduct": "Product uit winkelwagen verwijderen",
   "restoreOriginalPrice": "Oorspronkelijke prijs herstellen",
@@ -24,6 +25,13 @@
   "articleCode": "Artikelcode",
   "confirmRemoveTitle": "Product uit winkelwagen verwijderen?",
   "confirmRemoveDescription": "Dit product wordt uit uw winkelwagen verwijderd.",
+  "orderNote": {
+    "label": "Bestelnotitie",
+    "placeholder": "Voeg een notitie bij de bestelling toe...",
+    "optionalHint": "Optioneel — extra informatie over levering of de bestelling.",
+    "maxLength": "Maximaal 1000 tekens",
+    "limitExceeded": "Tekenlimiet overschreden"
+  },
   "delivery": {
     "title": "Leveringskeuze *",
     "requiredDescription": "Selecteer de leveringsoptie voordat u de bestelling maakt.",

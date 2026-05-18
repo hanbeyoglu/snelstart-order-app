@@ -64,7 +64,9 @@
     "vat": "ضريبة القيمة المضافة",
     "total": "الإجمالي",
     "createdAt": "تاريخ الإنشاء",
-    "productName": "اسم المنتج"
+    "productName": "اسم المنتج",
+    "orderNote": "ملاحظة الطلب",
+    "noOrderNote": "لا توجد ملاحظة"
   },
   "actions": {
     "detail": "التفاصيل",
@@ -73,10 +75,14 @@
   },
   "status": {
     "draft": "مسودة",
-    "pending": "قيد الانتظار",
-    "synced": "تمت المزامنة",
+    "pending": "جار المزامنة",
+    "synced": "تمت المزامنة مع SnelStart",
+    "syncFailed": "خطأ في المزامنة",
     "failed": "فشل"
   },
+  "syncErrorBannerTitle": "فشلت مزامنة SnelStart",
+  "syncRetryCount": "عدد المحاولات: {{count}}",
+  "syncStatusRefreshing": "جارٍ تحديث حالة المزامنة…",
   "messages": {
     "noCustomer": "لا يوجد عميل",
     "unknownProduct": "منتج غير معروف",
@@ -91,6 +97,8 @@
     "reorderPricesChanged": "تمت إعادة حساب الأسعار وفقًا لقواعد التسعير الحالية.",
     "reorderError": "تعذّر إعادة هذا الطلب.",
     "reordering": "جارٍ الإضافة إلى السلة...",
+    "syncSuccess": "تمت مزامنة الطلب مع SnelStart.",
+    "syncFailed": "تعذرت مزامنة الطلب.",
     "loadMore": "تحميل المزيد",
     "page": "صفحة",
     "of": "/"

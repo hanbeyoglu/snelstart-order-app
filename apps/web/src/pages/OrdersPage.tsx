@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -8,6 +8,15 @@ import { useLocaleFormat } from '../i18n/hooks/useLocaleFormat';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { useToastStore } from '../store/toastStore';
+import { useOrdersSyncTransitionToasts } from '../hooks/useOrderSyncTransitionToasts';
+import {
+  buildOrdersListQueryKey,
+  isOrderSyncInProgress,
+  listResponseHasSyncInProgress,
+  logOrdersPollResponse,
+  ORDER_LIST_SYNC_POLL_MS,
+  type OrdersListQueryParams,
+} from '../utils/orderSyncStatus';
 
 type QuickRange = '' | 'today' | 'last7' | 'last30' | 'thisMonth';
 
@@ -116,31 +125,63 @@ export default function OrdersPage() {
     }
   };
 
-  const queryParams = useMemo(() => {
-    const params: Record<string, any> = {
+  const listQueryParams = useMemo<OrdersListQueryParams>(
+    () => ({
       page,
       limit,
       sort,
-    };
-    if (statusFilter) params.status = statusFilter;
-    if (deliveryTypeFilter) params.deliveryType = deliveryTypeFilter;
-    if (deliveryTimingFilter) params.deliveryTiming = deliveryTimingFilter;
-    if (dateFrom) params.dateFrom = dateFrom;
-    if (dateTo) params.dateTo = dateTo;
-    if (debouncedSearch) params.search = debouncedSearch;
-    return params;
-  }, [page, limit, sort, statusFilter, deliveryTypeFilter, deliveryTimingFilter, dateFrom, dateTo, debouncedSearch]);
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(deliveryTypeFilter ? { deliveryType: deliveryTypeFilter } : {}),
+      ...(deliveryTimingFilter ? { deliveryTiming: deliveryTimingFilter } : {}),
+      ...(dateFrom ? { dateFrom } : {}),
+      ...(dateTo ? { dateTo } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    }),
+    [page, limit, sort, statusFilter, deliveryTypeFilter, deliveryTimingFilter, dateFrom, dateTo, debouncedSearch],
+  );
 
-  const { data: ordersResponse, isLoading } = useQuery({
-    queryKey: ['orders', ordersScope, queryParams],
+  const ordersQueryKey = useMemo(
+    () => buildOrdersListQueryKey(ordersScope, listQueryParams),
+    [ordersScope, listQueryParams],
+  );
+
+  const apiQueryParams = useMemo(
+    () => ({
+      page: listQueryParams.page,
+      limit: listQueryParams.limit,
+      sort: listQueryParams.sort,
+      ...(listQueryParams.status ? { status: listQueryParams.status } : {}),
+      ...(listQueryParams.deliveryType ? { deliveryType: listQueryParams.deliveryType } : {}),
+      ...(listQueryParams.deliveryTiming ? { deliveryTiming: listQueryParams.deliveryTiming } : {}),
+      ...(listQueryParams.dateFrom ? { dateFrom: listQueryParams.dateFrom } : {}),
+      ...(listQueryParams.dateTo ? { dateTo: listQueryParams.dateTo } : {}),
+      ...(listQueryParams.search ? { search: listQueryParams.search } : {}),
+    }),
+    [listQueryParams],
+  );
+
+  const { data: ordersResponse, isLoading, isFetching } = useQuery({
+    queryKey: ordersQueryKey,
     queryFn: async () => {
-      const response = await api.get('/orders', { params: queryParams });
-      return response.data;
+      const response = await api.get('/orders', { params: apiQueryParams });
+      const data = response.data;
+      if (listResponseHasSyncInProgress(data)) {
+        logOrdersPollResponse(data);
+      }
+      return data;
     },
     enabled: !!user,
-    staleTime: 60 * 1000,
+    staleTime: (query) => (listResponseHasSyncInProgress(query.state.data) ? 0 : 30 * 1000),
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
+    refetchInterval: (query) => {
+      const polling = listResponseHasSyncInProgress(query.state.data);
+      if (polling) {
+        console.debug('[order-sync-debug] orders polling active');
+      }
+      return polling ? ORDER_LIST_SYNC_POLL_MS : false;
+    },
   });
 
   const orders: any[] = useMemo(() => {
@@ -148,6 +189,13 @@ export default function OrdersPage() {
     if (Array.isArray(ordersResponse)) return ordersResponse;
     return ordersResponse?.data ?? [];
   }, [ordersResponse]);
+
+  const hasSyncInProgressOnPage = useMemo(
+    () => orders.some((order) => isOrderSyncInProgress(order.status)),
+    [orders],
+  );
+
+  useOrdersSyncTransitionToasts(orders, showToast, t);
 
   const pagination = useMemo(() => {
     if (!ordersResponse || Array.isArray(ordersResponse)) {
@@ -231,10 +279,12 @@ export default function OrdersPage() {
     switch (status) {
       case 'SYNCED':
         return { color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.1)', icon: '✅', text: t('orders:status.synced') };
+      case 'SYNCING':
       case 'PENDING_SYNC':
         return { color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.1)', icon: '⏳', text: t('orders:status.pending') };
+      case 'SYNC_FAILED':
       case 'FAILED':
-        return { color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)', icon: '❌', text: t('orders:status.failed') };
+        return { color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)', icon: '❌', text: t('orders:status.syncFailed') };
       default:
         return { color: 'var(--text-secondary)', bg: 'rgba(107, 114, 128, 0.1)', icon: '📝', text: status };
     }
@@ -370,6 +420,30 @@ export default function OrdersPage() {
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
               {t('orders:pastOrdersSubtitle')}
             </p>
+            {hasSyncInProgressOnPage && isFetching && !isLoading && (
+              <p
+                style={{
+                  marginTop: '0.35rem',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+                aria-live="polite"
+              >
+                <span
+                  style={{
+                    width: '0.5rem',
+                    height: '0.5rem',
+                    borderRadius: '50%',
+                    background: 'var(--warning)',
+                    opacity: 0.85,
+                  }}
+                />
+                {t('orders:syncStatusRefreshing')}
+              </p>
+            )}
           </div>
           <motion.button
             type="button"
@@ -496,6 +570,7 @@ export default function OrdersPage() {
                   <option value="DRAFT">{t('orders:status.draft')}</option>
                   <option value="PENDING_SYNC">{t('orders:status.pending')}</option>
                   <option value="SYNCED">{t('orders:status.synced')}</option>
+                  <option value="SYNC_FAILED">{t('orders:status.syncFailed')}</option>
                   <option value="FAILED">{t('orders:status.failed')}</option>
                 </select>
               </div>
@@ -574,7 +649,7 @@ export default function OrdersPage() {
         )}
       </motion.div>
 
-      {isLoading ? (
+      {isLoading && !ordersResponse ? (
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           {Array.from({ length: 5 }).map((_, idx) => (
             <div
@@ -710,6 +785,7 @@ export default function OrdersPage() {
                             background: statusConfig.bg,
                             border: `1px solid ${statusConfig.color}`,
                             color: statusConfig.color,
+                            transition: 'color 0.25s ease, background 0.25s ease, border-color 0.25s ease',
                           }}
                         >
                           <span aria-hidden="true">{statusConfig.icon}</span>
