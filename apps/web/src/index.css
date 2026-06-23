@@ -491,6 +491,30 @@ textarea {
   font-family: inherit;
 }
 
+input.input-invalid,
+select.input-invalid,
+textarea.input-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+input.input-invalid:focus,
+select.input-invalid:focus,
+textarea.input-invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.required-mark {
+  color: var(--danger);
+}
+
 input:focus,
 select:focus,
 textarea:focus {

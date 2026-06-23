@@ -8,6 +8,9 @@
   "updating": "جار التحديث...",
   "loading": "جار تحميل العملاء...",
   "createButton": "إنشاء العميل",
+  "saveButton": "حفظ التغييرات",
+  "loadingCustomer": "جار تحميل بيانات العميل...",
+  "notFound": "العميل غير موجود",
   "relationType": "نوع العلاقة",
   "customerName": "اسم العميل",
   "addressInfo": "معلومات العنوان",
@@ -43,6 +46,8 @@
   "messages": {
     "created": "تم إنشاء العميل بنجاح!",
     "createError": "حدث خطأ أثناء إنشاء العميل",
+    "updated": "تم تحديث العميل بنجاح!",
+    "updateError": "حدث خطأ أثناء تحديث العميل",
     "syncSuccess": "تمت مزامنة العملاء بنجاح",
     "syncError": "فشلت المزامنة",
     "syncUnexpectedError": "حدث خطأ أثناء المزامنة"

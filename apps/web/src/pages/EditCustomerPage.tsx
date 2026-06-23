@@ -1,32 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import type { CreateCustomerFieldName } from '@snelstart-order-app/shared/validators/customer-validation';
 import api from '../services/api';
 import { useToastStore } from '../store/toastStore';
+import { useAppTranslation } from '../i18n/hooks/useAppTranslation';
+import {
+  focusFirstInvalidCustomerField,
+  mapBackendCustomerValidationErrors,
+  validateEditCustomerForm,
+  type CreateCustomerFormData,
+} from '../utils/customerFormValidation';
+
+const INITIAL_FORM_DATA: CreateCustomerFormData = {
+  relatiesoort: [],
+  naam: '',
+  straat: '',
+  postcode: '',
+  plaats: '',
+  landId: '1d057861-41da-4743-a34b-33388e80c02d',
+  telefoon: '',
+  email: '',
+  kvkNummer: '',
+  btwNummer: '',
+};
 
 export default function EditCustomerPage() {
   const { customerId } = useParams();
+  const { t } = useAppTranslation(['common', 'customers', 'validation']);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
-  
-  const [formData, setFormData] = useState({
-    relatiesoort: [] as string[],
-    naam: '',
-    straat: '',
-    postcode: '',
-    plaats: '',
-    landId: '1d057861-41da-4743-a34b-33388e80c02d', // Default NL
-    telefoon: '',
-    email: '',
-    kvkNummer: '',
-    btwNummer: '',
-  });
 
+  const [formData, setFormData] = useState<CreateCustomerFormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const fieldRefs = useRef<Partial<Record<CreateCustomerFieldName, HTMLElement | null>>>({});
 
-  // Get customer data
   const { data: customer, isLoading: isLoadingCustomer } = useQuery({
     queryKey: ['customer', customerId],
     queryFn: async () => {
@@ -36,16 +46,15 @@ export default function EditCustomerPage() {
     enabled: !!customerId,
   });
 
-  // Populate form when customer data is loaded
   useEffect(() => {
     if (customer) {
       const adresObj = (customer as any).adres || {};
       const relatiesoort = (customer as any).relatiesoort;
-      const relatiesoortArray = Array.isArray(relatiesoort) 
-        ? relatiesoort 
-        : relatiesoort 
-        ? [relatiesoort] 
-        : [];
+      const relatiesoortArray = Array.isArray(relatiesoort)
+        ? relatiesoort
+        : relatiesoort
+          ? [relatiesoort]
+          : [];
 
       setFormData({
         relatiesoort: relatiesoortArray,
@@ -63,21 +72,42 @@ export default function EditCustomerPage() {
   }, [customer]);
 
   const updateCustomerMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: unknown) => {
       const response = await api.put(`/customers/${customerId}`, data);
       return response.data;
     },
     onSuccess: () => {
-      showToast('Müşteri başarıyla güncellendi!', 'success');
+      showToast(t('customers:messages.updated'), 'success');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
       navigate(`/customers/${customerId}`);
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Müşteri güncellenirken bir hata oluştu';
+      const responseData = error?.response?.data;
+
+      if (responseData?.errors && typeof responseData.errors === 'object') {
+        const mappedErrors = mapBackendCustomerValidationErrors(responseData.errors, t);
+        setErrors(mappedErrors);
+        requestAnimationFrame(() => {
+          focusFirstInvalidCustomerField(mappedErrors, fieldRefs.current);
+        });
+      }
+
+      const errorMessage =
+        responseData?.message || error?.message || t('customers:messages.updateError');
       showToast(errorMessage, 'error', 5000);
     },
   });
+
+  const clearFieldError = (field: string) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   const handleRelatieSoortToggle = (soort: string) => {
     setFormData((prev) => ({
@@ -86,79 +116,36 @@ export default function EditCustomerPage() {
         ? prev.relatiesoort.filter((s) => s !== soort)
         : [...prev.relatiesoort, soort],
     }));
-    if (errors.relatiesoort) {
-      setErrors((prev) => ({ ...prev, relatiesoort: '' }));
-    }
+    clearFieldError('relatiesoort');
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof CreateCustomerFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
-    }
+    clearFieldError(field);
   };
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const registerFieldRef =
+    (field: CreateCustomerFieldName) => (element: HTMLElement | null) => {
+      fieldRefs.current[field] = element;
+    };
 
-    if (formData.relatiesoort.length === 0) {
-      newErrors.relatiesoort = 'En az bir ilişki türü seçmelisiniz';
-    }
-
-    if (!formData.naam.trim()) {
-      newErrors.naam = 'Müşteri adı zorunludur';
-    }
-
-    if (!formData.straat.trim()) {
-      newErrors.straat = 'Sokak adresi zorunludur';
-    }
-
-    if (!formData.postcode.trim()) {
-      newErrors.postcode = 'Posta kodu zorunludur';
-    }
-
-    if (!formData.plaats.trim()) {
-      newErrors.plaats = 'Şehir zorunludur';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
-    }
-
-    if (formData.telefoon && !/^[\d\s\+\-\(\)]+$/.test(formData.telefoon)) {
-      newErrors.telefoon = 'Geçerli bir telefon numarası giriniz';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const inputClassName = (field: string) =>
+    errors[field] ? 'input-invalid' : undefined;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validate()) {
-      showToast('Lütfen tüm zorunlu alanları doldurun', 'error');
+
+    const validation = validateEditCustomerForm(formData, t);
+    if (!validation.valid) {
+      setErrors(validation.errors);
+      requestAnimationFrame(() => {
+        focusFirstInvalidCustomerField(validation.errors, fieldRefs.current);
+      });
+      showToast(t('validation:requiredFields'), 'error');
       return;
     }
 
-    const customerData = {
-      relatiesoort: formData.relatiesoort,
-      naam: formData.naam.trim(),
-      vestigingsAdres: {
-        straat: formData.straat.trim(),
-        postcode: formData.postcode.trim(),
-        plaats: formData.plaats.trim(),
-        land: {
-          id: formData.landId,
-        },
-      },
-      ...(formData.telefoon && { telefoon: formData.telefoon.trim() }),
-      ...(formData.email && { email: formData.email.trim() }),
-      ...(formData.kvkNummer && { kvkNummer: formData.kvkNummer.trim() }),
-      ...(formData.btwNummer && { btwNummer: formData.btwNummer.trim() }),
-    };
-
-    updateCustomerMutation.mutate(customerData);
+    updateCustomerMutation.mutate(validation.payload);
   };
 
   if (isLoadingCustomer) {
@@ -166,7 +153,9 @@ export default function EditCustomerPage() {
       <div className="container">
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <div className="loading" style={{ margin: '0 auto' }} />
-          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Müşteri bilgileri yükleniyor...</p>
+          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
+            {t('customers:loadingCustomer')}
+          </p>
         </div>
       </div>
     );
@@ -176,14 +165,14 @@ export default function EditCustomerPage() {
     return (
       <div className="container">
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <p style={{ color: 'var(--danger)', fontSize: '1.1rem' }}>Müşteri bulunamadı</p>
+          <p style={{ color: 'var(--danger)', fontSize: '1.1rem' }}>{t('customers:notFound')}</p>
           <motion.button
             onClick={() => navigate('/customers')}
             className="btn-primary"
             style={{ marginTop: '1rem' }}
             whileTap={{ scale: 0.95 }}
           >
-            ← Müşterilere Dön
+            ← {t('customers:title')}
           </motion.button>
         </div>
       </div>
@@ -198,7 +187,7 @@ export default function EditCustomerPage() {
         style={{ marginBottom: 'clamp(1rem, 3vw, 1.5rem)', minHeight: '44px' }}
         whileTap={{ scale: 0.98 }}
       >
-        ← Geri
+        ← {t('actions.back')}
       </motion.button>
 
       <motion.div
@@ -207,16 +196,26 @@ export default function EditCustomerPage() {
         className="card"
       >
         <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 700, marginBottom: '1.5rem' }}>
-          Müşteri Düzenle
+          {t('customers:editTitle')}
         </h2>
 
-        <form onSubmit={handleSubmit}>
-          {/* İlişki Türü */}
+        <form onSubmit={handleSubmit} noValidate>
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-              İlişki Türü <span style={{ color: 'var(--danger)' }}>*</span>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '0.75rem',
+                fontWeight: 600,
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
+              }}
+            >
+              {t('customers:relationType')} <span className="required-mark">*</span>
             </label>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div
+              ref={registerFieldRef('relatiesoort')}
+              tabIndex={-1}
+              style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', outline: 'none' }}
+            >
               {['Klant', 'Leverancier'].map((soort) => (
                 <motion.label
                   key={soort}
@@ -233,8 +232,8 @@ export default function EditCustomerPage() {
                       formData.relatiesoort.includes(soort)
                         ? 'var(--primary)'
                         : errors.relatiesoort
-                        ? 'var(--danger)'
-                        : 'var(--border)'
+                          ? 'var(--danger)'
+                          : 'var(--border)'
                     }`,
                     borderRadius: '8px',
                     cursor: 'pointer',
@@ -253,230 +252,222 @@ export default function EditCustomerPage() {
                 </motion.label>
               ))}
             </div>
-            {errors.relatiesoort && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                {errors.relatiesoort}
-              </p>
-            )}
+            {errors.relatiesoort && <p className="field-error">{errors.relatiesoort}</p>}
           </div>
 
-          {/* Müşteri Adı */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.9rem, 3vw, 1rem)' }}>
-              Müşteri Adı <span style={{ color: 'var(--danger)' }}>*</span>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
+              }}
+            >
+              {t('customers:customerName')} <span className="required-mark">*</span>
             </label>
             <input
+              ref={registerFieldRef('naam')}
               type="text"
               value={formData.naam}
               onChange={(e) => handleChange('naam', e.target.value)}
-              style={{
-                width: '100%',
-                padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                border: `1px solid ${errors.naam ? 'var(--danger)' : 'var(--border)'}`,
-                borderRadius: '8px',
-                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                minHeight: '44px',
-              }}
+              className={inputClassName('naam')}
               placeholder="ABC Food Supplier"
             />
-            {errors.naam && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                {errors.naam}
-              </p>
-            )}
+            {errors.naam && <p className="field-error">{errors.naam}</p>}
           </div>
 
-          {/* Adres Bilgileri */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.25rem)', fontWeight: 600, marginBottom: '1rem' }}>
-              Adres Bilgileri
+            <h3
+              style={{
+                fontSize: 'clamp(1.1rem, 4vw, 1.25rem)',
+                fontWeight: 600,
+                marginBottom: '1rem',
+              }}
+            >
+              {t('customers:addressInfo')}
             </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              {/* Sokak */}
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Sokak <span style={{ color: 'var(--danger)' }}>*</span>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:street')} <span className="required-mark">*</span>
                 </label>
                 <input
+                  ref={registerFieldRef('straat')}
                   type="text"
                   value={formData.straat}
                   onChange={(e) => handleChange('straat', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: `1px solid ${errors.straat ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('straat')}
                   placeholder="Industrieweg 10"
                 />
-                {errors.straat && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {errors.straat}
-                  </p>
-                )}
+                {errors.straat && <p className="field-error">{errors.straat}</p>}
               </div>
 
-              {/* Posta Kodu */}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Posta Kodu <span style={{ color: 'var(--danger)' }}>*</span>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:postalCode')} <span className="required-mark">*</span>
                 </label>
                 <input
+                  ref={registerFieldRef('postcode')}
                   type="text"
                   value={formData.postcode}
                   onChange={(e) => handleChange('postcode', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: `1px solid ${errors.postcode ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('postcode')}
                   placeholder="1234AB"
                 />
-                {errors.postcode && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {errors.postcode}
-                  </p>
-                )}
+                {errors.postcode && <p className="field-error">{errors.postcode}</p>}
               </div>
 
-              {/* Şehir */}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Şehir <span style={{ color: 'var(--danger)' }}>*</span>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:city')} <span className="required-mark">*</span>
                 </label>
                 <input
+                  ref={registerFieldRef('plaats')}
                   type="text"
                   value={formData.plaats}
                   onChange={(e) => handleChange('plaats', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: `1px solid ${errors.plaats ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('plaats')}
                   placeholder="Rotterdam"
                 />
-                {errors.plaats && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {errors.plaats}
-                  </p>
-                )}
+                {errors.plaats && <p className="field-error">{errors.plaats}</p>}
               </div>
             </div>
           </div>
 
-          {/* İletişim Bilgileri */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.25rem)', fontWeight: 600, marginBottom: '1rem' }}>
-              İletişim Bilgileri
+            <h3
+              style={{
+                fontSize: 'clamp(1.1rem, 4vw, 1.25rem)',
+                fontWeight: 600,
+                marginBottom: '1rem',
+              }}
+            >
+              {t('customers:contactInfo')}
             </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              {/* Telefon */}
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  Telefon
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:phone')}
                 </label>
                 <input
+                  ref={registerFieldRef('telefoon')}
                   type="tel"
                   value={formData.telefoon}
                   onChange={(e) => handleChange('telefoon', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: `1px solid ${errors.telefoon ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('telefoon')}
                   placeholder="+31 10 123 45 67"
                 />
-                {errors.telefoon && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {errors.telefoon}
-                  </p>
-                )}
+                {errors.telefoon && <p className="field-error">{errors.telefoon}</p>}
               </div>
 
-              {/* E-posta */}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  E-posta
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:email')}
                 </label>
                 <input
+                  ref={registerFieldRef('email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: `1px solid ${errors.email ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('email')}
                   placeholder="sales@abcfood.nl"
                 />
-                {errors.email && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {errors.email}
-                  </p>
-                )}
+                {errors.email && <p className="field-error">{errors.email}</p>}
               </div>
 
-              {/* KVK Numara */}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  KVK Numara
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:kvkNumber')}
                 </label>
                 <input
                   type="text"
                   value={formData.kvkNummer}
                   onChange={(e) => handleChange('kvkNummer', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
                   placeholder="99887766"
                 />
               </div>
 
-              {/* BTW Numara */}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: 'clamp(0.85rem, 3vw, 0.9rem)' }}>
-                  BTW Numara
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.85rem, 3vw, 0.9rem)',
+                  }}
+                >
+                  {t('customers:btwNumber')}
                 </label>
                 <input
+                  ref={registerFieldRef('btwNummer')}
                   type="text"
                   value={formData.btwNummer}
                   onChange={(e) => handleChange('btwNummer', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(0.9rem, 3vw, 1rem)',
-                    minHeight: '44px',
-                  }}
+                  className={inputClassName('btwNummer')}
                   placeholder="NL123456789B01"
                 />
+                {errors.btwNummer && <p className="field-error">{errors.btwNummer}</p>}
               </div>
             </div>
           </div>
 
-          {/* Butonlar */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '2rem' }}>
             <motion.button
               type="submit"
@@ -492,15 +483,22 @@ export default function EditCustomerPage() {
               whileTap={!updateCustomerMutation.isPending ? { scale: 0.98 } : {}}
             >
               {updateCustomerMutation.isPending ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
                   <span className="loading" style={{ width: '16px', height: '16px' }} />
-                  Güncelleniyor...
+                  {t('customers:updating')}
                 </span>
               ) : (
-                '✅ Değişiklikleri Kaydet'
+                `✅ ${t('customers:saveButton')}`
               )}
             </motion.button>
-            
+
             <motion.button
               type="button"
               onClick={() => navigate(`/customers/${customerId}`)}
@@ -513,7 +511,7 @@ export default function EditCustomerPage() {
               }}
               whileTap={{ scale: 0.98 }}
             >
-              İptal
+              {t('actions.cancel')}
             </motion.button>
           </div>
         </form>

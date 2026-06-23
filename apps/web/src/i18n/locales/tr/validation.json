@@ -11,5 +11,6 @@
   "postalCodeRequired": "Posta kodu zorunludur",
   "cityRequired": "Şehir zorunludur",
   "emailInvalid": "Geçerli bir e-posta adresi giriniz",
-  "phoneInvalid": "Geçerli bir telefon numarası giriniz"
+  "phoneInvalid": "Geçerli bir telefon numarası giriniz",
+  "btwInvalid": "Geçerli bir BTW numarası giriniz (örn. NL123456789B01)"
 }

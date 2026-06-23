@@ -35,29 +35,7 @@ export const snelStartCustomerSchema = z.object({
   email: z.string().email().optional(),
 });
 
-export const createCustomerSchema = z.object({
-  relatiesoort: z.array(z.string()).min(1, 'En az bir ilişki türü seçmelisiniz'),
-  naam: z.string().min(1, 'Müşteri adı zorunludur'),
-  vestigingsAdres: z.object({
-    straat: z.string().min(1, 'Sokak adresi zorunludur'),
-    postcode: z.string().min(1, 'Posta kodu zorunludur'),
-    plaats: z.string().min(1, 'Şehir zorunludur'),
-    land: z.object({
-      id: z.string(),
-    }),
-  }),
-  telefoon: z.string().optional(),
-  email: z.union([
-    z.string().email('Geçerli bir e-posta adresi giriniz'),
-    z.literal(''),
-  ]).optional().transform((val) => val === '' ? undefined : val),
-  kvkNummer: z.string().optional(),
-  btwNummer: z.string().regex(/^[A-Z]{2}\d{9}[A-Z]{2}$/, 'Geçerli bir BTW numarası giriniz (örn. NL123456789B01)'),
-});
-
-// Update için alanlar opsiyonel olabilir, ancak aynı yapıyı koruyoruz
-// Update sırasında relatiesoort değiştirilemeyeceği için bu alanı schema'dan çıkarıyoruz
-export const updateCustomerSchema = createCustomerSchema.omit({ relatiesoort: true }).partial();
+export * from './customer-validation';
 
 export const cartItemSchema = z.object({
   productId: z.string(),

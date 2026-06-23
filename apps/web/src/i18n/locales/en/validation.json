@@ -11,5 +11,6 @@
   "postalCodeRequired": "Postal code is required",
   "cityRequired": "City is required",
   "emailInvalid": "Please enter a valid email address",
-  "phoneInvalid": "Please enter a valid phone number"
+  "phoneInvalid": "Please enter a valid phone number",
+  "btwInvalid": "Please enter a valid VAT number (e.g. NL123456789B01)"
 }

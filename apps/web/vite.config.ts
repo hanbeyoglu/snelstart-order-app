@@ -37,6 +37,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@snelstart-order-app/shared/validators/customer-validation': path.resolve(
+        __dirname,
+        '../../packages/shared/src/validators/customer-validation.ts',
+      ),
     },
   },
   server: {

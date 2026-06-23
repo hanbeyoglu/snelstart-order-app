@@ -8,6 +8,9 @@
   "updating": "Wird aktualisiert...",
   "loading": "Kunden werden geladen...",
   "createButton": "Kunden erstellen",
+  "saveButton": "Änderungen speichern",
+  "loadingCustomer": "Kundendaten werden geladen...",
+  "notFound": "Kunde nicht gefunden",
   "relationType": "Beziehungstyp",
   "customerName": "Kundenname",
   "addressInfo": "Adressinformationen",
@@ -43,6 +46,8 @@
   "messages": {
     "created": "Kunde erfolgreich erstellt!",
     "createError": "Beim Erstellen des Kunden ist ein Fehler aufgetreten",
+    "updated": "Kunde erfolgreich aktualisiert!",
+    "updateError": "Beim Aktualisieren des Kunden ist ein Fehler aufgetreten",
     "syncSuccess": "Kunden erfolgreich synchronisiert",
     "syncError": "Synchronisierung fehlgeschlagen",
     "syncUnexpectedError": "Bei der Synchronisierung ist ein Fehler aufgetreten"

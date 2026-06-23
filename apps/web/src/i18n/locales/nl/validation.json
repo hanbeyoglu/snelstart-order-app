@@ -11,5 +11,6 @@
   "postalCodeRequired": "Postcode is verplicht",
   "cityRequired": "Stad is verplicht",
   "emailInvalid": "Voer een geldig e-mailadres in",
-  "phoneInvalid": "Voer een geldig telefoonnummer in"
+  "phoneInvalid": "Voer een geldig telefoonnummer in",
+  "btwInvalid": "Voer een geldig btw-nummer in (bijv. NL123456789B01)"
 }

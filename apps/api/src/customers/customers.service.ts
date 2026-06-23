@@ -3,7 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SnelStartService } from '../snelstart/snelstart.service';
 import { CacheService } from '../cache/cache.service';
-import { createCustomerSchema, updateCustomerSchema } from '@snelstart-order-app/shared';
+import { createCustomerSchema, mapCreateCustomerZodErrors, updateCustomerSchema } from '@snelstart-order-app/shared';
+import { parseOrBadRequest } from '../common/validation/zod-validation';
 import { CustomerVisit, CustomerVisitDocument } from './schemas/customer-visit.schema';
 import { Customer, CustomerDocument } from './schemas/customer.schema';
 import * as crypto from 'crypto';
@@ -462,10 +463,10 @@ export class CustomersService {
   }
 
   async createCustomer(customerData: any) {
+    const validated = parseOrBadRequest(createCustomerSchema, customerData, mapCreateCustomerZodErrors);
+
     try {
-      this.logger.log('Creating customer with data:', JSON.stringify(customerData, null, 2));
-      const validated = createCustomerSchema.parse(customerData);
-      this.logger.log('Validated customer data:', JSON.stringify(validated, null, 2));
+      this.logger.log('Creating customer with data:', JSON.stringify(validated, null, 2));
       
       const customer = await this.snelStartService.createCustomer(validated);
       
@@ -491,13 +492,6 @@ export class CustomersService {
         }
       }
 
-      if (error.name === 'ZodError') {
-        throw new Error(
-          `Validation error: ${error.errors
-            .map((e: any) => `${e.path.join('.')}: ${e.message}`)
-            .join(', ')}`,
-        );
-      }
       throw error;
     }
   }
@@ -530,10 +524,10 @@ export class CustomersService {
   }
 
   async updateCustomer(id: string, customerData: any) {
-    try {
-      this.logger.log(`Updating customer ${id} with data: ${JSON.stringify(customerData, null, 2)}`);
+    const validated = parseOrBadRequest(updateCustomerSchema, customerData, mapCreateCustomerZodErrors);
 
-      const validated = updateCustomerSchema.parse(customerData);
+    try {
+      this.logger.log(`Updating customer ${id} with data: ${JSON.stringify(validated, null, 2)}`);
 
       // Önce mevcut müşteriyi SnelStart'tan al (gerekli alanları korumak için)
       const existing = await this.snelStartService.getCustomerById(id);
@@ -582,13 +576,6 @@ export class CustomersService {
         }
       }
 
-      if (error.name === 'ZodError') {
-        throw new Error(
-          `Validation error: ${error.errors
-            .map((e: any) => `${e.path.join('.')}: ${e.message}`)
-            .join(', ')}`,
-        );
-      }
       throw error;
     }
   }

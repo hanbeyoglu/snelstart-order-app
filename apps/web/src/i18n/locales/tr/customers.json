@@ -8,6 +8,9 @@
   "updating": "Güncelleniyor...",
   "loading": "Müşteriler yükleniyor...",
   "createButton": "Müşteri Oluştur",
+  "saveButton": "Değişiklikleri Kaydet",
+  "loadingCustomer": "Müşteri bilgileri yükleniyor...",
+  "notFound": "Müşteri bulunamadı",
   "relationType": "İlişki Türü",
   "customerName": "Müşteri Adı",
   "addressInfo": "Adres Bilgileri",
@@ -43,6 +46,8 @@
   "messages": {
     "created": "Müşteri başarıyla oluşturuldu!",
     "createError": "Müşteri oluşturulurken bir hata oluştu",
+    "updated": "Müşteri başarıyla güncellendi!",
+    "updateError": "Müşteri güncellenirken bir hata oluştu",
     "syncSuccess": "Müşteriler başarıyla senkronize edildi",
     "syncError": "Senkronizasyon başarısız",
     "syncUnexpectedError": "Senkronizasyon sırasında bir hata oluştu"

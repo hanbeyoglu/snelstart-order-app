@@ -8,6 +8,9 @@
   "updating": "Bijwerken...",
   "loading": "Klanten laden...",
   "createButton": "Klant aanmaken",
+  "saveButton": "Wijzigingen opslaan",
+  "loadingCustomer": "Klantgegevens laden...",
+  "notFound": "Klant niet gevonden",
   "relationType": "Relatietype",
   "customerName": "Klantnaam",
   "addressInfo": "Adresgegevens",
@@ -43,6 +46,8 @@
   "messages": {
     "created": "Klant succesvol aangemaakt!",
     "createError": "Er is een fout opgetreden bij het aanmaken van de klant",
+    "updated": "Klant succesvol bijgewerkt!",
+    "updateError": "Er is een fout opgetreden bij het bijwerken van de klant",
     "syncSuccess": "Klanten succesvol gesynchroniseerd",
     "syncError": "Synchronisatie mislukt",
     "syncUnexpectedError": "Er is een fout opgetreden tijdens de synchronisatie"

@@ -8,6 +8,9 @@
   "updating": "Updating...",
   "loading": "Loading customers...",
   "createButton": "Create Customer",
+  "saveButton": "Save Changes",
+  "loadingCustomer": "Loading customer information...",
+  "notFound": "Customer not found",
   "relationType": "Relation Type",
   "customerName": "Customer Name",
   "addressInfo": "Address Information",
@@ -43,6 +46,8 @@
   "messages": {
     "created": "Customer created successfully!",
     "createError": "An error occurred while creating the customer",
+    "updated": "Customer updated successfully!",
+    "updateError": "An error occurred while updating the customer",
     "syncSuccess": "Customers synced successfully",
     "syncError": "Synchronization failed",
     "syncUnexpectedError": "An error occurred during synchronization"
